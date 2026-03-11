@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ==================== COLORES MODO CLARO ==================== -->
+    <color name="primary">#00AEEF</color>
+    <color name="primary_variant">#0095D4</color>
+    <color name="on_primary">#FFFFFF</color>
+    <color name="primary_container">#B3E5FC</color>
+    <color name="on_primary_container">#005C6B</color>
+
+    <color name="secondary">#03DAC6</color>
+    <color name="secondary_variant">#00A896</color>
+    <color name="on_secondary">#FFFFFF</color>
+    <color name="secondary_container">#CCFBF6</color>
+    <color name="on_secondary_container">#002020</color>
+
+    <color name="tertiary">#FF6B6B</color>
+    <color name="on_tertiary">#FFFFFF</color>
+    <color name="tertiary_container">#FFE0E0</color>
+    <color name="on_tertiary_container">#3D0000</color>
+
+    <color name="background">#FFFFFF</color>
+    <color name="on_background">#1C1B1F</color>
+
+    <color name="surface">#FFFFFF</color>
+    <color name="on_surface">#1C1B1F</color>
+    <color name="surface_variant">#F5F5F5</color>
+    <color name="on_surface_variant">#49454F</color>
+
+    <color name="error">#BA1A1A</color>
+    <color name="on_error">#FFFFFF</color>
+    <color name="error_container">#FFDAD6</color>
+    <color name="on_error_container">#410002</color>
+
+    <color name="outline">#79747E</color>
+    <color name="outline_variant">#CAC4D0</color>
+
+    <!-- ==================== COLORES MODO OSCURO ==================== -->
+    <color name="primary_dark">#6DD5FA</color>
+    <color name="primary_variant_dark">#0077B6</color>
+    <color name="on_primary_dark">#00354A</color>
+    <color name="primary_container_dark">#0077B6</color>
+    <color name="on_primary_container_dark">#CAF0F8</color>
+
+    <color name="secondary_dark">#4FFFD6</color>
+    <color name="secondary_variant_dark">#005047</color>
+    <color name="on_secondary_dark">#003731</color>
+    <color name="secondary_container_dark">#005047</color>
+    <color name="on_secondary_container_dark">#CCFBF6</color>
+
+    <color name="tertiary_dark">#FFB4AB</color>
+    <color name="on_tertiary_dark">#690005</color>
+    <color name="tertiary_container_dark">#93000A</color>
+    <color name="on_tertiary_container_dark">#FFDAD6</color>
+
+    <color name="background_dark">#121212</color>
+    <color name="on_background_dark">#E6E1E5</color>
+
+    <color name="surface_dark">#1E1E1E</color>
+    <color name="on_surface_dark">#E6E1E5</color>
+    <color name="surface_variant_dark">#2D2D2D</color>
+    <color name="on_surface_variant_dark">#CAC4D0</color>
+
+    <color name="error_dark">#FFB4AB</color>
+    <color name="on_error_dark">#690005</color>
+    <color name="error_container_dark">#93000A</color>
+    <color name="on_error_container_dark">#FFDAD6</color>
+
+    <color name="outline_dark">#938F99</color>
+    <color name="outline_variant_dark">#49454F</color>
+
+    <!-- ==================== COLORES BASE ==================== -->
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+</resources>

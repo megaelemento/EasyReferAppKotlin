@@ -1,0 +1,373 @@
+<resources>
+    <!-- App -->
+    <string name="app_name">Enfoque Refer</string>
+    <string name="app_subtitle">Tu programa de referidos</string>
+
+    <!-- Login -->
+    <string name="login_title">Iniciar Sesión</string>
+    <string name="phone_label">Teléfono</string>
+    <string name="phone_placeholder">Escribe aquí tu número de celular</string>
+    <string name="password_label">Contraseña</string>
+    <string name="forgot_password">¿Olvidaste tu contraseña?</string>
+    <string name="no_account">¿No tienes cuenta?</string>
+    <string name="register">Regístrate</string>
+
+    <!-- Login Errors -->
+    <string name="error_phone_required">El teléfono es obligatorio</string>
+    <string name="error_phone_length">Debe tener exactamente 10 dígitos</string>
+
+    <!-- Register -->
+    <string name="register_title">Crear Cuenta</string>
+    <string name="register_subtitle">Regístrate para comenzar</string>
+    <string name="step_phone">1. Teléfono</string>
+    <string name="step_code">2. Verificación</string>
+    <string name="step_complete">3. Datos Personales</string>
+    <string name="send_code">Enviar Código</string>
+    <string name="verify_code">Verificar Código</string>
+    <string name="resend_code">Reenviar Código</string>
+    <string name="code_label">Código SMS</string>
+    <string name="code_placeholder">1234</string>
+    <string name="didnt_receive_code">¿No recibiste el código?</string>
+    <string name="register_button">Crear Cuenta</string>
+    <string name="nombres_label">Nombres</string>
+    <string name="apellidos_label">Apellidos</string>
+    <string name="cedula_ruc_label">Cédula / RUC</string>
+    <string name="email_label">Email</string>
+    <string name="password_create_label">Contraseña</string>
+    <string name="confirm_password_label">Confirmar Contraseña</string>
+    <string name="referral_code_label">Código de referido (opcional)</string>
+    <string name="referral_code_placeholder">REFIEREYA</string>
+    <string name="is_adult">Soy mayor de edad</string>
+    <string name="accepts_privacy_policy">Acepto la política de privacidad y términos de uso</string>
+    <string name="already_have_account">¿Ya tienes cuenta?</string>
+    <string name="login_link">Iniciar Sesión</string>
+    <string name="back_to_phone">Volver al teléfono</string>
+
+    <!-- Register Errors -->
+    <string name="error_code_required">El código es obligatorio</string>
+    <string name="error_code_length">Mínimo 4 dígitos</string>
+    <string name="error_nombres_required">Los nombres son obligatorios</string>
+    <string name="error_nombres_short">Mínimo 2 caracteres</string>
+    <string name="error_apellidos_required">Los apellidos son obligatorios</string>
+    <string name="error_apellidos_short">Mínimo 2 caracteres</string>
+    <string name="error_cedula_required">La cédula/RUC es obligatoria</string>
+    <string name="error_cedula_short">Mínimo 10 dígitos</string>
+    <string name="error_email_required">El email es obligatorio</string>
+    <string name="error_email_invalid">Formato de email inválido</string>
+    <string name="error_password_short">Mínimo 8 caracteres</string>
+    <string name="error_password_upper">Debe tener al menos una mayúscula</string>
+    <string name="error_password_lower">Debe tener al menos una minúscula</string>
+    <string name="error_password_digit">Debe tener al menos un número</string>
+    <string name="error_confirm_required">Confirme la contraseña</string>
+    <string name="error_confirm_match">Las contraseñas no coinciden</string>
+    <string name="error_privacy_required">Debe aceptar la política de privacidad</string>
+    <string name="error_phone_exists">El teléfono ya está registrado</string>
+    <string name="error_invalid_code">Código incorrecto o expirado</string>
+    <string name="error_invalid_token">Token de verificación inválido</string>
+    <string name="error_registration_validation">Hay errores en los datos. Verifique los campos.</string>
+    <string name="error_rate_limited">Demasiadas solicitudes. Intente más tarde.</string>
+
+    <!-- Register Success -->
+    <string name="success_code_sent">Código enviado al %1$s</string>
+    <string name="success_code_verified">Código verificado</string>
+    <string name="success_registered">¡Cuenta creada exitosamente!</string>
+
+    <!-- Content Descriptions -->
+    <string name="content_description_code">Código SMS</string>
+    <string name="content_description_toggle_confirm">Mostrar u ocultar confirmación</string>
+    <string name="error_password_required">La contraseña es obligatoria</string>
+    <string name="error_password_min">Mínimo 6 caracteres</string>
+    <string name="error_invalid_credentials">Usuario o contraseña incorrectos</string>
+    <string name="error_phone_not_exists">El número de teléfono no existe</string>
+    <string name="error_account_blocked">Tu cuenta ha sido bloqueada</string>
+    <string name="error_too_many_attempts">Demasiados intentos. Bloqueado temporalmente</string>
+    <string name="error_server_unavailable">Error del servidor. Inténtalo más tarde</string>
+
+    <!-- Accessibility -->
+    <string name="content_description_phone">Teléfono</string>
+    <string name="content_description_password">Contraseña</string>
+    <string name="content_description_toggle_password">Mostrar u ocultar contraseña</string>
+    <string name="content_description_error">Error</string>
+
+    <!-- Home -->
+    <string name="welcome_title">Enfoque Refer</string>
+    <string name="welcome_subtitle">Bienvenido a tu programa de referidos</string>
+    <string name="welcome_back">¡Bienvenido de nuevo!</string>
+    <string name="earnings">Ganancias</string>
+    <string name="referrals">Referidos</string>
+    <string name="clicks">Clicks</string>
+    <string name="my_referrals">Mis Referidos</string>
+    <string name="see_all">Ver todos</string>
+    <string name="referral_code">Código de Referido</string>
+    <string name="copy_code">Copiar</string>
+    <string name="code_copied">Código copiado</string>
+    <string name="pending">Pendiente</string>
+    <string name="confirmed">Confirmado</string>
+    <string name="invite_friends">Invitar amigos</string>
+    <string name="my_code">Mi código</string>
+    <string name="statistics">Estadísticas</string>
+    <string name="your_statistics">Tus Estadísticas</string>
+    <string name="quick_actions">Acciones Rápidas</string>
+    <string name="available_balance">Disponible para retiro</string>
+    <string name="total_earned">Total Ganado</string>
+    <string name="withdrawn">Retirado</string>
+    <string name="level_1_short">Nivel 1</string>
+    <string name="level_2_short">Nivel 2</string>
+    <string name="level_3_short">Nivel 3</string>
+    <string name="share_code_message">Comparte este código y gana comisiones</string>
+    <string name="share_code">Compartir código</string>
+    <string name="share_referral_message">Usa mi código de referido: %1$s y juntos ganaremos comisiones por cada referencia. ¡Regístrate aquí! con Enfoque Refer</string>
+    <string name="your_company">Tu Empresa</string>
+    <string name="no_code">Sin código</string>
+    <string name="updated">Actualizado</string>
+    <string name="logout_confirmation">¿Estás seguro de que quieres cerrar sesión?</string>
+    <string name="my_companies">Empresas</string>
+    <string name="settings">Configuración</string>
+    <string name="logout">Cerrar sesión</string>
+    <string name="edit_profile">Editar perfil</string>
+
+    <!-- Password Toggle -->
+    <string name="hide_password">Ocultar contraseña</string>
+    <string name="show_password">Mostrar contraseña</string>
+
+    <!-- Password Reset -->
+    <string name="reset_password">Recuperar Contraseña</string>
+    <string name="reset_password_subtitle">Ingresa tu número de teléfono</string>
+    <string name="enter_code">Ingresa el código</string>
+    <string name="code_sent_message">Te enviamos un código de verificación</string>
+    <string name="new_password">Nueva Contraseña</string>
+    <string name="enter_new_password">Ingresa tu nueva contraseña</string>
+    <string name="password_placeholder">Nueva contraseña</string>
+    <string name="confirm_password_placeholder">Confirmar contraseña</string>
+    <string name="change_password">Cambiar Contraseña</string>
+    <string name="password_changed">¡Contraseña actualizada!</string>
+    <string name="password_changed_message">Tu contraseña ha sido cambiada exitosamente</string>
+    <string name="password_requirements">La contraseña debe tener:</string>
+    <string name="password_min_8">• Mínimo 8 caracteres</string>
+    <string name="password_uppercase">• Al menos una mayúscula</string>
+    <string name="password_lowercase">• Al menos una minúscula</string>
+    <string name="password_number">• Al menos un número</string>
+    <string name="resend_wait">Reenviar en %1$d segundos…</string>
+    <string name="success">Éxito</string>
+    <string name="back">Atrás</string>
+    <string name="profile">Perfil</string>
+
+    <!-- Company Registration -->
+    <string name="register_company">Registrar Empresa</string>
+    <string name="company_info">Información de la Empresa</string>
+    <string name="edit_company">Editar Empresa</string>
+    <string name="save_changes">Guardar Cambios</string>
+    <string name="company_name">Nombre de la Empresa</string>
+    <string name="company_name_label">Nombre de la Empresa</string>
+    <string name="company_name_placeholder">Mi Empresa S.A.</string>
+    <string name="company_description">Descripción de la Empresa</string>
+    <string name="company_description_label">Descripción de la Empresa</string>
+    <string name="company_description_placeholder">Describe tu empresa...</string>
+    <string name="product_description">Descripción del Producto/Servicio</string>
+    <string name="product_description_label">Descripción del Producto/Servicio</string>
+    <string name="product_description_placeholder">¿Qué productos o servicios ofreces?</string>
+    <string name="location_info">Ubicación</string>
+    <string name="address">Dirección</string>
+    <string name="address_label">Dirección</string>
+    <string name="address_placeholder">Calle principal #123</string>
+    <string name="city">Ciudad</string>
+    <string name="city_label">Ciudad</string>
+    <string name="city_placeholder">Guayaquil</string>
+    <string name="province">Provincia</string>
+    <string name="province_label">Provincia</string>
+    <string name="province_placeholder">Guayas</string>
+    <string name="commission_info">Comisiones</string>
+    <string name="commission_percentage">Porcentaje de Comisión</string>
+    <string name="commission_percentage_label">Porcentaje de Comisión</string>
+    <string name="commission_percentage_placeholder">10</string>
+    <string name="additional_info">Información Adicional (Opcional)</string>
+    <string name="website_label">Sitio Web</string>
+    <string name="website_optional">Sitio Web (Opcional)</string>
+    <string name="website_placeholder">https://miempresa.com</string>
+    <string name="facebook_label">Facebook</string>
+    <string name="facebook_placeholder">https://facebook.com/...</string>
+    <string name="instagram_label">Instagram</string>
+    <string name="instagram_placeholder">https://instagram.com/...</string>
+    <string name="whatsapp_label">WhatsApp</string>
+    <string name="whatsapp_number">Número de WhatsApp</string>
+    <string name="whatsapp_placeholder">0991234567</string>
+    <string name="register_company_button">Registrar Empresa</string>
+    <string name="accept">Aceptar</string>
+
+    <!-- Referrals -->
+    <string name="my_referrals_title">Mis Referidos</string>
+    <string name="referral_tree">Árbol de Referidos</string>
+    <string name="level_1">Nivel 1</string>
+    <string name="level_2">Nivel 2</string>
+    <string name="level_3">Nivel 3</string>
+    <string name="total_referrals">Total Referidos</string>
+    <string name="search_referral">Buscar Referido</string>
+    <string name="search_referral_hint">Ingresa código de referido</string>
+    <string name="search_button">Buscar</string>
+    <string name="code_found">Código encontrado en nivel %1$d</string>
+    <string name="code_not_found">Código no encontrado</string>
+    <string name="your_code">Tu código</string>
+    <string name="no_referrals">No tienes referidos aún</string>
+    <string name="invite_friends_subtitle">Invita amigos y gana comisiones</string>
+
+    <!-- QR Payments -->
+    <string name="qr_payments">Pagos QR</string>
+    <string name="generate_qr">Generar QR</string>
+    <string name="scan_qr">Escanear QR</string>
+    <string name="generate_new_qr">Generar Nuevo Código QR</string>
+    <string name="select_company">Empresa</string>
+    <string name="select_company_placeholder">Selecciona una empresa</string>
+    <string name="amount">Monto</string>
+    <string name="amount_placeholder">25.50</string>
+    <string name="description">Descripción</string>
+    <string name="description_placeholder">Compra de productos</string>
+    <string name="description_optional">Descripción (Opcional)</string>
+    <string name="referral_code_optional">Código de Referido (Opcional)</string>
+    <string name="referral_code_qr_placeholder">ABC123</string>
+    <string name="generate_qr_code">Generar Código QR</string>
+    <string name="qr_generated_success">¡Código QR Generado!</string>
+    <string name="qr_code_label">Código QR</string>
+    <string name="qr_code_copied">Código QR copiado</string>
+    <string name="qr_code_image_description">Código QR para pagos</string>
+    <string name="show_qr_to_customer">Muestra este código QR a tu cliente para que lo escanee y realice el pago</string>
+    <string name="copy_qr_code">Copiar Código</string>
+    <string name="generate_another_qr">Generar Otro QR</string>
+    <string name="scan_qr_instructions">Apunta la cámara al código QR del establecimiento para escanearlo</string>
+    <string name="qr_code">Código QR</string>
+    <string name="qr_scanned_success">¡Código QR Escaneado!</string>
+    <string name="buyer_information">Información del Comprador</string>
+    <string name="buyer_document">Cédula/RUC</string>
+    <string name="buyer_document_placeholder">0912345678</string>
+    <string name="buyer_name">Nombre Completo</string>
+    <string name="buyer_name_placeholder">JUAN PEREZ</string>
+    <string name="buyer_phone">Teléfono</string>
+    <string name="buyer_phone_placeholder">+593987654321</string>
+    <string name="buyer_email_optional">Email (Opcional)</string>
+    <string name="buyer_email_placeholder">correo@email.com</string>
+    <string name="confirm_payment">Confirmar Pago</string>
+    <string name="scan_another_qr">Escanear Otro QR</string>
+    <string name="transaction_completed">¡Transacción Completada!</string>
+    <string name="transaction_id">ID de Transacción</string>
+    <string name="total_amount">Monto Total</string>
+    <string name="commission_amount">Monto de Comisión</string>
+    <string name="status">Estado</string>
+    <string name="company_id">ID de Empresa</string>
+    <string name="company_active">Empresa Activa</string>
+    <string name="company_pending">Empresa Pendiente</string>
+    <string name="company_inactive">Empresa Inactiva</string>
+    <string name="register_company_to_generate_qr">¿Quieres generar códigos QR? Registra tu empresa para comenzar</string>
+    <string name="scan_qr_title">Escanear Código QR</string>
+    <string name="scan_with_camera">Escanear con Cámara</string>
+
+    <!-- QR Scanner -->
+    <string name="close">Cerrar</string>
+    <string name="toggle_flash">Flash</string>
+    <string name="point_camera_qr">Apunta la cámara al código QR para escanearlo</string>
+    <string name="camera_permission_required">Permiso de Cámara Requerido</string>
+    <string name="camera_permission_rationale">Para escanear códigos QR, necesitamos acceso a tu cámara. Por favor concede el permiso para continuar.</string>
+    <string name="grant_permission">Conceder Permiso</string>
+    <string name="cancel">Cancelar</string>
+    <string name="camera_permission_denied">Permiso de Cámara Denegado</string>
+    <string name="camera_permission_denied_message">No puedes escanear códigos QR sin el permiso de cámara. Por favor, habilita el permiso en la configuración de la aplicación.</string>
+
+    <!-- Session Management -->
+    <string name="session_management">Gestión de Sesiones</string>
+    <string name="active_sessions">Sesiones Activas</string>
+    <string name="sessions_description">Administra tus sesiones activas en diferentes dispositivos</string>
+    <string name="devices">dispositivos</string>
+    <string name="current_session">Actual</string>
+    <string name="last_active">Última actividad</string>
+    <string name="revoke_session">Revocar sesión</string>
+    <string name="revoke">Revocar</string>
+    <string name="revoke_all_sessions">Revocar todas</string>
+    <string name="revoke_all">Revocar Todas</string>
+    <string name="revoke_session_message">¿Estás seguro de que quieres cerrar la sesión en \"%1$s\"? El dispositivo será desconectado.</string>
+    <string name="revoke_all_sessions_message">¿Estás seguro de que quieres cerrar todas las %1$d sesiones? Todos los demás dispositivos serán desconectados excepto el actual.</string>
+    <string name="no_sessions">Sin sesiones</string>
+    <string name="no_sessions_description">No se encontraron sesiones activas</string>
+    <string name="retry">Reintentar</string>
+    <string name="error_loading_sessions">Error al cargar sesiones</string>
+
+    <!-- Admin Earnings -->
+    <string name="admin_earnings">Ganancias</string>
+    <string name="search_by_user">Buscar por usuario, teléfono o código...</string>
+    <string name="no_earnings">Sin ganancias</string>
+    <string name="no_earnings_description">No se encontraron registros de ganancias</string>
+    <string name="paid_earnings">Pagadas</string>
+    <string name="paid">Pagado</string>
+    <string name="total_earnings">Total Ganancias</string>
+    <string name="search">Buscar</string>
+    <string name="page_info">Página %1$d de %2$d (%3$d registros)</string>
+    <string name="previous">Anterior</string>
+    <string name="next">Siguiente</string>
+    <string name="filter">Filtrar</string>
+
+    <!-- Public Companies -->
+    <string name="public_companies">Empresas</string>
+    <string name="no_companies_found">No se encontraron empresas</string>
+    <string name="search_companies">Buscar empresas...</string>
+    <string name="select_province">Provincia</string>
+    <string name="select_city">Ciudad</string>
+    <string name="select_category">Categoría</string>
+    <string name="select_service">Servicio</string>
+    <string name="category_label">Categoría</string>
+    <string name="service_label">Servicio</string>
+    <string name="select_category_first">Seleccione categoría primero</string>
+    <string name="all_provinces">Todas las provincias</string>
+    <string name="all_cities">Todas las ciudades</string>
+    <string name="all_categories">Todas las categorías</string>
+    <string name="all_services">Todos los servicios</string>
+    <string name="clear_filters">Limpiar filtros</string>
+    <string name="company_details">Detalles de la Empresa</string>
+    <string name="company_info_description">Descripción</string>
+    <string name="products">Productos</string>
+    <string name="location">Ubicación</string>
+    <string name="contact">Contacto</string>
+    <string name="website">Sitio Web</string>
+    <string name="whatsapp">WhatsApp</string>
+    <string name="social_media">Redes Sociales</string>
+    <string name="facebook">Facebook</string>
+    <string name="instagram">Instagram</string>
+    <string name="call">Llamar</string>
+    <string name="open_website">Abrir Sitio Web</string>
+    <string name="share_company">Compartir</string>
+    <string name="discover_companies">Descubre y conecta con empresas aliadas</string>
+
+    <!-- Admin Withdrawals -->
+    <string name="admin_withdrawals">Retiros</string>
+    <string name="no_withdrawals">No hay solicitudes de retiro</string>
+    <string name="approved">Aprobado</string>
+    <string name="rejected">Rechazado</string>
+    <string name="postponed">Postergado</string>
+    <string name="all">Todos</string>
+    <string name="reason">Motivo</string>
+    <string name="approve_withdrawal">Aprobar Retiro</string>
+    <string name="reject_withdrawal">Rechazar Retiro</string>
+    <string name="postpone_withdrawal">Postergar Retiro</string>
+    <string name="transaction_reference">Referencia de transacción</string>
+    <string name="notes_optional">Notas (opcional)</string>
+    <string name="rejection_reason">Motivo de rechazo</string>
+    <string name="postpone_reason">Motivo de postergación</string>
+    <string name="approve">Aprobar</string>
+    <string name="reject">Rechazar</string>
+    <string name="postpone">Postergar</string>
+    <string name="confirm">Confirmar</string>
+    <string name="withdrawal_history">Historial de Retiros</string>
+    <string name="no_withdrawal_history">No hay historial de retiros</string>
+    <string name="withdrawal_details">Detalles del Retiro</string>
+    <string name="requested_amount">Monto solicitado</string>
+    <string name="request_date">Fecha de solicitud</string>
+    <string name="review_date">Fecha de revisión</string>
+    <string name="processed_date">Fecha de procesamiento</string>
+    <string name="processing_notes">Notas de procesamiento</string>
+
+    <!-- Withdrawal Status -->
+    <string name="completed">Completado</string>
+    <string name="cancelled">Cancelado</string>
+    <string name="notes">Notas</string>
+    <string name="my_products">Mis Productos</string>
+    <string name="cart">Carrito</string>
+    <string name="history">Historial</string>
+    <string name="payments">Pagos</string>
+    <string name="withdrawals">Retiros</string>
+</resources>
