@@ -3,13 +3,25 @@
 ## 📋 Información del Proyecto
 - **Nombre:** EasyRefer App Kotlin
 - **Tech Stack:** Kotlin, Jetpack Compose, Android SDK
-- **Repositorio:** Por definir
+- **Repositorio:** https://github.com/megaelemento/EasyReferAppKotlin
 - **Fecha de inicio:** 2026-03-04
 - **Estado:** En desarrollo activo
 
 ---
 
 ## 📝 Historial de Cambios
+
+### 2026-03-11 - Subida a GitHub
+**Objetivo:** Subir el proyecto a GitHub para control de versiones.
+
+**Cambios realizados:**
+- Inicializado repositorio Git
+- Creado .gitignore para Android/Kotlin
+- Subido a GitHub: https://github.com/megaelemento/EasyReferAppKotlin
+
+**Estado:** ✅ Completado
+
+---
 
 ### 2026-03-11 - QA y Correcciones del Panel
 **Objetivo:** Revisar el panel de admin y opciones de Ganancias/Retiros.
@@ -35,7 +47,7 @@
 ---
 
 ## 📌 Pendientes
-- [ ] Subir a GitHub
+- [x] Subir a GitHub
 - [ ] QA completo de la app
 - [ ] Verificar funcionamiento de Ganancias y Retiros con datos reales
 
