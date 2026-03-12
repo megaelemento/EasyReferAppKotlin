@@ -50,6 +50,9 @@ fun EarningsScreen(
     level1Earnings: Double,
     level2Earnings: Double,
     level3Earnings: Double,
+    level1Percentage: Double,
+    level2Percentage: Double,
+    level3Percentage: Double,
     topCompanies: List<Pair<String, Double>>,
     // Nuevos parámetros para lista de comisiones
     commissions: List<CommissionResponse>,
@@ -136,6 +139,9 @@ fun EarningsScreen(
                     level1Earnings = level1Earnings,
                     level2Earnings = level2Earnings,
                     level3Earnings = level3Earnings,
+                    level1Percentage = level1Percentage,
+                    level2Percentage = level2Percentage,
+                    level3Percentage = level3Percentage,
                     topCompanies = topCompanies,
                     commissions = commissions,
                     isLoadingCommissions = isLoadingCommissions,
@@ -191,6 +197,9 @@ private fun EarningsContent(
     level1Earnings: Double,
     level2Earnings: Double,
     level3Earnings: Double,
+    level1Percentage: Double,
+    level2Percentage: Double,
+    level3Percentage: Double,
     topCompanies: List<Pair<String, Double>>,
     commissions: List<CommissionResponse>,
     isLoadingCommissions: Boolean,
@@ -264,7 +273,10 @@ private fun EarningsContent(
             EarningsByLevelCard(
                 level1Earnings = level1Earnings,
                 level2Earnings = level2Earnings,
-                level3Earnings = level3Earnings
+                level3Earnings = level3Earnings,
+                level1Percentage = level1Percentage,
+                level2Percentage = level2Percentage,
+                level3Percentage = level3Percentage
             )
         }
 
@@ -514,7 +526,10 @@ private fun StatItem(
 private fun EarningsByLevelCard(
     level1Earnings: Double,
     level2Earnings: Double,
-    level3Earnings: Double
+    level3Earnings: Double,
+    level1Percentage: Double,
+    level2Percentage: Double,
+    level3Percentage: Double
 ) {
     Card(
         modifier = Modifier
@@ -542,7 +557,7 @@ private fun EarningsByLevelCard(
                 level = "Nivel 1",
                 description = "Referidos directos",
                 amount = level1Earnings,
-                percentage = "40%",
+                percentage = "${level1Percentage.toInt()}%",
                 gradient = GradientSuccess
             )
 
@@ -553,7 +568,7 @@ private fun EarningsByLevelCard(
                 level = "Nivel 2",
                 description = "Referidos de tus referidos",
                 amount = level2Earnings,
-                percentage = "30%",
+                percentage = "${level2Percentage.toInt()}%",
                 gradient = GradientOrange
             )
 
@@ -564,7 +579,7 @@ private fun EarningsByLevelCard(
                 level = "Nivel 3",
                 description = "Nivel 3 de referido",
                 amount = level3Earnings,
-                percentage = "20%",
+                percentage = "${level3Percentage.toInt()}%",
                 gradient = GradientPurple
             )
         }

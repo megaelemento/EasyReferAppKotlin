@@ -28,6 +28,11 @@ data class EarningsUiState(
     // Ganancias por nivel
     val earningsByLevel: EarningsByLevel? = null,
 
+    // Porcentajes de comisión por nivel (desde el backend)
+    val level1Percentage: Double = 0.0,
+    val level2Percentage: Double = 0.0,
+    val level3Percentage: Double = 0.0,
+
     // Empresas top
     val topCompanies: List<CompanyEarnings> = emptyList(),
 
@@ -61,6 +66,7 @@ class EarningsViewModel(
             when (val result = repository.getMyEarningsSummary(authorization)) {
                 is EarningsResult.Success -> {
                     val response = result.response
+                    val percentages = response.commissionPercentages
                     _uiState.value = _uiState.value.copy(
                         totalEarned = response.totalEarned,
                         totalPaid = response.totalPaid,
@@ -70,6 +76,9 @@ class EarningsViewModel(
                         paidCount = response.paidCount,
                         scheduledCount = response.scheduledCount,
                         earningsByLevel = response.earningsByLevel,
+                        level1Percentage = percentages?.level1 ?: 20.0,
+                        level2Percentage = percentages?.level2 ?: 20.0,
+                        level3Percentage = percentages?.level3 ?: 20.0,
                         topCompanies = response.topCompanies ?: emptyList(),
                         isLoading = false,
                         isEmpty = response.totalCommissions == 0

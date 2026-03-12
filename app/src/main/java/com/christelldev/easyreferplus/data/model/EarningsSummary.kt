@@ -28,6 +28,8 @@ data class EarningsSummaryResponse(
     val scheduledCount: Int,
     @SerializedName("earnings_by_level")
     val earningsByLevel: EarningsByLevel?,
+    @SerializedName("commission_percentages")
+    val commissionPercentages: CommissionPercentages?,
     @SerializedName("top_companies")
     val topCompanies: List<CompanyEarnings>?
 )
@@ -39,6 +41,18 @@ data class EarningsByLevel(
     val level2: Double,
     @SerializedName("level_3")
     val level3: Double
+)
+
+// Porcentajes de comisión desde el backend
+data class CommissionPercentages(
+    @SerializedName("level_1")
+    val level1: Double,
+    @SerializedName("level_2")
+    val level2: Double,
+    @SerializedName("level_3")
+    val level3: Double,
+    @SerializedName("platform")
+    val platform: Double
 )
 
 data class CompanyEarnings(

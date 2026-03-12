@@ -11,6 +11,45 @@
 
 ## 📝 Historial de Cambios
 
+### 2026-03-12 - Fix Porcentajes de Comisiones
+**Objetivo:** Sincronizar porcentajes de comisiones entre panel admin y app Kotlin.
+
+**Problema identificado:**
+- Panel Admin: 20%-20%-20%-40% (configurable desde BD)
+- App Kotlin: Hardcoded 40%-30%-20% (incorrecto)
+
+**Solución implementada:**
+1. Backend: Modificado endpoint `/api/companies/transactions/my-earnings/summary` para devolver `commission_percentages`
+2. App Kotlin: 
+   - Agregado modelo `CommissionPercentages` en `EarningsSummary.kt`
+   - Modificado `EarningsUiState` para guardar porcentajes
+   - Actualizado `EarningsScreen` para usar valores dinámicos desde backend
+   - Valores por defecto: 20%-20%-20% (si no viene del backend)
+
+**Autenticación:** Todos los endpoints protegidos con JWT Token
+
+**APK generado:** easyrefer-debug.apk (46 MB)
+**Estado:** ✅ Build successful - Subido a Drive
+
+---
+
+### 2026-03-12 - Corrección de Sombras en Botones
+**Objetivo:** Eliminar sombras duplicadas en botones (doble elevación).
+
+**Cambios realizados:**
+- Analizadas todas las pantallas de la app
+- Identificados 5 botones con `.shadow()` que causaban doble elevación:
+  - LoginScreen.kt - 1 botón
+  - PasswordResetScreen.kt - 3 botones
+  - MaintenanceScreen.kt - 1 botón
+- Eliminado `.shadow()` de botones, ahora usan solo `ButtonDefaults.buttonElevation(defaultElevation = 0.dp)`
+- Las tarjetas (Cards) mantienen sus sombras correctas con `CARD_ELEVATION = 2.dp`
+
+**APK generado:** easyrefer-debug.apk (46 MB)
+**Estado:** ✅ Completado - Build successful
+
+---
+
 ### 2026-03-11 - Subida a GitHub
 **Objetivo:** Subir el proyecto a GitHub para control de versiones.
 
