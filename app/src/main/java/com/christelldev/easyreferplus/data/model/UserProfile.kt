@@ -32,6 +32,8 @@ data class UserProfile(
     val isVerified: Boolean,
     @SerializedName("has_company")
     val hasCompany: Boolean,
+    @SerializedName("status")
+    val status: String?,
     @SerializedName("role")
     val role: String?,
     @SerializedName("created_at")
@@ -41,6 +43,9 @@ data class UserProfile(
 ) {
     val isAdmin: Boolean
         get() = role?.lowercase() == "admin"
+        
+    val isSuspended: Boolean
+        get() = status?.lowercase() == "suspended"
 }
 
 // Solicitud de actualización de perfil
@@ -99,6 +104,8 @@ data class ProfileResponse(
     val isVerified: Boolean,
     @SerializedName("has_company")
     val hasCompany: Boolean,
+    @SerializedName("status")
+    val status: String?,
     @SerializedName("role")
     val role: String?,
     @SerializedName("created_at")
@@ -108,4 +115,7 @@ data class ProfileResponse(
 ) {
     val isAdmin: Boolean
         get() = role?.lowercase() == "admin"
+        
+    val isSuspended: Boolean
+        get() = status?.lowercase() == "suspended"
 }

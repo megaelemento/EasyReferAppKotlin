@@ -150,6 +150,7 @@ class ProfileRepository(
                             phoneVerified = body.phoneVerified,
                             isVerified = body.isVerified,
                             hasCompany = body.hasCompany,
+                            status = body.status,
                             role = body.role,
                             createdAt = body.createdAt,
                             selfieUrl = body.selfieUrl
@@ -188,6 +189,7 @@ class ProfileRepository(
                                     phoneVerified = it.phoneVerified,
                                     isVerified = it.isVerified,
                                     hasCompany = it.hasCompany,
+                                    status = it.status,
                                     role = it.role,
                                     createdAt = it.createdAt
                                 )
