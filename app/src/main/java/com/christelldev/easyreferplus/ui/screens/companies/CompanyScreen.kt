@@ -134,7 +134,7 @@ fun CompanyScreen(
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color(0xFF03A9F4)
+                    containerColor = AppBlue
                 ),
                 modifier = Modifier.windowInsetsPadding(WindowInsets.statusBars)
             )
@@ -355,7 +355,7 @@ fun CompanyScreen(
                         .height(56.dp)
                         .shadow(CARD_ELEVATION, RoundedCornerShape(CARD_CORNER_RADIUS)),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFF03A9F4)
+                        containerColor = AppBlue
                     ),
                     shape = RoundedCornerShape(CARD_CORNER_RADIUS)
                 ) {
