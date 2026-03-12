@@ -352,8 +352,8 @@ fun CompanyScreen(
                     onClick = viewModel::registerCompany,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(56.dp)
-                        .shadow(CARD_ELEVATION, RoundedCornerShape(CARD_CORNER_RADIUS)),
+                        .height(56.dp),
+                    elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = AppBlue
                     ),
@@ -713,8 +713,7 @@ fun CompanyTextField(
             },
             placeholder = { Text(placeholder) },
             modifier = Modifier
-                .fillMaxWidth()
-                .shadow(2.dp, RoundedCornerShape(CARD_CORNER_RADIUS)),
+                .fillMaxWidth(),
             isError = error != null,
             maxLines = maxLines,
             singleLine = maxLines == 1,
