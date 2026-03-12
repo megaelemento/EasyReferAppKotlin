@@ -158,14 +158,13 @@ fun MaintenanceScreen(
                         enabled = !isChecking,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(56.dp)
-                            .shadow(elevation = 2.dp, shape = RoundedCornerShape(DesignConstants.CARD_CORNER_RADIUS)),
+                            .height(56.dp),
                         shape = RoundedCornerShape(DesignConstants.CARD_CORNER_RADIUS),
                         colors = ButtonDefaults.buttonColors(
                             containerColor = DesignConstants.PrimaryColor,
                             disabledContainerColor = DesignConstants.PrimaryColor.copy(alpha = 0.5f)
                         ),
-                        elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp, pressedElevation = 8.dp)
+                        elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp, pressedElevation = 2.dp)
                     ) {
                         if (isChecking) {
                             CircularProgressIndicator(

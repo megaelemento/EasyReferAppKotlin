@@ -228,19 +228,15 @@ fun LoginScreen(
                         onClick = viewModel::login,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(56.dp)
-                            .shadow(
-                                elevation = 2.dp,  // Reducido de 6dp a 2dp para look más limpio
-                                shape = RoundedCornerShape(DesignConstants.CARD_CORNER_RADIUS)
-                            ),
+                            .height(56.dp),
                         enabled = !uiState.isLoading,
                         shape = RoundedCornerShape(DesignConstants.CARD_CORNER_RADIUS),
                         colors = ButtonDefaults.buttonColors(
                             containerColor = DesignConstants.PrimaryColor
                         ),
                         elevation = ButtonDefaults.buttonElevation(
-                    defaultElevation = 4.dp,
-                    pressedElevation = 8.dp
+                    defaultElevation = 0.dp,
+                    pressedElevation = 2.dp
                 )
             ) {
                 if (uiState.isLoading) {
