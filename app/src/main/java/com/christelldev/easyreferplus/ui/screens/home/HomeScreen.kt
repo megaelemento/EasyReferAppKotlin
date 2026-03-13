@@ -28,6 +28,8 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -1189,168 +1191,237 @@ private fun ModernDrawerContent(
     onNavigateToWithdrawal: () -> Unit = {},
     onLogout: () -> Unit
 ) {
-    val primaryColor = MaterialTheme.colorScheme.primary
-    ModalDrawerSheet(modifier = Modifier.width(300.dp)) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(brush = Brush.verticalGradient(colors = listOf(primaryColor, primaryColor.copy(alpha = 0.7f))))
-                .padding(32.dp)
-        ) {
-            Column {
+    val primary = MaterialTheme.colorScheme.primary
+    val surfaceColor = MaterialTheme.colorScheme.surface
+    val errorColor = MaterialTheme.colorScheme.error
+
+    ModalDrawerSheet(
+        modifier = Modifier.width(300.dp),
+        drawerContainerColor = surfaceColor
+    ) {
+        Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+
+            // ── HEADER ──────────────────────────────────────────────────────
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(
+                        Brush.verticalGradient(
+                            colors = listOf(Color(0xFF003D5C), primary)
+                        )
+                    )
+                    .padding(horizontal = 24.dp, vertical = 28.dp)
+            ) {
+                Column {
+                    // Avatar con borde blanco translúcido
+                    Box(
+                        modifier = Modifier
+                            .size(72.dp)
+                            .clip(CircleShape)
+                            .background(Color.White.copy(alpha = 0.2f))
+                            .padding(3.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .clip(CircleShape)
+                                .background(surfaceColor),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            if (selfieUrl != null) {
+                                val selfieUrlWithTimestamp = if (selfieUrl.contains("?")) {
+                                    "$selfieUrl&t=${System.currentTimeMillis()}"
+                                } else {
+                                    "$selfieUrl?t=${System.currentTimeMillis()}"
+                                }
+                                AsyncImage(
+                                    model = ImageRequest.Builder(LocalContext.current)
+                                        .data(selfieUrlWithTimestamp)
+                                        .crossfade(true)
+                                        .build(),
+                                    contentDescription = "Foto de perfil",
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentScale = ContentScale.Crop
+                                )
+                            } else {
+                                Text(
+                                    text = userName.take(2).uppercase(),
+                                    style = MaterialTheme.typography.headlineSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = primary
+                                )
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(14.dp))
+
+                    Text(
+                        text = userName,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White
+                    )
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            text = userEmail,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Color.White.copy(alpha = 0.75f),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.weight(1f, fill = false)
+                        )
+                        if (isVerified) {
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Icon(
+                                imageVector = Icons.Default.Verified,
+                                contentDescription = "Verificado",
+                                tint = Color(0xFF69F0AE),
+                                modifier = Modifier.size(14.dp)
+                            )
+                        }
+                    }
+                }
+            }
+
+            // ── SECCIÓN: GENERAL ────────────────────────────────────────────
+            Spacer(modifier = Modifier.height(8.dp))
+            DrawerSectionLabel("General", primary)
+            DrawerItem(Icons.Default.Person, "Perfil", primary, onNavigateToProfile)
+            DrawerItem(Icons.Default.Group, "Mis Referidos", primary, onNavigateToReferrals)
+            DrawerItem(Icons.Default.Business, "Mi Empresa", primary, onNavigateToCompany)
+
+            // ── SECCIÓN: FINANZAS ────────────────────────────────────────────
+            if (hasEarningsAvailable || hasWithdrawalsAvailable) {
+                Spacer(modifier = Modifier.height(4.dp))
+                DrawerSectionLabel("Finanzas", primary)
+                if (hasEarningsAvailable)
+                    DrawerItem(Icons.Default.TrendingUp, "Ganancias", primary, onNavigateToEarnings)
+                if (hasWithdrawalsAvailable)
+                    DrawerItem(Icons.Default.Money, "Retiros", primary, onNavigateToWithdrawal)
+            }
+
+            // ── SECCIÓN: MI EMPRESA ──────────────────────────────────────────
+            if (hasCompany) {
+                Spacer(modifier = Modifier.height(4.dp))
+                DrawerSectionLabel("Mi Empresa", primary)
+                DrawerItem(Icons.Default.QrCode2, "Pagos QR", primary, onNavigateToQR)
+                DrawerItem(Icons.Default.Store, "Mis Productos", primary, onNavigateToMyProducts)
+                DrawerItem(Icons.Default.ShoppingCart, "Carrito", primary, onNavigateToCart)
+                DrawerItem(Icons.Default.History, "Historial", primary, onNavigateToHistory)
+                DrawerItem(Icons.Default.Payments, "Pagos", primary, onNavigateToPayments)
+            }
+
+            // ── SECCIÓN: ADMINISTRACIÓN ──────────────────────────────────────
+            if (isAdmin) {
+                Spacer(modifier = Modifier.height(4.dp))
+                DrawerSectionLabel("Administración", primary)
+                DrawerItem(Icons.Default.AttachMoney, "Ganancias Admin", primary, onNavigateToAdminEarnings)
+                DrawerItem(Icons.Default.AccountBalanceWallet, "Retiros Admin", primary, onNavigateToAdminWithdrawals)
+            }
+
+            // ── LOGOUT ───────────────────────────────────────────────────────
+            Spacer(modifier = Modifier.height(12.dp))
+            HorizontalDivider(
+                modifier = Modifier.padding(horizontal = 20.dp),
+                color = errorColor.copy(alpha = 0.15f)
+            )
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable(onClick = onLogout)
+                    .padding(horizontal = 20.dp, vertical = 14.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
                 Box(
                     modifier = Modifier
-                        .size(64.dp)
+                        .size(36.dp)
                         .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.surface),
+                        .background(errorColor.copy(alpha = 0.1f)),
                     contentAlignment = Alignment.Center
                 ) {
-                    if (selfieUrl != null) {
-                        // Agregar timestamp para evitar cache
-                        val timestamp = System.currentTimeMillis()
-                        val selfieUrlWithTimestamp = if (selfieUrl.contains("?")) {
-                            "$selfieUrl&t=$timestamp"
-                        } else {
-                            "$selfieUrl?t=$timestamp"
-                        }
-
-                        AsyncImage(
-                            model = ImageRequest.Builder(LocalContext.current)
-                                .data(selfieUrlWithTimestamp)
-                                .crossfade(true)
-                                .build(),
-                            contentDescription = "Foto de perfil",
-                            modifier = Modifier.fillMaxSize(),
-                            contentScale = ContentScale.Crop
-                        )
-                    } else {
-                        Text(
-                            text = userName.take(2).uppercase(),
-                            style = MaterialTheme.typography.headlineMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = primaryColor
-                        )
-                    }
-                }
-                Spacer(modifier = Modifier.height(12.dp))
-                Text(
-                    text = userName,
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.surface
-                )
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        text = userEmail,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.8f)
-                    )
-                    if (isVerified) {
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Icon(
-                            imageVector = Icons.Default.Verified,
-                            contentDescription = "Verificado",
-                            tint = Color(0xFF4CAF50),
-                            modifier = Modifier.size(16.dp)
-                        )
-                    }
-                }
-            }
-        }
-        Spacer(modifier = Modifier.height(8.dp))
-
-        // Menú base - siempre visible
-        val baseMenuItems = listOf(
-            MenuItem(Icons.Default.Person, "Perfil", onNavigateToProfile),
-            MenuItem(Icons.Default.Group, "Mis Referidos", onNavigateToReferrals),
-            MenuItem(Icons.Default.Business, "Mi Empresa", onNavigateToCompany)
-        )
-
-        // Menú de Empresa - solo visible cuando tiene empresa registrada
-        // Usar remember para que se rebuild cuando cambia hasCompany
-        val companyMenuItems = remember(hasCompany) {
-            if (hasCompany) {
-                listOf(
-                    MenuItem(Icons.Default.QrCode2, "Pagos QR", onNavigateToQR),
-                    MenuItem(Icons.Default.Store, "Mis Productos", onNavigateToMyProducts),
-                    MenuItem(Icons.Default.ShoppingCart, "Carrito", onNavigateToCart),
-                    MenuItem(Icons.Default.History, "Historial", onNavigateToHistory),
-                    MenuItem(Icons.Default.Payments, "Pagos", onNavigateToPayments)
-                )
-            } else {
-                emptyList()
-            }
-        }
-
-        // Ganancias y Retiros - visibles cuando tiene empresa o referrals
-        val earningsMenuItems = remember(hasEarningsAvailable, hasWithdrawalsAvailable) {
-            buildList {
-                if (hasEarningsAvailable) {
-                    add(MenuItem(Icons.Default.TrendingUp, "Ganancias", onNavigateToEarnings))
-                }
-                if (hasWithdrawalsAvailable) {
-                    add(MenuItem(Icons.Default.Money, "Retiros", onNavigateToWithdrawal))
-                }
-            }
-        }
-
-        // Combinar todos los menús (incluyendo Admin y Logout)
-        val menuItems = remember(hasCompany, hasEarningsAvailable, hasWithdrawalsAvailable, isAdmin) {
-            val items = mutableListOf<MenuItem>()
-            
-            // Menú base
-            items.addAll(baseMenuItems)
-            
-            // Ganancias y Retiros
-            items.addAll(earningsMenuItems)
-            
-            // Menú de Empresa
-            items.addAll(companyMenuItems)
-            
-            // Admin opciones
-            if (isAdmin) {
-                items.add(MenuItem(Icons.Default.AdminPanelSettings, "Administración", onNavigateToAdminEarnings)) // Placeholder
-                items.add(MenuItem(Icons.Default.AttachMoney, "Ganancias Admin", onNavigateToAdminEarnings))
-                items.add(MenuItem(Icons.Default.AccountBalanceWallet, "Retiros Admin", onNavigateToAdminWithdrawals))
-            }
-            
-            // Logout
-            items.add(MenuItem(Icons.AutoMirrored.Filled.Logout, "Cerrar Sesión", onLogout))
-            
-            items
-        }
-
-        menuItems.forEachIndexed { index, item ->
-            val isLast = index == menuItems.size - 1
-            val isLogout = item.icon == Icons.AutoMirrored.Filled.Logout
-            NavigationDrawerItem(
-                icon = {
                     Icon(
-                        imageVector = item.icon,
-                        contentDescription = item.label,
-                        tint = if (isLogout) MaterialTheme.colorScheme.error else primaryColor
+                        imageVector = Icons.AutoMirrored.Filled.Logout,
+                        contentDescription = "Cerrar sesión",
+                        tint = errorColor,
+                        modifier = Modifier.size(18.dp)
                     )
-                },
-                label = {
-                    Text(
-                        text = item.label,
-                        color = if (isLogout) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface
-                    )
-                },
-                selected = false,
-                onClick = item.onClick,
-                modifier = Modifier.padding(horizontal = 12.dp),
-                colors = NavigationDrawerItemDefaults.colors(
-                    selectedContainerColor = primaryColor.copy(alpha = 0.1f),
-                    unselectedContainerColor = Color.Transparent
+                }
+                Spacer(modifier = Modifier.width(14.dp))
+                Text(
+                    text = "Cerrar Sesión",
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Medium,
+                    color = errorColor
                 )
-            )
-            if (!isLast) HorizontalDivider(modifier = Modifier.padding(horizontal = 12.dp))
+            }
+            Spacer(modifier = Modifier.height(16.dp))
         }
     }
 }
 
 private data class MenuItem(val icon: ImageVector, val label: String, val onClick: () -> Unit)
+
+@Composable
+private fun DrawerSectionLabel(label: String, primary: Color) {
+    Text(
+        text = label.uppercase(),
+        style = MaterialTheme.typography.labelSmall,
+        fontWeight = FontWeight.Bold,
+        color = primary.copy(alpha = 0.55f),
+        letterSpacing = 1.sp,
+        modifier = Modifier.padding(horizontal = 24.dp, vertical = 4.dp)
+    )
+}
+
+@Composable
+private fun DrawerItem(
+    icon: ImageVector,
+    label: String,
+    iconColor: Color,
+    onClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 12.dp, vertical = 2.dp)
+            .clip(RoundedCornerShape(12.dp))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 12.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            modifier = Modifier
+                .size(36.dp)
+                .clip(CircleShape)
+                .background(iconColor.copy(alpha = 0.1f)),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = label,
+                tint = iconColor,
+                modifier = Modifier.size(18.dp)
+            )
+        }
+        Spacer(modifier = Modifier.width(14.dp))
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.Medium,
+            color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.weight(1f)
+        )
+        Icon(
+            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.35f),
+            modifier = Modifier.size(16.dp)
+        )
+    }
+}
 
 @Composable
 private fun LogoutConfirmationDialog(onConfirm: () -> Unit, onDismiss: () -> Unit) {
