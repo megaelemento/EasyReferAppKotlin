@@ -32,16 +32,17 @@ class AuthInterceptor(
         // Verificar si el token está expirado o por expirar antes de hacer la solicitud
         // Si está expirado o por expirar (en 5 min), intentar refresh primero
         if (authRepository.isTokenExpired() || authRepository.isTokenExpiringSoon()) {
-            val refreshed = runBlocking {
+            runBlocking {
                 try {
                     authRepository.refreshToken()
                 } catch (e: Exception) {
                     false
                 }
             }
-            if (refreshed) {
-                token = authRepository.getAccessToken()
-            }
+            // Siempre leer el token actual de SharedPreferences después del intento de refresh.
+            // Si el refresh de ESTA solicitud falló por rate limit, otra solicitud concurrente
+            // puede haber renovado el token exitosamente — usamos ese token nuevo.
+            token = authRepository.getAccessToken()
         }
 
         // Si sigue sin haber token después del intento de refresh, verificar si hay error de red
@@ -83,8 +84,9 @@ class AuthInterceptor(
                     return chain.proceed(originalRequest)
                 }
 
-                // Intentar refresh
-                val refreshed = runBlocking {
+                // Intentar refresh (el resultado no importa directamente; lo que importa
+                // es el token guardado en SharedPreferences después del intento)
+                runBlocking {
                     try {
                         authRepository.refreshToken()
                     } catch (e: Exception) {
@@ -92,21 +94,20 @@ class AuthInterceptor(
                     }
                 }
 
-                if (refreshed) {
-                    val newToken = authRepository.getAccessToken()
-                    if (!newToken.isNullOrBlank()) {
-                        val retryRequest = originalRequest.newBuilder()
-                            .header("Authorization", "Bearer $newToken")
-                            .build()
-                        return chain.proceed(retryRequest)
-                    }
+                // Leer siempre el token más reciente de SharedPreferences.
+                // Si nuestro refresh falló por rate limit (429), una solicitud concurrente
+                // puede haber renovado el token — en ese caso usamos ese token nuevo.
+                val latestToken = authRepository.getAccessToken()
+                if (!latestToken.isNullOrBlank() && !authRepository.isTokenExpired()) {
+                    val retryRequest = originalRequest.newBuilder()
+                        .header("Authorization", "Bearer $latestToken")
+                        .build()
+                    return chain.proceed(retryRequest)
                 }
 
-                // El refresh falló - cerrar sesión porque el token expiró o es inválido
-                // Esto incluye:
-                // - Token expirado (signature has expired)
-                // - Refresh token no encontrado en Redis
-                // - Sesión invalidada desde el servidor
+                // El refresh falló y el token sigue siendo inválido - cerrar sesión porque:
+                // - Refresh token no encontrado en Redis (sesión expirada en servidor)
+                // - Sesión invalidada explícitamente desde el servidor
                 performLogout()
                 return chain.proceed(originalRequest)
             }
