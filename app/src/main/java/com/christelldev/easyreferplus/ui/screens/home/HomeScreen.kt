@@ -210,6 +210,30 @@ fun HomeScreen(
                     scope.launch { drawerState.close() }
                     onNavigateToAdminWithdrawals()
                 },
+                onNavigateToMyProducts = {
+                    scope.launch { drawerState.close() }
+                    onNavigateToMyProducts()
+                },
+                onNavigateToCart = {
+                    scope.launch { drawerState.close() }
+                    onNavigateToCart()
+                },
+                onNavigateToHistory = {
+                    scope.launch { drawerState.close() }
+                    onNavigateToHistory()
+                },
+                onNavigateToPayments = {
+                    scope.launch { drawerState.close() }
+                    onNavigateToPayments()
+                },
+                onNavigateToEarnings = {
+                    scope.launch { drawerState.close() }
+                    onNavigateToEarnings()
+                },
+                onNavigateToWithdrawal = {
+                    scope.launch { drawerState.close() }
+                    onNavigateToWithdrawal()
+                },
                 onLogout = {
                     scope.launch { drawerState.close() }
                     showLogoutDialog = true
@@ -1236,44 +1260,65 @@ private fun ModernDrawerContent(
         Spacer(modifier = Modifier.height(8.dp))
 
         // Menú base - siempre visible
-        val menuItems = mutableListOf(
+        val baseMenuItems = listOf(
             MenuItem(Icons.Default.Person, "Perfil", onNavigateToProfile),
             MenuItem(Icons.Default.Group, "Mis Referidos", onNavigateToReferrals),
             MenuItem(Icons.Default.Business, "Mi Empresa", onNavigateToCompany)
         )
 
-        // Ganancias y Retiros - visibles cuando tiene empresa o referrals
-        // Por ahora siempre visibles para que el usuario pueda ver su estado
-        if (hasEarningsAvailable) {
-            menuItems.add(MenuItem(Icons.Default.TrendingUp, "Ganancias", onNavigateToEarnings))
-        }
-        if (hasWithdrawalsAvailable) {
-            menuItems.add(MenuItem(Icons.Default.Money, "Retiros", onNavigateToWithdrawal))
-        }
-
         // Menú de Empresa - solo visible cuando tiene empresa registrada
-        if (hasCompany) {
-            menuItems.add(MenuItem(Icons.Default.QrCode2, "Pagos QR", onNavigateToQR))
-            menuItems.add(MenuItem(Icons.Default.Store, "Mis Productos", onNavigateToMyProducts))
-            menuItems.add(MenuItem(Icons.Default.ShoppingCart, "Carrito", onNavigateToCart))
-            menuItems.add(MenuItem(Icons.Default.History, "Historial", onNavigateToHistory))
-            menuItems.add(MenuItem(Icons.Default.Payments, "Pagos", onNavigateToPayments))
+        // Usar remember para que se rebuild cuando cambia hasCompany
+        val companyMenuItems = remember(hasCompany) {
+            if (hasCompany) {
+                listOf(
+                    MenuItem(Icons.Default.QrCode2, "Pagos QR", onNavigateToQR),
+                    MenuItem(Icons.Default.Store, "Mis Productos", onNavigateToMyProducts),
+                    MenuItem(Icons.Default.ShoppingCart, "Carrito", onNavigateToCart),
+                    MenuItem(Icons.Default.History, "Historial", onNavigateToHistory),
+                    MenuItem(Icons.Default.Payments, "Pagos", onNavigateToPayments)
+                )
+            } else {
+                emptyList()
+            }
         }
 
-        // Add Admin options if user is admin
-        if (isAdmin) {
-            menuItems.add(
-                MenuItem(Icons.Default.AdminPanelSettings, "Administración", {})
-            )
-            menuItems.add(
-                MenuItem(Icons.Default.AttachMoney, "Ganancias Admin", onNavigateToAdminEarnings)
-            )
-            menuItems.add(
-                MenuItem(Icons.Default.AccountBalanceWallet, "Retiros Admin", onNavigateToAdminWithdrawals)
-            )
+        // Ganancias y Retiros - visibles cuando tiene empresa o referrals
+        val earningsMenuItems = remember(hasEarningsAvailable, hasWithdrawalsAvailable) {
+            buildList {
+                if (hasEarningsAvailable) {
+                    add(MenuItem(Icons.Default.TrendingUp, "Ganancias", onNavigateToEarnings))
+                }
+                if (hasWithdrawalsAvailable) {
+                    add(MenuItem(Icons.Default.Money, "Retiros", onNavigateToWithdrawal))
+                }
+            }
         }
 
-        menuItems.add(MenuItem(Icons.AutoMirrored.Filled.Logout, stringResource(R.string.logout), onLogout))
+        // Combinar todos los menús (incluyendo Admin y Logout)
+        val menuItems = remember(hasCompany, hasEarningsAvailable, hasWithdrawalsAvailable, isAdmin) {
+            val items = mutableListOf<MenuItem>()
+            
+            // Menú base
+            items.addAll(baseMenuItems)
+            
+            // Ganancias y Retiros
+            items.addAll(earningsMenuItems)
+            
+            // Menú de Empresa
+            items.addAll(companyMenuItems)
+            
+            // Admin opciones
+            if (isAdmin) {
+                items.add(MenuItem(Icons.Default.AdminPanelSettings, "Administración", onNavigateToAdminEarnings)) // Placeholder
+                items.add(MenuItem(Icons.Default.AttachMoney, "Ganancias Admin", onNavigateToAdminEarnings))
+                items.add(MenuItem(Icons.Default.AccountBalanceWallet, "Retiros Admin", onNavigateToAdminWithdrawals))
+            }
+            
+            // Logout
+            items.add(MenuItem(Icons.AutoMirrored.Filled.Logout, "Cerrar Sesión", onLogout))
+            
+            items
+        }
 
         menuItems.forEachIndexed { index, item ->
             val isLast = index == menuItems.size - 1
