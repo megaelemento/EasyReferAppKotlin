@@ -89,6 +89,7 @@ import com.christelldev.easyreferplus.ui.viewmodel.CompanyViewModel
 
 // Constants for elegant design
 private val CARD_CORNER_RADIUS = DesignConstants.CARD_CORNER_RADIUS
+private val BUTTON_CORNER_RADIUS = DesignConstants.BUTTON_CORNER_RADIUS
 private val CARD_ELEVATION = DesignConstants.CARD_ELEVATION
 private val CARD_MARGIN_HORIZONTAL = DesignConstants.CARD_MARGIN_HORIZONTAL
 private val GradientPrimary = DesignConstants.GradientPrimary
@@ -366,8 +367,8 @@ fun EditCompanyScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(56.dp)
-                        .shadow(CARD_ELEVATION, RoundedCornerShape(CARD_CORNER_RADIUS)),
-                    shape = RoundedCornerShape(CARD_CORNER_RADIUS),
+                        .shadow(CARD_ELEVATION, RoundedCornerShape(BUTTON_CORNER_RADIUS)),
+                    shape = RoundedCornerShape(BUTTON_CORNER_RADIUS),
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF03A9F4))
                 ) {
                     Icon(

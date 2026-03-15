@@ -7,6 +7,7 @@ import com.christelldev.easyreferplus.data.model.BalanceResponse
 import com.christelldev.easyreferplus.data.model.ReferralTreeResponse
 import com.christelldev.easyreferplus.data.model.UserBalance
 import com.christelldev.easyreferplus.data.model.UserProfile
+import com.christelldev.easyreferplus.data.model.ProfileResponse
 import com.christelldev.easyreferplus.data.model.PaymentAccessResponse
 import com.christelldev.easyreferplus.data.network.ApiService
 import kotlinx.coroutines.async
@@ -89,134 +90,85 @@ class HomeViewModel(
     fun loadHomeData() {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, errorMessage = null)
-
-            try {
-                // Cargar todo en paralelo para mayor velocidad
-                kotlinx.coroutines.coroutineScope {
-                    async { loadProfile() }
-                    async { loadBalance() }
-                    async { loadReferrals() }
-                    async { checkPaymentAccess() }
-                }
-
-                _uiState.value = _uiState.value.copy(isLoading = false)
-            } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(
-                    isLoading = false,
-                    errorMessage = e.message ?: "Error al cargar datos"
-                )
-            }
+            loadAll()
+            _uiState.value = _uiState.value.copy(isLoading = false)
         }
     }
 
     fun refreshData() {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isRefreshing = true, errorMessage = null)
+            loadAll()
+            _uiState.value = _uiState.value.copy(isRefreshing = false)
+        }
+    }
 
-            try {
-                // Cargar todo en paralelo
-                kotlinx.coroutines.coroutineScope {
-                    async { loadProfile() }
-                    async { loadBalance() }
-                    async { loadReferrals() }
-                    async { checkPaymentAccess() }
-                }
+    private suspend fun loadAll() {
+        try {
+            // Cargar todo en paralelo y acumular en una sola emisión
+            val auth = authorization
+            coroutineScope {
+                val profileDeferred = async { fetchProfile(auth) }
+                val balanceDeferred = async { fetchBalance(auth) }
+                val referralsDeferred = async { fetchReferrals(auth) }
+                val paymentDeferred = async { fetchPaymentAccess(auth) }
 
-                _uiState.value = _uiState.value.copy(isRefreshing = false)
-            } catch (e: Exception) {
+                val profile = profileDeferred.await()
+                val balance = balanceDeferred.await()
+                val referrals = referralsDeferred.await()
+                val payment = paymentDeferred.await()
+
+                // Una sola emisión con todos los datos → una sola recomposición
                 _uiState.value = _uiState.value.copy(
-                    isRefreshing = false,
-                    errorMessage = e.message
+                    nombres = profile?.nombres ?: _uiState.value.nombres,
+                    apellidos = profile?.apellidos ?: _uiState.value.apellidos,
+                    email = profile?.email ?: _uiState.value.email,
+                    phone = profile?.phone ?: _uiState.value.phone,
+                    referralCode = profile?.referralCode ?: _uiState.value.referralCode,
+                    isVerified = profile?.isVerified ?: _uiState.value.isVerified,
+                    hasCompany = profile?.hasCompany ?: _uiState.value.hasCompany,
+                    empresaNombre = profile?.empresaNombre ?: _uiState.value.empresaNombre,
+                    empresaStatus = profile?.empresaStatus ?: _uiState.value.empresaStatus,
+                    empresaActiva = profile?.empresaActiva ?: _uiState.value.empresaActiva,
+                    isAdmin = profile?.isAdmin ?: _uiState.value.isAdmin,
+                    selfieUrl = profile?.selfieUrl ?: _uiState.value.selfieUrl,
+                    balance = balance ?: _uiState.value.balance,
+                    totalReferrals = referrals?.totals?.total ?: _uiState.value.totalReferrals,
+                    level1Referrals = referrals?.totals?.level1 ?: _uiState.value.level1Referrals,
+                    level2Referrals = referrals?.totals?.level2 ?: _uiState.value.level2Referrals,
+                    level3Referrals = referrals?.totals?.level3 ?: _uiState.value.level3Referrals,
+                    canAccessPayments = payment?.canAccess ?: _uiState.value.canAccessPayments,
+                    paymentCompanyId = payment?.companyId ?: _uiState.value.paymentCompanyId,
+                    paymentCompanyName = payment?.companyName ?: _uiState.value.paymentCompanyName,
+                    paymentCompanyStatus = payment?.companyStatus ?: _uiState.value.paymentCompanyStatus,
+                    paymentAccessMessage = payment?.message ?: _uiState.value.paymentAccessMessage,
+                    pendingPaymentAmount = payment?.pendingAmount ?: _uiState.value.pendingPaymentAmount
                 )
             }
+        } catch (e: Exception) {
+            _uiState.value = _uiState.value.copy(errorMessage = e.message ?: "Error al cargar datos")
         }
     }
 
-    private suspend fun loadProfile() {
-        try {
-            val response = apiService.getProfile(authorization)
-            if (response.isSuccessful) {
-                response.body()?.let { profile ->
-                    _uiState.value = _uiState.value.copy(
-                        nombres = profile.nombres,
-                        apellidos = profile.apellidos,
-                        email = profile.email,
-                        phone = profile.phone ?: "",
-                        referralCode = profile.referralCode ?: "",
-                        isVerified = profile.isVerified,
-                        hasCompany = profile.hasCompany,
-                        empresaNombre = profile.empresaNombre,
-                        empresaStatus = profile.empresaStatus,
-                        empresaActiva = profile.empresaActiva,
-                        isAdmin = profile.isAdmin,
-                        selfieUrl = profile.selfieUrl
-                    )
-                }
-            }
-        } catch (e: Exception) {
-            // Silently handle profile errors
-        }
-    }
+    private suspend fun fetchProfile(auth: String): ProfileResponse? = try {
+        val response = apiService.getProfile(auth)
+        if (response.isSuccessful) response.body() else null
+    } catch (e: Exception) { null }
 
-    private suspend fun checkPaymentAccess() {
-        try {
-            val response = apiService.checkPaymentAccess(authorization)
-            if (response.isSuccessful) {
-                response.body()?.let { access ->
-                    _uiState.value = _uiState.value.copy(
-                        canAccessPayments = access.canAccess,
-                        paymentCompanyId = access.companyId,
-                        paymentCompanyName = access.companyName,
-                        paymentCompanyStatus = access.companyStatus,
-                        paymentAccessMessage = access.message,
-                        pendingPaymentAmount = access.pendingAmount ?: 0.0
-                    )
-                }
-            }
-        } catch (e: Exception) {
-            // Silently handle payment access errors
-        }
-    }
+    private suspend fun fetchPaymentAccess(auth: String): PaymentAccessResponse? = try {
+        val response = apiService.checkPaymentAccess(auth)
+        if (response.isSuccessful) response.body() else null
+    } catch (e: Exception) { null }
 
-    private suspend fun loadBalance() {
-        try {
-            val response = apiService.getBalance(authorization)
-            if (response.isSuccessful) {
-                val balanceResponse: com.christelldev.easyreferplus.data.model.BalanceResponse? = response.body()
-                balanceResponse?.let {
-                    if (it.success) {
-                        _uiState.value = _uiState.value.copy(
-                            balance = it.balance
-                        )
-                    }
-                }
-            }
-        } catch (e: Exception) {
-            // Silently handle balance errors
-        }
-    }
+    private suspend fun fetchBalance(auth: String): UserBalance? = try {
+        val response = apiService.getBalance(auth)
+        if (response.isSuccessful) response.body()?.let { if (it.success) it.balance else null } else null
+    } catch (e: Exception) { null }
 
-    private suspend fun loadReferrals() {
-        try {
-            val response = apiService.getMyReferrals(authorization)
-            if (response.isSuccessful) {
-                val referralResponse: com.christelldev.easyreferplus.data.model.ReferralTreeResponse? = response.body()
-                referralResponse?.let {
-                    if (it.success) {
-                        val totals = it.totals
-                        _uiState.value = _uiState.value.copy(
-                            totalReferrals = totals.total,
-                            level1Referrals = totals.level1,
-                            level2Referrals = totals.level2,
-                            level3Referrals = totals.level3
-                        )
-                    }
-                }
-            }
-        } catch (e: Exception) {
-            // Silently handle referral errors
-        }
-    }
+    private suspend fun fetchReferrals(auth: String): ReferralTreeResponse? = try {
+        val response = apiService.getMyReferrals(auth)
+        if (response.isSuccessful) response.body()?.let { if (it.success) it else null } else null
+    } catch (e: Exception) { null }
 
     fun clearError() {
         _uiState.value = _uiState.value.copy(errorMessage = null)

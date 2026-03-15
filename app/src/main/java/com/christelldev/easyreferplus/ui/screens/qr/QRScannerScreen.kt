@@ -373,6 +373,7 @@ private fun PermissionRationaleContent(
 
         Button(
             onClick = onRequestPermission,
+            shape = RoundedCornerShape(12.dp),
             colors = ButtonDefaults.buttonColors(containerColor = AppBlue)
         ) {
             Text(stringResource(R.string.grant_permission))
@@ -382,6 +383,7 @@ private fun PermissionRationaleContent(
 
         Button(
             onClick = onClose,
+            shape = RoundedCornerShape(12.dp),
             colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
         ) {
             Text(stringResource(R.string.cancel))
@@ -420,6 +422,7 @@ private fun PermissionDeniedContent(onClose: () -> Unit) {
 
         Button(
             onClick = onClose,
+            shape = RoundedCornerShape(12.dp),
             colors = ButtonDefaults.buttonColors(containerColor = AppBlue)
         ) {
             Text(stringResource(R.string.close))

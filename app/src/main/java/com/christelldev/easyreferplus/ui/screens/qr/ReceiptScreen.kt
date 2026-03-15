@@ -209,7 +209,8 @@ fun ReceiptScreen(
             ) {
                 OutlinedButton(
                     onClick = onShare,
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(12.dp)
                 ) {
                     Icon(
                         imageVector = Icons.Default.Share,
@@ -223,6 +224,7 @@ fun ReceiptScreen(
                 Button(
                     onClick = onDone,
                     modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(12.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = primaryColor)
                 ) {
                     Text("Finalizar")

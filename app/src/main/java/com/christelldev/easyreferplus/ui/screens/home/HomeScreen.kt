@@ -150,6 +150,7 @@ fun HomeScreen(
     onNavigateToWithdrawal: () -> Unit = {},
     onNavigateToCart: () -> Unit = {},
     onNavigateToMyProducts: () -> Unit = {},
+    onNavigateToWallet: () -> Unit = {},
     onLogout: () -> Unit = {}
 ) {
     val context = LocalContext.current
@@ -236,6 +237,10 @@ fun HomeScreen(
                     scope.launch { drawerState.close() }
                     onNavigateToWithdrawal()
                 },
+                onNavigateToWallet = {
+                    scope.launch { drawerState.close() }
+                    onNavigateToWallet()
+                },
                 onLogout = {
                     scope.launch { drawerState.close() }
                     showLogoutDialog = true
@@ -303,7 +308,8 @@ fun HomeScreen(
                             onEarningsClick = onNavigateToEarnings,
                             onWithdrawClick = onNavigateToWithdrawal,
                             onCartClick = onNavigateToCart,
-                            onMyProductsClick = onNavigateToMyProducts
+                            onMyProductsClick = onNavigateToMyProducts,
+                            onWalletClick = onNavigateToWallet
                         )
                     }
 
@@ -594,7 +600,8 @@ private fun QuickActionsSection(
     onEarningsClick: () -> Unit,
     onWithdrawClick: () -> Unit,
     onCartClick: () -> Unit = {},
-    onMyProductsClick: () -> Unit = {}
+    onMyProductsClick: () -> Unit = {},
+    onWalletClick: () -> Unit = {}
 ) {
     Column(modifier = Modifier.padding(horizontal = CARD_MARGIN_HORIZONTAL)) {
         Row(
@@ -625,6 +632,7 @@ private fun QuickActionsSection(
             add(ActionItem(Icons.Default.Person, stringResource(R.string.profile), GradientPurple, onProfileClick))
             add(ActionItem(Icons.Default.AccountBalanceWallet, "Retiros", GradientWarning, onWithdrawClick))
             add(ActionItem(Icons.Default.TrendingUp, "Ganancias", GradientSuccess, onEarningsClick))
+            add(ActionItem(Icons.Default.AccountBalanceWallet, "Billetera", listOf(Color(0xFF8B5CF6), Color(0xFFA78BFA)), onWalletClick))
             
             // Solo mostrar si tiene empresa
             if (hasCompany) {
@@ -1189,6 +1197,7 @@ private fun ModernDrawerContent(
     onNavigateToPayments: () -> Unit = {},
     onNavigateToEarnings: () -> Unit = {},
     onNavigateToWithdrawal: () -> Unit = {},
+    onNavigateToWallet: () -> Unit = {},
     onLogout: () -> Unit
 ) {
     val primary = MaterialTheme.colorScheme.primary
@@ -1301,6 +1310,7 @@ private fun ModernDrawerContent(
                     DrawerItem(Icons.Default.TrendingUp, "Ganancias", primary, onNavigateToEarnings)
                 if (hasWithdrawalsAvailable)
                     DrawerItem(Icons.Default.Money, "Retiros", primary, onNavigateToWithdrawal)
+                    DrawerItem(Icons.Default.AccountBalanceWallet, "Billetera", primary, onNavigateToWallet)
             }
 
             // ── SECCIÓN: MI EMPRESA ──────────────────────────────────────────

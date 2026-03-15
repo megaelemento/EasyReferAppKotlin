@@ -471,7 +471,10 @@ private fun EmptySessionsContent(
                 textAlign = TextAlign.Center
             )
             Spacer(modifier = Modifier.height(24.dp))
-            Button(onClick = onRetry) {
+            Button(
+                onClick = onRetry,
+                shape = RoundedCornerShape(12.dp)
+            ) {
                 Text(stringResource(R.string.retry))
             }
         }
@@ -512,7 +515,10 @@ private fun ErrorSessionsContent(
                 textAlign = TextAlign.Center
             )
             Spacer(modifier = Modifier.height(24.dp))
-            Button(onClick = onRetry) {
+            Button(
+                onClick = onRetry,
+                shape = RoundedCornerShape(12.dp)
+            ) {
                 Text(stringResource(R.string.retry))
             }
         }

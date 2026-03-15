@@ -706,7 +706,8 @@ fun ProductFormScreen(
                             // Botón para agregar imagen
                             OutlinedButton(
                                 onClick = { onUploadImage(product.id) },
-                                modifier = Modifier.fillMaxWidth()
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(12.dp)
                             ) {
                                 Icon(Icons.Default.Add, contentDescription = null)
                                 Spacer(modifier = Modifier.width(8.dp))

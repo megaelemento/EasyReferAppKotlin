@@ -63,6 +63,7 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -94,6 +95,8 @@ private val CARD_CORNER_RADIUS = 20.dp
 private val CARD_ELEVATION = 8.dp
 private val CARD_MARGIN_HORIZONTAL = 16.dp
 private val GradientPrimary = listOf(Color(0xFF03A9F4), Color(0xFF2196F3))
+private val BrushHorizontalPrimary = Brush.horizontalGradient(GradientPrimary)
+private val BrushLinearPrimary = Brush.linearGradient(GradientPrimary)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -457,7 +460,7 @@ fun ProfileHeader(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(brush = Brush.horizontalGradient(colors = GradientPrimary))
+                .background(brush = BrushHorizontalPrimary)
                 .padding(24.dp)
         ) {
         Column(
@@ -475,24 +478,20 @@ fun ProfileHeader(
                 contentAlignment = Alignment.Center
             ) {
                 if (selfieUrl != null) {
-                    // Agregar timestamp para evitar cache
+                    // Use remember to invalidate cache on each composition
                     val timestamp = System.currentTimeMillis()
-                    val selfieUrlWithTimestamp = if (selfieUrl.contains("?")) {
-                        "$selfieUrl&t=$timestamp"
-                    } else {
-                        "$selfieUrl?t=$timestamp"
-                    }
+                    val imageUrl = if (selfieUrl.contains("?")) "$selfieUrl&t=$timestamp" else "$selfieUrl?t=$timestamp"
 
                     AsyncImage(
-                        model = ImageRequest.Builder(LocalContext.current)
-                            .data(selfieUrlWithTimestamp)
-                            .crossfade(true)
-                            .build(),
+                        model = imageUrl,
                         contentDescription = "Foto de perfil",
                         modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.Crop
                     )
                 } else {
+                    val initials = remember(nombres, apellidos) {
+                        "${nombres.firstOrNull() ?: ""}${apellidos.firstOrNull() ?: ""}"
+                    }
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
@@ -500,7 +499,7 @@ fun ProfileHeader(
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = "${nombres.firstOrNull() ?: ""}${apellidos.firstOrNull() ?: ""}",
+                            text = initials,
                             style = MaterialTheme.typography.headlineLarge,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.surface
@@ -599,7 +598,7 @@ fun ProfileInfoSection(
                     modifier = Modifier
                         .size(36.dp)
                         .clip(RoundedCornerShape(10.dp))
-                        .background(brush = Brush.linearGradient(colors = GradientPrimary)),
+                        .background(brush = BrushLinearPrimary),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
@@ -672,7 +671,7 @@ fun PhoneSection(
                     modifier = Modifier
                         .size(36.dp)
                         .clip(RoundedCornerShape(10.dp))
-                        .background(brush = Brush.linearGradient(colors = GradientPrimary)),
+                        .background(brush = BrushLinearPrimary),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
@@ -777,6 +776,9 @@ fun ChangePhoneDialog(
     onDismiss: () -> Unit,
     errorMessage: String?
 ) {
+    val isPhoneValid by remember(newPhone) { derivedStateOf { newPhone.length == 10 } }
+    val isCodeValid by remember(verificationCode) { derivedStateOf { verificationCode.length >= 4 } }
+
     AlertDialog(
         onDismissRequest = onDismiss,
         title = {
@@ -909,7 +911,7 @@ fun ChangePhoneDialog(
             if (!codeSent) {
                 Button(
                     onClick = onSendCode,
-                    enabled = !isSendingCode && newPhone.length == 10,
+                    enabled = !isSendingCode && isPhoneValid,
                     colors = ButtonDefaults.buttonColors(containerColor = AppBlue),
                     shape = RoundedCornerShape(12.dp)
                 ) {
@@ -926,7 +928,7 @@ fun ChangePhoneDialog(
             } else {
                 Button(
                     onClick = onConfirm,
-                    enabled = !isVerifyingCode && verificationCode.length >= 4,
+                    enabled = !isVerifyingCode && isCodeValid,
                     colors = ButtonDefaults.buttonColors(containerColor = AppBlue),
                     shape = RoundedCornerShape(12.dp)
                 ) {

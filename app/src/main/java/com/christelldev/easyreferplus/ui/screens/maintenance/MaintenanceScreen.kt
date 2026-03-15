@@ -159,7 +159,7 @@ fun MaintenanceScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(56.dp),
-                        shape = RoundedCornerShape(DesignConstants.CARD_CORNER_RADIUS),
+                        shape = RoundedCornerShape(DesignConstants.BUTTON_CORNER_RADIUS),
                         colors = ButtonDefaults.buttonColors(
                             containerColor = DesignConstants.PrimaryColor,
                             disabledContainerColor = DesignConstants.PrimaryColor.copy(alpha = 0.5f)

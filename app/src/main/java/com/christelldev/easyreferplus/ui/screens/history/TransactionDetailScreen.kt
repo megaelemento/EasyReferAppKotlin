@@ -104,7 +104,10 @@ private fun ErrorContent(
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         Spacer(modifier = Modifier.height(16.dp))
-        Button(onClick = onRetry) {
+        Button(
+            onClick = onRetry,
+            shape = RoundedCornerShape(12.dp)
+        ) {
             Text("Reintentar")
         }
     }

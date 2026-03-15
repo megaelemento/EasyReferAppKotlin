@@ -218,7 +218,7 @@ private fun EarningsContent(
     ) {
         // Error message
         if (errorMessage != null) {
-            item {
+            item(key = "error_banner") {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     colors = CardDefaults.cardColors(
@@ -250,7 +250,7 @@ private fun EarningsContent(
         }
 
         // Resumen principal
-        item {
+        item(key = "summary") {
             EarningsSummaryCard(
                 totalEarned = totalEarned,
                 totalPaid = totalPaid,
@@ -259,7 +259,7 @@ private fun EarningsContent(
         }
 
         // Estadísticas de comisiones
-        item {
+        item(key = "stats") {
             CommissionsStatsCard(
                 totalCommissions = totalCommissions,
                 pendingCount = pendingCount,
@@ -269,7 +269,7 @@ private fun EarningsContent(
         }
 
         // Ganancias por nivel
-        item {
+        item(key = "by_level") {
             EarningsByLevelCard(
                 level1Earnings = level1Earnings,
                 level2Earnings = level2Earnings,
@@ -282,13 +282,13 @@ private fun EarningsContent(
 
         // Empresas top
         if (topCompanies.isNotEmpty()) {
-            item {
+            item(key = "top_companies") {
                 TopCompaniesCard(topCompanies = topCompanies)
             }
         }
 
         // Filtros de comisiones
-        item {
+        item(key = "filters") {
             CommissionsFilterSection(
                 selectedFilter = selectedFilter,
                 onFilterChange = onFilterChange
@@ -296,7 +296,7 @@ private fun EarningsContent(
         }
 
         // Lista de comisiones
-        item {
+        item(key = "commissions_title") {
             Text(
                 text = "Detalle de Comisiones",
                 style = MaterialTheme.typography.titleMedium,
@@ -327,7 +327,7 @@ private fun EarningsContent(
                 }
             }
         } else {
-            items(commissions) { commission ->
+            items(commissions, key = { it.id }) { commission ->
                 CommissionItem(commission = commission)
             }
 
@@ -362,7 +362,7 @@ private fun EarningsContent(
         }
 
         // Espacio final
-        item {
+        item(key = "bottom_spacer") {
             Spacer(modifier = Modifier.height(16.dp))
         }
     }

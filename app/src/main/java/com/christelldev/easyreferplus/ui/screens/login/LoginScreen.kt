@@ -230,7 +230,7 @@ fun LoginScreen(
                             .fillMaxWidth()
                             .height(56.dp),
                         enabled = !uiState.isLoading,
-                        shape = RoundedCornerShape(DesignConstants.CARD_CORNER_RADIUS),
+                        shape = RoundedCornerShape(DesignConstants.BUTTON_CORNER_RADIUS),
                         colors = ButtonDefaults.buttonColors(
                             containerColor = DesignConstants.PrimaryColor
                         ),
@@ -264,7 +264,7 @@ fun LoginScreen(
                             .fillMaxWidth()
                             .height(56.dp),
                         enabled = !uiState.isLoading,
-                        shape = RoundedCornerShape(DesignConstants.CARD_CORNER_RADIUS),
+                        shape = RoundedCornerShape(DesignConstants.BUTTON_CORNER_RADIUS),
                         colors = ButtonDefaults.buttonColors(
                             containerColor = MaterialTheme.colorScheme.surface,
                             contentColor = DesignConstants.PrimaryColor

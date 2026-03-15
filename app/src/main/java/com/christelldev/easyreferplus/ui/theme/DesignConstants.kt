@@ -8,6 +8,7 @@ import androidx.compose.ui.unit.dp
 // Constantes de Cards
 object DesignConstants {
     val CARD_CORNER_RADIUS = 20.dp
+    val BUTTON_CORNER_RADIUS = 12.dp
     val CARD_ELEVATION = 2.dp  // Reducido de 4dp a 2dp para look más limpio
     val CARD_MARGIN_HORIZONTAL = 16.dp
     val CARD_MIN_HEIGHT = 100.dp

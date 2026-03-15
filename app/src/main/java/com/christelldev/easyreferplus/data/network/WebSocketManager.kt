@@ -1,5 +1,6 @@
 package com.christelldev.easyreferplus.data.network
 
+import com.christelldev.easyreferplus.data.model.WalletTransferNotification
 import com.google.gson.Gson
 import com.google.gson.annotations.SerializedName
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -65,8 +66,12 @@ class WebSocketManager(
     private val _notifications = MutableSharedFlow<SaleNotificationData?>(replay = 0)
     val notifications: SharedFlow<SaleNotificationData?> = _notifications.asSharedFlow()
 
-    // Callback directo para notificaciones
+    // Callback directo para notificaciones de venta
     var onNotificationReceived: ((SaleNotificationData) -> Unit)? = null
+
+    // Flow para notificaciones de transferencias de billetera entrantes
+    private val _walletTransferFlow = MutableSharedFlow<WalletTransferNotification>(replay = 0)
+    val walletTransferFlow: SharedFlow<WalletTransferNotification> = _walletTransferFlow.asSharedFlow()
 
     private val _connectionState = MutableSharedFlow<ConnectionState>(replay = 1)
     val connectionState: SharedFlow<ConnectionState> = _connectionState.asSharedFlow()
@@ -129,13 +134,24 @@ class WebSocketManager(
             override fun onMessage(webSocket: WebSocket, text: String) {
                 try {
                     val gson = Gson()
-                    val notification = gson.fromJson(text, SaleNotification::class.java)
 
-                    if (notification.type == "sale_notification" && notification.data != null) {
-                        _notifications.tryEmit(notification.data)
-                        // Llamar callback directo
-                        notification.data.let { data ->
-                            onNotificationReceived?.invoke(data)
+                    // Leer el campo "type" para enrutar el mensaje al flow correcto
+                    val rawType = gson.fromJson(text, Map::class.java)["type"] as? String
+
+                    when (rawType) {
+                        "sale_notification" -> {
+                            val notification = gson.fromJson(text, SaleNotification::class.java)
+                            if (notification.data != null) {
+                                _notifications.tryEmit(notification.data)
+                                onNotificationReceived?.invoke(notification.data)
+                            }
+                        }
+                        "wallet_transfer_received" -> {
+                            val walletNotification = gson.fromJson(text, WalletTransferNotification::class.java)
+                            _walletTransferFlow.tryEmit(walletNotification)
+                        }
+                        else -> {
+                            // Tipo no reconocido — ignorar silenciosamente
                         }
                     }
                 } catch (e: Exception) {

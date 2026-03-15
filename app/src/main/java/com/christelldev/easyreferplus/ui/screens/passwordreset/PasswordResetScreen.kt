@@ -241,7 +241,7 @@ fun PhoneStep(
                     .fillMaxWidth()
                     .height(56.dp),
                 enabled = !isLoading && phone.length == 10,
-                shape = RoundedCornerShape(DesignConstants.CARD_CORNER_RADIUS),
+                shape = RoundedCornerShape(DesignConstants.BUTTON_CORNER_RADIUS),
                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                 elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp, pressedElevation = 2.dp)
             ) {
@@ -642,7 +642,7 @@ fun NewPasswordStep(
                         newPassword.isNotEmpty() &&
                         confirmPassword.isNotEmpty() &&
                         newPassword == confirmPassword,
-                shape = RoundedCornerShape(DesignConstants.CARD_CORNER_RADIUS),
+                shape = RoundedCornerShape(DesignConstants.BUTTON_CORNER_RADIUS),
                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                 elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp, pressedElevation = 2.dp)
             ) {
@@ -794,7 +794,7 @@ fun CompleteStep(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(56.dp),
-                shape = RoundedCornerShape(DesignConstants.CARD_CORNER_RADIUS),
+                shape = RoundedCornerShape(DesignConstants.BUTTON_CORNER_RADIUS),
                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                 elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp, pressedElevation = 2.dp)
             ) {

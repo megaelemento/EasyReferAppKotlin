@@ -308,6 +308,7 @@ private fun CompanyDetailContent(
                             context.startActivity(intent)
                         },
                         modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(12.dp),
                         colors = ButtonDefaults.buttonColors(
                             containerColor = Color(0xFF25D366)
                         )
@@ -332,7 +333,8 @@ private fun CompanyDetailContent(
                             val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
                             context.startActivity(intent)
                         },
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(12.dp)
                     ) {
                         Icon(
                             imageVector = Icons.Default.Language,

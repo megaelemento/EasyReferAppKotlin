@@ -473,6 +473,7 @@ private fun WithdrawalCard(
                     Button(
                         onClick = { showApproveDialog = true },
                         modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(12.dp),
                         colors = ButtonDefaults.buttonColors(
                             containerColor = Color(0xFF4CAF50)
                         ),
@@ -489,6 +490,7 @@ private fun WithdrawalCard(
                     OutlinedButton(
                         onClick = { showPostponeDialog = true },
                         modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(12.dp),
                         enabled = !isProcessing
                     ) {
                         Icon(
@@ -502,6 +504,7 @@ private fun WithdrawalCard(
                     Button(
                         onClick = { showRejectDialog = true },
                         modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(12.dp),
                         colors = ButtonDefaults.buttonColors(
                             containerColor = Color(0xFFF44336)
                         ),

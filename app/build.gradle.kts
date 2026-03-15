@@ -4,6 +4,9 @@ plugins {
 }
 
 android {
+    buildFeatures {
+        buildConfig = true
+    }
     namespace = "com.christelldev.easyreferplus"
     compileSdk {
         version = release(36) {
@@ -66,6 +69,10 @@ dependencies {
 
     // ML Kit Barcode Scanning
     implementation(libs.mlkit.barcode)
+
+    // Biometric authentication
+    implementation(libs.androidx.biometric)
+    implementation(libs.androidx.security.crypto)
 
     // Coil for image loading
     implementation(libs.coil)

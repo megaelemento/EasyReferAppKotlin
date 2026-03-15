@@ -1,15 +1,18 @@
 package com.christelldev.easyreferplus.data.network
 
 import android.content.Context
+import okhttp3.Cache
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
+import java.io.File
 import java.util.concurrent.TimeUnit
 
 object RetrofitClient {
     // No usar const val - obtener URL dinámicamente de AppConfig
     private const val TIMEOUT_SECONDS = 30L
+    private const val CACHE_SIZE = 10L * 1024 * 1024 // 10 MB
 
     @Volatile
     private var authRepository: AuthRepository? = null
@@ -29,13 +32,22 @@ object RetrofitClient {
                 android.util.Log.d("OkHttp", message)
             }
         }).apply {
-            level = HttpLoggingInterceptor.Level.BODY
+            // En release no loguear bodies — impacto de rendimiento significativo
+            level = if (com.christelldev.easyreferplus.BuildConfig.DEBUG)
+                HttpLoggingInterceptor.Level.BODY
+            else
+                HttpLoggingInterceptor.Level.NONE
         }
     }
 
     private fun buildOkHttpClient(): OkHttpClient {
+        val cache = context?.let {
+            Cache(File(it.cacheDir, "http_cache"), CACHE_SIZE)
+        }
+
         val builder = OkHttpClient.Builder()
             .addInterceptor(createLoggingInterceptor())
+            .apply { cache?.let { cache(it) } }
             //.addInterceptor(ServerUnavailableInterceptor()) // Desactivado temporalmente
 
         // Agregar el interceptor de autenticación si está disponible

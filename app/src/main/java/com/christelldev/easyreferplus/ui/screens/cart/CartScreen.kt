@@ -269,7 +269,7 @@ fun CartScreen(
                                             .fillMaxWidth()
                                             .height(56.dp),
                                         enabled = checkoutState !is CheckoutState.Processing,
-                                        shape = RoundedCornerShape(16.dp),
+                                        shape = RoundedCornerShape(12.dp),
                                         colors = ButtonDefaults.buttonColors(
                                             containerColor = MaterialTheme.colorScheme.surface,
                                             disabledContainerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.5f)

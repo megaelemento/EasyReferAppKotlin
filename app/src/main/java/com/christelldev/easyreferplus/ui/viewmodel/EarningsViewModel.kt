@@ -62,8 +62,9 @@ class EarningsViewModel(
     fun loadEarnings() {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, errorMessage = null)
+            val auth = authorization
 
-            when (val result = repository.getMyEarningsSummary(authorization)) {
+            when (val result = repository.getMyEarningsSummary(auth)) {
                 is EarningsResult.Success -> {
                     val response = result.response
                     val percentages = response.commissionPercentages
@@ -108,6 +109,7 @@ class EarningsViewModel(
                 commissionsPage = page,
                 selectedFilter = filter
             )
+            val auth = authorization
 
             val paymentStatus = when (filter) {
                 "pending" -> "pending"
@@ -116,7 +118,7 @@ class EarningsViewModel(
             }
 
             when (val result = repository.getMyCommissions(
-                authorization = authorization,
+                authorization = auth,
                 page = page,
                 perPage = 20,
                 paymentStatus = paymentStatus

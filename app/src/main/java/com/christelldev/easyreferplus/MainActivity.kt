@@ -90,6 +90,11 @@ import com.christelldev.easyreferplus.ui.screens.history.TransactionDetailScreen
 import com.christelldev.easyreferplus.ui.screens.payments.CompanyPaymentsScreen
 import com.christelldev.easyreferplus.ui.screens.earnings.EarningsScreen
 import com.christelldev.easyreferplus.ui.screens.withdrawal.WithdrawalScreen
+import com.christelldev.easyreferplus.ui.screens.wallet.WalletScreen
+import com.christelldev.easyreferplus.ui.screens.wallet.WalletTransferScreen
+import com.christelldev.easyreferplus.ui.screens.wallet.WalletStatementScreen
+import com.christelldev.easyreferplus.ui.screens.wallet.SetPinScreen
+import com.christelldev.easyreferplus.ui.viewmodel.WalletViewModel
 import com.christelldev.easyreferplus.ui.theme.EasyReferPlusTheme
 import coil.compose.AsyncImage
 import com.christelldev.easyreferplus.ui.viewmodel.CompanyViewModel
@@ -112,7 +117,7 @@ import com.christelldev.easyreferplus.ui.viewmodel.PublicCompaniesViewModel
 import com.christelldev.easyreferplus.ui.viewmodel.CompanyDetailViewModel
 import com.christelldev.easyreferplus.ui.viewmodel.ProductViewModel
 
-class MainActivity : ComponentActivity() {
+class MainActivity : androidx.appcompat.app.AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -187,6 +192,12 @@ sealed class Screen(val route: String) {
     data object ProductDetail : Screen("product_detail/{productId}") {
         fun createRoute(productId: Int) = "product_detail/$productId"
     }
+    // Billetera digital
+    data object Wallet : Screen("wallet")
+    data object WalletTransfer : Screen("wallet_transfer")
+    data object WalletStatement : Screen("wallet_statement")
+    data object WalletSetPin : Screen("wallet_set_pin")
+    data object WalletChangePin : Screen("wallet_change_pin")
 }
 
 @Composable
@@ -244,6 +255,16 @@ fun MainNavigation(
     // Observar cambios en el estado de autenticación
     LaunchedEffect(authRepository.isLoggedIn()) {
         isLoggedIn = authRepository.isLoggedIn()
+    }
+
+    // Escuchar eventos de logout forzado desde AuthInterceptor (ej. token inválido)
+    val context = LocalContext.current
+    LaunchedEffect(Unit) {
+        authRepository.logoutEvent.collect { message ->
+            android.widget.Toast.makeText(context, message, android.widget.Toast.LENGTH_LONG).show()
+            isLoggedIn = false
+            onLogoutComplete()
+        }
     }
 
     // Restaurar verificación de mantenimiento
@@ -333,6 +354,12 @@ fun MainNavigation(
         factory = HistoryViewModel.Factory(qrRepository) { authRepository.getAccessToken() ?: "" }
     )
 
+    // Wallet ViewModel
+    val walletRepository = com.christelldev.easyreferplus.data.network.WalletRepository.Factory()
+    val walletViewModel: WalletViewModel = viewModel(
+        factory = WalletViewModel.Factory(walletRepository)
+    )
+
     // Product & Cart ViewModel
     val productRepository = ProductRepository.Factory().create()
     val productViewModel: ProductViewModel = viewModel(
@@ -376,7 +403,6 @@ fun MainNavigation(
     var uploadingProductId by remember { mutableStateOf<Int?>(null) }
     var isUploadingImage by remember { mutableStateOf(false) }
     var imageUploadSuccessMessage by remember { mutableStateOf<String?>(null) }
-    val context = LocalContext.current
 
     // Limpiar mensaje de éxito después de navegar
     LaunchedEffect(imageUploadSuccessMessage) {
@@ -654,6 +680,9 @@ fun MainNavigation(
                         productViewModel.loadMyCompanyProducts()
                         productViewModel.loadProductCategories()
                         navController.navigate(Screen.MyProducts.route)
+                    },
+                    onNavigateToWallet = {
+                        navController.navigate(Screen.Wallet.route)
                     }
                 )
             }
@@ -1314,6 +1343,58 @@ fun MainNavigation(
                     onRefresh = { withdrawalViewModel.loadData() },
                     onBack = { navController.popBackStack() },
                     onClearMessages = { withdrawalViewModel.clearMessages() }
+                )
+            }
+
+            // ── BILLETERA DIGITAL ─────────────────────────────────────────
+            composable(Screen.Wallet.route) {
+                // Conectar wallet transfer notifications via WebSocket
+                LaunchedEffect(webSocketManager) {
+                    webSocketManager?.walletTransferFlow?.collect { notification ->
+                        walletViewModel.onWalletNotificationReceived(notification)
+                    }
+                }
+                WalletScreen(
+                    viewModel = walletViewModel,
+                    onNavigateToTransfer = { navController.navigate(Screen.WalletTransfer.route) },
+                    onNavigateToStatement = { navController.navigate(Screen.WalletStatement.route) },
+                    onNavigateToSetPin = { navController.navigate(Screen.WalletSetPin.route) },
+                    onBack = { navController.popBackStack() }
+                )
+            }
+
+            composable(Screen.WalletTransfer.route) {
+                WalletTransferScreen(
+                    viewModel = walletViewModel,
+                    onBack = { navController.popBackStack() },
+                    onSuccess = { navController.navigate(Screen.Wallet.route) {
+                        popUpTo(Screen.WalletTransfer.route) { inclusive = true }
+                    }}
+                )
+            }
+
+            composable(Screen.WalletStatement.route) {
+                WalletStatementScreen(
+                    viewModel = walletViewModel,
+                    onBack = { navController.popBackStack() }
+                )
+            }
+
+            composable(Screen.WalletSetPin.route) {
+                SetPinScreen(
+                    viewModel = walletViewModel,
+                    isChangingPin = false,
+                    onBack = { navController.popBackStack() },
+                    onSuccess = { navController.popBackStack() }
+                )
+            }
+
+            composable(Screen.WalletChangePin.route) {
+                SetPinScreen(
+                    viewModel = walletViewModel,
+                    isChangingPin = true,
+                    onBack = { navController.popBackStack() },
+                    onSuccess = { navController.popBackStack() }
                 )
             }
         }

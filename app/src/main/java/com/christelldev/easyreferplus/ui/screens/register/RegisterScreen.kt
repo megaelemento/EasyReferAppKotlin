@@ -439,7 +439,7 @@ fun PhoneStepContent(
                     .fillMaxWidth()
                     .height(56.dp),
                 enabled = !isLoading && phone.length == 10,
-                shape = RoundedCornerShape(DesignConstants.CARD_CORNER_RADIUS),
+                shape = RoundedCornerShape(DesignConstants.BUTTON_CORNER_RADIUS),
                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                 elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp, pressedElevation = 2.dp)
             ) {
@@ -823,7 +823,7 @@ fun CompleteRegistrationStep(
                     .fillMaxWidth()
                     .height(56.dp),
                 enabled = !isLoading && isAdult && acceptsPrivacyPolicy,
-                shape = RoundedCornerShape(DesignConstants.CARD_CORNER_RADIUS),
+                shape = RoundedCornerShape(DesignConstants.BUTTON_CORNER_RADIUS),
                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                 elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp, pressedElevation = 2.dp)
             ) {
@@ -927,7 +927,7 @@ fun Preview() {
                 Button(
                     onClick = {}, 
                     modifier = Modifier.fillMaxWidth().height(56.dp), 
-                    shape = RoundedCornerShape(DesignConstants.CARD_CORNER_RADIUS),
+                    shape = RoundedCornerShape(DesignConstants.BUTTON_CORNER_RADIUS),
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                     elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp, pressedElevation = 2.dp)
                 ) {

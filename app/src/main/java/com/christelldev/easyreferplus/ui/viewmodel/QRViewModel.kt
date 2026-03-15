@@ -188,9 +188,9 @@ class QRViewModel(
 
             when (val result = repository.generateQR(authorization, request)) {
                 is QRResult.GenerateSuccess -> {
-                    // Generar QR localmente usando ZXing
+                    // Generar QR localmente usando ZXing — en IO para no bloquear el hilo principal
                     val qrBitmap = result.qrPayload?.let { payload ->
-                        generateQRBitmap(payload)
+                        withContext(Dispatchers.Default) { generateQRBitmap(payload) }
                     }
 
                     _uiState.value = _uiState.value.copy(

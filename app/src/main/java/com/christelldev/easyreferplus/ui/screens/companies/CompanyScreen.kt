@@ -73,6 +73,7 @@ import com.christelldev.easyreferplus.data.model.ServiceInfo
 
 // Constants for elegant design
 private val CARD_CORNER_RADIUS = DesignConstants.CARD_CORNER_RADIUS
+private val BUTTON_CORNER_RADIUS = DesignConstants.BUTTON_CORNER_RADIUS
 private val CARD_ELEVATION = DesignConstants.CARD_ELEVATION
 private val CARD_MARGIN_HORIZONTAL = DesignConstants.CARD_MARGIN_HORIZONTAL
 private val GradientPrimary = DesignConstants.GradientPrimary
@@ -357,7 +358,7 @@ fun CompanyScreen(
                     colors = ButtonDefaults.buttonColors(
                         containerColor = AppBlue
                     ),
-                    shape = RoundedCornerShape(CARD_CORNER_RADIUS)
+                    shape = RoundedCornerShape(BUTTON_CORNER_RADIUS)
                 ) {
                     Text(
                         text = stringResource(R.string.register_company_button),

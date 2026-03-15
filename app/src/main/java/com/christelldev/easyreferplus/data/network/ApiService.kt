@@ -72,6 +72,15 @@ import com.christelldev.easyreferplus.data.model.CreateProductRequest
 import com.christelldev.easyreferplus.data.model.UpdateProductRequest
 import com.christelldev.easyreferplus.data.model.ImageUploadResponse
 import com.christelldev.easyreferplus.data.model.ProductResponse
+import com.christelldev.easyreferplus.data.model.WalletBalanceResponse
+import com.christelldev.easyreferplus.data.model.WalletApiResponse
+import com.christelldev.easyreferplus.data.model.SetPinRequest
+import com.christelldev.easyreferplus.data.model.ChangePinRequest
+import com.christelldev.easyreferplus.data.model.TransferRequest
+import com.christelldev.easyreferplus.data.model.TransferResponse
+import com.christelldev.easyreferplus.data.model.WalletStatementItem
+import com.christelldev.easyreferplus.data.model.WalletStatementResponse
+import com.christelldev.easyreferplus.data.model.CheckRecipientResponse
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.DELETE
@@ -586,4 +595,51 @@ interface ApiService {
     suspend fun getCartCount(
         @Header("Authorization") authorization: String
     ): Response<CartCountResponse>
+
+    // =====================================================
+    // WALLET - BILLETERA DIGITAL
+    // =====================================================
+
+    // Establecer PIN de billetera (primera vez)
+    @POST("api/wallet/pin/set")
+    suspend fun setWalletPin(
+        @Body request: SetPinRequest
+    ): Response<WalletApiResponse<Unit>>
+
+    // Cambiar PIN de billetera
+    @POST("api/wallet/pin/change")
+    suspend fun changeWalletPin(
+        @Body request: ChangePinRequest
+    ): Response<WalletApiResponse<Unit>>
+
+    // Consultar saldo de billetera
+    @GET("api/wallet/balance")
+    suspend fun getWalletBalance(): Response<WalletBalanceResponse>
+
+    // Realizar transferencia entre usuarios
+    @POST("api/wallet/transfer")
+    suspend fun walletTransfer(
+        @Body request: TransferRequest
+    ): Response<TransferResponse>
+
+    // Obtener estado de cuenta / historial de movimientos
+    @GET("api/wallet/statement")
+    suspend fun getWalletStatement(
+        @Query("page") page: Int = 1,
+        @Query("per_page") perPage: Int = 20,
+        @Query("start_date") startDate: String? = null,
+        @Query("end_date") endDate: String? = null
+    ): Response<WalletStatementResponse>
+
+    // Obtener detalle de una transferencia específica
+    @GET("api/wallet/transfer/{id}")
+    suspend fun getWalletTransfer(
+        @Path("id") id: Int
+    ): Response<WalletStatementItem>
+
+    // Verificar si un teléfono está registrado en EasyRefer
+    @GET("api/wallet/check-recipient")
+    suspend fun checkWalletRecipient(
+        @Query("phone") phone: String
+    ): Response<CheckRecipientResponse>
 }

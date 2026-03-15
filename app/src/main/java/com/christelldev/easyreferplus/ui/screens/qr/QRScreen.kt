@@ -90,6 +90,7 @@ import java.util.Locale
 
 // Constants for consistent styling - Following HomeScreen design
 private val CARD_CORNER_RADIUS = 20.dp
+private val BUTTON_CORNER_RADIUS = 12.dp
 private val CARD_ELEVATION = 8.dp
 private val CARD_MARGIN_HORIZONTAL = 16.dp
 private val SECTION_SPACING = 20.dp
@@ -160,6 +161,7 @@ fun ScannedQRInfo(
                 Button(
                     onClick = onClearScan,
                     modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(BUTTON_CORNER_RADIUS),
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
                 ) {
                     Text("Escanear otro QR")
@@ -249,14 +251,16 @@ fun SaleNotificationDialog(
     onDismiss: () -> Unit,
     onViewReceipt: () -> Unit
 ) {
-    // Format timestamp
-    val formattedDate = try {
-        val inputFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.getDefault())
-        val outputFormat = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault())
-        val date = inputFormat.parse(notification.scanTimestamp)
-        outputFormat.format(date ?: Date())
-    } catch (e: Exception) {
-        notification.scanTimestamp
+    // Format timestamp — wrapped in remember to avoid parsing on every recomposition
+    val formattedDate = remember(notification.scanTimestamp) {
+        try {
+            val inputFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.getDefault())
+            val outputFormat = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault())
+            val date = inputFormat.parse(notification.scanTimestamp)
+            outputFormat.format(date ?: Date())
+        } catch (e: Exception) {
+            notification.scanTimestamp
+        }
     }
 
     AlertDialog(
@@ -375,6 +379,15 @@ fun QRScreen(
     var showQRScanner by remember { mutableStateOf(false) }
 
     val snackbarHostState = remember { SnackbarHostState() }
+
+    // Lambdas estables — evitan recomposiciones por referencias inestables de ViewModel
+    val onCompanySelected = remember(viewModel) { { id: Int? -> viewModel.updateSelectedCompany(id) } }
+    val onAmountChanged = remember(viewModel) { { v: String -> viewModel.updateAmount(v) } }
+    val onDescriptionChanged = remember(viewModel) { { v: String -> viewModel.updateDescription(v) } }
+    val onReferralCodeChanged = remember(viewModel) { { v: String -> viewModel.updateReferralCode(v) } }
+    val onGenerateQR = remember(viewModel) { { viewModel.generateQR() } }
+    val onClearQR = remember(viewModel) { { viewModel.clearGeneratedQR() } }
+    val onClearScan = remember(viewModel) { { viewModel.clearScannedQR() } }
 
     // Show sale receipt when notification has been received
     val saleReceipt = uiState.receipt
@@ -593,7 +606,7 @@ fun QRScreen(
                             amount = uiState.amountValue ?: uiState.generatedQR?.amount,
                             companyName = uiState.companyName,
                             qrCode = uiState.qrCode ?: uiState.generatedQR?.qrCode,
-                            onGenerateNew = viewModel::clearGeneratedQR
+                            onGenerateNew = onClearQR
                         )
                     }
                     // Show generate QR form if user has company and tab is set to Generate
@@ -608,12 +621,12 @@ fun QRScreen(
                             generatedQR = uiState.generatedQR,
                             qrImageUrl = uiState.qrImageUrl,
                             qrData = uiState.qrData,
-                            onCompanySelected = viewModel::updateSelectedCompany,
-                            onAmountChanged = viewModel::updateAmount,
-                            onDescriptionChanged = viewModel::updateDescription,
-                            onReferralCodeChanged = viewModel::updateReferralCode,
-                            onGenerateQR = viewModel::generateQR,
-                            onClearQR = viewModel::clearGeneratedQR
+                            onCompanySelected = onCompanySelected,
+                            onAmountChanged = onAmountChanged,
+                            onDescriptionChanged = onDescriptionChanged,
+                            onReferralCodeChanged = onReferralCodeChanged,
+                            onGenerateQR = onGenerateQR,
+                            onClearQR = onClearQR
                         )
                     }
                     // Show scan QR form (or when no company)
@@ -676,7 +689,7 @@ fun QRScreen(
                             // Legacy: mostrar info del QR escaneado (sin formulario)
                             ScannedQRInfo(
                                 scannedQR = uiState.scannedQR!!,
-                                onClearScan = viewModel::clearScannedQR
+                                onClearScan = onClearScan
                             )
                         }
                     }
@@ -706,7 +719,7 @@ fun GenerateQRSection(
     onClearQR: () -> Unit
 ) {
     var expanded by remember { mutableStateOf(false) }
-    val selectedCompany = companies.find { it.id == selectedCompanyId }
+    val selectedCompany = remember(companies, selectedCompanyId) { companies.find { it.id == selectedCompanyId } }
 
     // Si hay una sola empresa, seleccionarla automáticamente
     LaunchedEffect(companies) {
@@ -1051,7 +1064,7 @@ fun ScanQRSection(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(120.dp),
-                shape = RoundedCornerShape(CARD_CORNER_RADIUS),
+                shape = RoundedCornerShape(BUTTON_CORNER_RADIUS),
                 colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent)
             ) {
                 Box(

@@ -10,7 +10,7 @@ import android.content.SharedPreferences
  * Cambia la URL aquí según el entorno:
  *
  * LOCAL/TEST:  "http://192.168.9.13:8971"
- * PRODUCCIÓN:  "https://puntodeenfoque.online"
+ * PRODUCCIÓN:  "http://192.168.9.32:8000"
  *
  * ==================== INSTRUCCIONES ====================
  * 1. Modifica SERVER_URL abajo con la URL deseada
@@ -25,8 +25,8 @@ object AppConfig {
     // ==================== URL DEL SERVIDOR ====================
     // Cambia esta línea para elegir el servidor:
     // - LOCAL:    "http://192.168.9.13:8971"
-    // - PRODUCCIÓN: "https://puntodeenfoque.online"
-    private const val SERVER_URL = "https://puntodeenfoque.online"
+    // - PRODUCCIÓN: "http://192.168.9.32:8000"
+    private const val SERVER_URL = "http://192.168.9.32:8000"
 
     // ==================== URLs DERIVADAS ====================
 
