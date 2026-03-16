@@ -138,8 +138,8 @@ object WalletReceiptImageBuilder {
         p.color = Color.parseColor("#F5F8FF")
         cv.drawRect(0f, 0f, W.toFloat(), yLogoDivider + f(1f), p)
 
-        // "EasyRefer+" logo text
-        cv.drawText("EasyRefer+", half, yLogo,
+        // "Enfoque Refer" logo text
+        cv.drawText("Enfoque Refer", half, yLogo,
             tp(f(15f), BLUE, bold = true, center = true))
 
         // Logo divider
@@ -210,7 +210,7 @@ object WalletReceiptImageBuilder {
         p.color = LIGHT_GRAY
         cv.drawRect(PH, yFooter - f(20f), W - PH, yFooter - f(19.2f), p)
 
-        cv.drawText("EasyRefer+ · Plataforma de referidos", half, yFooter,
+        cv.drawText("Enfoque Refer · Plataforma de referidos", half, yFooter,
             tp(f(10f), GRAY, center = true))
 
         return bmp
