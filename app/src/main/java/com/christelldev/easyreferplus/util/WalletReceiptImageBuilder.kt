@@ -113,11 +113,10 @@ object WalletReceiptImageBuilder {
         // divider
         val yDiv = y;                         y += f(24f)
 
-        // detail rows (3 rows)
+        // detail rows (2 rows)
         val rowH  = f(36f)
         val yR1   = y + f(14f);              y += rowH
-        val yR2   = y + f(14f);              y += rowH
-        val yR3   = y + f(14f);              y += rowH + f(8f)
+        val yR2   = y + f(14f);              y += rowH + f(8f)
 
         // footer
         val yFooter = y + f(16f);            y += f(36f)
@@ -200,7 +199,6 @@ object WalletReceiptImageBuilder {
 
         row("Teléfono destino", displayPhone, yR1)
         row("N° de comprobante", t.id.toString().padStart(8, '0'), yR2)
-        row("Saldo restante", "\$${String.format("%.2f", t.senderBalanceAfter)}", yR3)
 
         // ── Footer ────────────────────────────────────────────────────────────
         // Subtle gray footer background
