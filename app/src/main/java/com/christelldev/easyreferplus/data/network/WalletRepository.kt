@@ -222,14 +222,17 @@ class WalletRepository(
         return try {
             if (errorBody != null) {
                 val errorJson = gson.fromJson(errorBody, Map::class.java)
+                val detail = (errorJson["detail"] as? String)
                 when (code) {
-                    403 -> (errorJson["detail"] as? String) ?: "PIN incorrecto o acceso denegado"
-                    429 -> "Demasiadas solicitudes. Intente más tarde."
-                    else -> (errorJson["detail"] as? String) ?: "Error $code"
+                    403 -> detail ?: "PIN incorrecto o acceso denegado"
+                    422 -> detail ?: "PIN incorrecto"
+                    429 -> detail ?: "Demasiadas solicitudes. Intente más tarde."
+                    else -> detail ?: "Error $code"
                 }
             } else {
                 when (code) {
                     403 -> "PIN incorrecto o acceso denegado"
+                    422 -> "PIN incorrecto"
                     429 -> "Demasiadas solicitudes. Intente más tarde."
                     else -> "Error $code"
                 }
