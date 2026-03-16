@@ -11,8 +11,12 @@ data class LoginResponse(
     val tokenType: String,
     @SerializedName("expires_in")
     val expiresIn: Long,
+    @SerializedName("nombres")
+    val nombres: String? = null,
+    @SerializedName("apellidos")
+    val apellidos: String? = null,
     @SerializedName("user")
-    val user: UserResponse?
+    val user: UserResponse? = null
 )
 
 data class UserResponse(

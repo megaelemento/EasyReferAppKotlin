@@ -53,6 +53,7 @@ class AuthRepository(
         private const val KEY_ACCESS_TOKEN = "access_token"
         private const val KEY_REFRESH_TOKEN = "refresh_token"
         private const val KEY_TOKEN_EXPIRY = "token_expiry"
+        private const val KEY_USER_NOMBRES = "user_nombres"
         private const val PREF_NAME = "EasyReferPrefs"
     }
 
@@ -116,6 +117,9 @@ class AuthRepository(
             putString(KEY_ACCESS_TOKEN, response.accessToken)
             putString(KEY_REFRESH_TOKEN, response.refreshToken)
             putLong(KEY_TOKEN_EXPIRY, System.currentTimeMillis() + (response.expiresIn * 1000))
+            // Guardar nombre para AppLock screen
+            val nombres = response.nombres ?: response.user?.name
+            if (nombres != null) putString(KEY_USER_NOMBRES, nombres)
             apply()
         }
     }
@@ -132,6 +136,7 @@ class AuthRepository(
     fun getAccessToken(): String? = sharedPreferences.getString(KEY_ACCESS_TOKEN, null)
     fun getRefreshToken(): String? = sharedPreferences.getString(KEY_REFRESH_TOKEN, null)
     fun isLoggedIn(): Boolean = getAccessToken() != null
+    fun getUserNombres(): String? = sharedPreferences.getString(KEY_USER_NOMBRES, null)
     fun getTokenExpiryTime(): Long = sharedPreferences.getLong(KEY_TOKEN_EXPIRY, 0L)
 
     fun isTokenExpired(): Boolean {

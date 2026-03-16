@@ -119,6 +119,8 @@ import com.christelldev.easyreferplus.ui.viewmodel.ProductViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.compose.ui.platform.LocalLifecycleOwner
+import com.christelldev.easyreferplus.ui.screens.auth.AppLockScreen
+import com.christelldev.easyreferplus.util.AppLockManager
 
 class MainActivity : androidx.appcompat.app.AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -201,6 +203,7 @@ sealed class Screen(val route: String) {
     data object WalletStatement : Screen("wallet_statement")
     data object WalletSetPin : Screen("wallet_set_pin")
     data object WalletChangePin : Screen("wallet_change_pin")
+    data object AppLock : Screen("app_lock")
 }
 
 @Composable
@@ -214,6 +217,28 @@ fun MainNavigation(
     var checkKey by remember { mutableStateOf(0) }
     var isLoggedIn by remember { mutableStateOf(authRepository.isLoggedIn()) }
     var sessionValidated by remember { mutableStateOf(false) }
+    // Overlay de bloqueo para background → foreground (el lock inicial lo maneja startDestination)
+    var showLockOverlay by remember { mutableStateOf(false) }
+
+    // Detectar background / foreground para activar el overlay de bloqueo
+    val appLifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(appLifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_STOP -> {
+                    if (authRepository.isLoggedIn()) AppLockManager.onAppBackgrounded()
+                }
+                Lifecycle.Event.ON_START -> {
+                    if (AppLockManager.onAppForegrounded() && authRepository.isLoggedIn()) {
+                        showLockOverlay = true
+                    }
+                }
+                else -> {}
+            }
+        }
+        appLifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { appLifecycleOwner.lifecycle.removeObserver(observer) }
+    }
 
     // Verificar servidor al inicio
     LaunchedEffect(checkKey) {
@@ -553,9 +578,28 @@ fun MainNavigation(
     Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
         NavHost(
             navController = navController,
-            startDestination = if (isLoggedIn) Screen.Home.route else Screen.Login.route,
+            startDestination = if (isLoggedIn) Screen.AppLock.route else Screen.Login.route,
             modifier = Modifier.padding(innerPadding)
         ) {
+            // ── PANTALLA DE BLOQUEO (inicio con sesión existente) ─────────────
+            composable(Screen.AppLock.route) {
+                AppLockScreen(
+                    userName = authRepository.getUserNombres(),
+                    onBiometricSuccess = {
+                        AppLockManager.unlock()
+                        navController.navigate(Screen.Home.route) {
+                            popUpTo(Screen.AppLock.route) { inclusive = true }
+                        }
+                    },
+                    onUsePassword = {
+                        AppLockManager.reset()
+                        navController.navigate(Screen.Login.route) {
+                            popUpTo(Screen.AppLock.route) { inclusive = true }
+                        }
+                    }
+                )
+            }
+
             composable(Screen.Login.route) {
                 // No limpiar datos aquí - la limpieza se hace en logout
                 // Esto evita llamadas no deseadas al servidor
@@ -1465,6 +1509,24 @@ fun MainNavigation(
                     onSuccess = { navController.popBackStack() }
                 )
             }
+        }
+
+        // ── AppLock overlay: background → foreground tras 30 s ───────────────
+        if (showLockOverlay) {
+            AppLockScreen(
+                userName = authRepository.getUserNombres(),
+                onBiometricSuccess = {
+                    AppLockManager.unlock()
+                    showLockOverlay = false
+                },
+                onUsePassword = {
+                    AppLockManager.reset()
+                    showLockOverlay = false
+                    navController.navigate(Screen.Login.route) {
+                        popUpTo(0) { inclusive = true }
+                    }
+                }
+            )
         }
     }
 

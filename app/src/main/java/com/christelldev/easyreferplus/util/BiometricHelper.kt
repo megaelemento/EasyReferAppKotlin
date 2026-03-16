@@ -56,15 +56,85 @@ object BiometricHelper {
         ) == BiometricManager.BIOMETRIC_SUCCESS
     }
 
+    /**
+     * Muestra el prompt biométrico para confirmar una TRANSFERENCIA de billetera.
+     */
     fun showPrompt(
         activity: FragmentActivity,
         onSuccess: () -> Unit,
         onError: (String) -> Unit
     ) {
+        showBiometricPrompt(
+            activity = activity,
+            title = "Confirmar transferencia",
+            subtitle = "Verifica tu identidad para continuar",
+            onSuccess = onSuccess,
+            onError = onError
+        )
+    }
+
+    /**
+     * Muestra el prompt biométrico para acceder a la APP (AppLockScreen).
+     * Usa huella dactilar, Face ID, PIN, patrón o contraseña del dispositivo
+     * según lo que el usuario tenga configurado en su teléfono.
+     */
+    fun showAppLockPrompt(
+        activity: FragmentActivity,
+        onSuccess: () -> Unit,
+        onError: (String) -> Unit,
+        onCancelled: () -> Unit = {}
+    ) {
         val executor = ContextCompat.getMainExecutor(activity)
 
-        // Si el dispositivo tiene sensor biométrico → biometría + credencial de dispositivo
-        // Si no tiene sensor (o no hay registrada) → solo credencial del dispositivo (PIN/patrón/contraseña)
+        val allowedAuthenticators = if (hasBiometrics(activity)) {
+            BiometricManager.Authenticators.BIOMETRIC_STRONG or
+                    BiometricManager.Authenticators.BIOMETRIC_WEAK or
+                    BiometricManager.Authenticators.DEVICE_CREDENTIAL
+        } else {
+            BiometricManager.Authenticators.DEVICE_CREDENTIAL
+        }
+
+        val prompt = BiometricPrompt(
+            activity, executor,
+            object : BiometricPrompt.AuthenticationCallback() {
+                override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
+                    onSuccess()
+                }
+
+                override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {
+                    when (errorCode) {
+                        BiometricPrompt.ERROR_USER_CANCELED,
+                        BiometricPrompt.ERROR_NEGATIVE_BUTTON -> onCancelled()
+                        else -> onError(errString.toString())
+                    }
+                }
+
+                override fun onAuthenticationFailed() {
+                    // Intento fallido — el sistema ya muestra feedback visual, no hacer nada
+                }
+            }
+        )
+
+        val promptInfo = BiometricPrompt.PromptInfo.Builder()
+            .setTitle("Acceder a EasyRefer")
+            .setSubtitle("Usa tu huella, Face ID o PIN del teléfono")
+            .setAllowedAuthenticators(allowedAuthenticators)
+            .build()
+
+        prompt.authenticate(promptInfo)
+    }
+
+    // ─── Helper interno compartido ───────────────────────────────────────────
+
+    private fun showBiometricPrompt(
+        activity: FragmentActivity,
+        title: String,
+        subtitle: String,
+        onSuccess: () -> Unit,
+        onError: (String) -> Unit
+    ) {
+        val executor = ContextCompat.getMainExecutor(activity)
+
         val allowedAuthenticators = if (hasBiometrics(activity)) {
             BiometricManager.Authenticators.BIOMETRIC_STRONG or
                     BiometricManager.Authenticators.BIOMETRIC_WEAK or
@@ -91,8 +161,8 @@ object BiometricHelper {
         )
 
         val promptInfo = BiometricPrompt.PromptInfo.Builder()
-            .setTitle("Confirmar transferencia")
-            .setSubtitle("Verifica tu identidad para continuar")
+            .setTitle(title)
+            .setSubtitle(subtitle)
             .setAllowedAuthenticators(allowedAuthenticators)
             .build()
 
