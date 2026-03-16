@@ -69,9 +69,8 @@ class WebSocketManager(
     // Callback directo para notificaciones de venta
     var onNotificationReceived: ((SaleNotificationData) -> Unit)? = null
 
-    // Flow para notificaciones de transferencias de billetera entrantes
-    private val _walletTransferFlow = MutableSharedFlow<WalletTransferNotification>(replay = 0)
-    val walletTransferFlow: SharedFlow<WalletTransferNotification> = _walletTransferFlow.asSharedFlow()
+    // Callback directo para transferencias de billetera — evita pérdidas de tryEmit con SharedFlow
+    var onWalletTransferReceived: ((WalletTransferNotification) -> Unit)? = null
 
     private val _connectionState = MutableSharedFlow<ConnectionState>(replay = 1)
     val connectionState: SharedFlow<ConnectionState> = _connectionState.asSharedFlow()
@@ -149,14 +148,14 @@ class WebSocketManager(
                         }
                         "wallet_transfer_received" -> {
                             val walletNotification = gson.fromJson(text, WalletTransferNotification::class.java)
-                            _walletTransferFlow.tryEmit(walletNotification)
+                            onWalletTransferReceived?.invoke(walletNotification)
                         }
                         else -> {
                             // Tipo no reconocido — ignorar silenciosamente
                         }
                     }
                 } catch (e: Exception) {
-                    // Error silencioso
+                    android.util.Log.e("WalletWS", "Error en onMessage: ${e.message}", e)
                 }
             }
 

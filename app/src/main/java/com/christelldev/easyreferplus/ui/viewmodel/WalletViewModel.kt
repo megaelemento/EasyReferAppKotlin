@@ -75,14 +75,15 @@ class WalletViewModel(
         // Si existe pero está muerto, limpiar
         wsManager?.disconnect()
         wsManager = WebSocketManager(AppConfig.WS_URL, getAccessToken)
-        wsManager!!.connect()
-        viewModelScope.launch {
-            wsManager!!.walletTransferFlow.collect { notification ->
+        // Callback directo desde el hilo de OkHttp — sin SharedFlow intermedio
+        wsManager!!.onWalletTransferReceived = { notification ->
+            viewModelScope.launch {
                 onWalletNotificationReceived(notification)
                 loadBalance()
                 loadStatement(refresh = true)
             }
         }
+        wsManager!!.connect()
     }
 
     fun disconnectWebSocket() {
