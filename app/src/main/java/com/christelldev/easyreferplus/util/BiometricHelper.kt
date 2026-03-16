@@ -36,11 +36,24 @@ object BiometricHelper {
         String.format("%06d", SecureRandom().nextInt(1_000_000))
 
     fun canAuthenticate(context: Context): Boolean {
-        val result = BiometricManager.from(context).canAuthenticate(
+        val manager = BiometricManager.from(context)
+        // Primero verificar biometría, luego credencial del dispositivo como fallback
+        return manager.canAuthenticate(
             BiometricManager.Authenticators.BIOMETRIC_STRONG or
+                    BiometricManager.Authenticators.BIOMETRIC_WEAK or
                     BiometricManager.Authenticators.DEVICE_CREDENTIAL
-        )
-        return result == BiometricManager.BIOMETRIC_SUCCESS
+        ) == BiometricManager.BIOMETRIC_SUCCESS ||
+        manager.canAuthenticate(
+            BiometricManager.Authenticators.DEVICE_CREDENTIAL
+        ) == BiometricManager.BIOMETRIC_SUCCESS
+    }
+
+    private fun hasBiometricSensor(context: Context): Boolean {
+        val manager = BiometricManager.from(context)
+        return manager.canAuthenticate(
+            BiometricManager.Authenticators.BIOMETRIC_STRONG or
+                    BiometricManager.Authenticators.BIOMETRIC_WEAK
+        ) == BiometricManager.BIOMETRIC_SUCCESS
     }
 
     fun showPrompt(
@@ -49,6 +62,17 @@ object BiometricHelper {
         onError: (String) -> Unit
     ) {
         val executor = ContextCompat.getMainExecutor(activity)
+
+        // Si el dispositivo tiene sensor biométrico → biometría + credencial de dispositivo
+        // Si no tiene sensor (o no hay registrada) → solo credencial del dispositivo (PIN/patrón/contraseña)
+        val allowedAuthenticators = if (hasBiometricSensor(activity)) {
+            BiometricManager.Authenticators.BIOMETRIC_STRONG or
+                    BiometricManager.Authenticators.BIOMETRIC_WEAK or
+                    BiometricManager.Authenticators.DEVICE_CREDENTIAL
+        } else {
+            BiometricManager.Authenticators.DEVICE_CREDENTIAL
+        }
+
         val prompt = BiometricPrompt(
             activity, executor,
             object : BiometricPrompt.AuthenticationCallback() {
@@ -69,10 +93,7 @@ object BiometricHelper {
         val promptInfo = BiometricPrompt.PromptInfo.Builder()
             .setTitle("Confirmar transferencia")
             .setSubtitle("Verifica tu identidad para continuar")
-            .setAllowedAuthenticators(
-                BiometricManager.Authenticators.BIOMETRIC_STRONG or
-                        BiometricManager.Authenticators.DEVICE_CREDENTIAL
-            )
+            .setAllowedAuthenticators(allowedAuthenticators)
             .build()
 
         prompt.authenticate(promptInfo)

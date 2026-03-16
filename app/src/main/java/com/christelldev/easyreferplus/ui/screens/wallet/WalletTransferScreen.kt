@@ -835,12 +835,14 @@ private fun StepThreeBiometric(
     onAuthenticate: () -> Unit,
     onClearError: () -> Unit
 ) {
+    val context = LocalContext.current
     val isDark = isSystemInDarkTheme()
     val bgColor = if (isDark) Color(0xFF0D1117) else Color(0xFFF8FAFF)
     val cardBg = if (isDark) Color(0xFF161B22) else Color(0xFFF5F9FF)
     val textPrimary = if (isDark) Color(0xFFE6EDF3) else Color(0xFF1E293B)
     val textSecondary = if (isDark) Color(0xFF8B949E) else Color.Gray
     val errorCardBg = if (isDark) Color(0xFF3D1515) else Color(0xFFFEE2E2)
+    val hasBiometrics = remember { BiometricHelper.canAuthenticate(context) }
 
     Column(
         modifier = Modifier
@@ -915,7 +917,10 @@ private fun StepThreeBiometric(
         )
         Spacer(modifier = Modifier.height(8.dp))
         Text(
-            text = "Usa tu huella, rostro o PIN del dispositivo\npara confirmar la transferencia",
+            text = if (hasBiometrics)
+                "Usa tu huella, rostro o PIN del dispositivo\npara confirmar la transferencia"
+            else
+                "Usa el PIN, patrón o contraseña\nde tu dispositivo para confirmar",
             fontSize = 14.sp,
             color = textSecondary,
             textAlign = TextAlign.Center
@@ -960,7 +965,10 @@ private fun StepThreeBiometric(
             } else {
                 Icon(Icons.Default.Fingerprint, contentDescription = null, modifier = Modifier.size(20.dp))
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("Confirmar con biometría", fontWeight = FontWeight.Bold)
+                Text(
+                    if (hasBiometrics) "Confirmar con biometría" else "Confirmar con PIN / patrón",
+                    fontWeight = FontWeight.Bold
+                )
             }
         }
     }
