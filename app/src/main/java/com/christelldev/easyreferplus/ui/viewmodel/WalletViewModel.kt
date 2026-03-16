@@ -70,13 +70,13 @@ class WalletViewModel(
     private var wsManager: WebSocketManager? = null
 
     fun connectWebSocket() {
-        if (wsManager?.isConnected() == true) return
+        if (wsManager != null) return  // ya conectado o conectando — evitar duplicados
         wsManager = WebSocketManager(AppConfig.WS_URL, getAccessToken)
         wsManager!!.connect()
         viewModelScope.launch {
             wsManager!!.walletTransferFlow.collect { notification ->
                 onWalletNotificationReceived(notification)
-                // Recargar estado de cuenta para que aparezca la transacción entrante
+                loadBalance()
                 loadStatement(refresh = true)
             }
         }

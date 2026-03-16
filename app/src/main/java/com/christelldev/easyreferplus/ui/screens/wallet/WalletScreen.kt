@@ -77,9 +77,8 @@ fun WalletScreen(
     }
 
     LaunchedEffect(Unit) {
-        viewModel.loadBalance()
-        viewModel.loadStatement(refresh = true)
         // Auto-setup biometric PIN transparently on first use
+        // connect/disconnect and data loading are handled by MainActivity's lifecycle observer
         if (!BiometricHelper.isPinStored(context)) {
             val newPin = BiometricHelper.generatePin()
             pendingPin = newPin
@@ -108,7 +107,8 @@ fun WalletScreen(
             )
         }
     ) { paddingValues ->
-        if (uiState.isLoading) {
+        val hasData = uiState.availableBalance > 0.0 || uiState.statementItems.isNotEmpty()
+        if (uiState.isLoading && !hasData) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
