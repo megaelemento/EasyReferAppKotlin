@@ -4,6 +4,7 @@ import android.Manifest
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
@@ -842,7 +843,9 @@ private fun StepThreeBiometric(
     val textPrimary = if (isDark) Color(0xFFE6EDF3) else Color(0xFF1E293B)
     val textSecondary = if (isDark) Color(0xFF8B949E) else Color.Gray
     val errorCardBg = if (isDark) Color(0xFF3D1515) else Color(0xFFFEE2E2)
-    val hasBiometrics = remember { BiometricHelper.canAuthenticate(context) }
+
+    val hasAnySecurity = remember { BiometricHelper.canAuthenticate(context) }
+    val hasBiometricSensor = remember { BiometricHelper.hasBiometrics(context) }
 
     Column(
         modifier = Modifier
@@ -851,6 +854,7 @@ private fun StepThreeBiometric(
             .padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
+        // Resumen de la transferencia (siempre visible)
         Card(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(20.dp),
@@ -892,85 +896,133 @@ private fun StepThreeBiometric(
 
         Spacer(modifier = Modifier.weight(1f))
 
-        Box(
-            modifier = Modifier
-                .size(96.dp)
-                .clip(CircleShape)
-                .background(Color(0xFF2196F3).copy(alpha = 0.1f)),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                imageVector = Icons.Default.Fingerprint,
-                contentDescription = null,
-                tint = Color(0xFF2196F3),
-                modifier = Modifier.size(56.dp)
+        if (!hasAnySecurity) {
+            // ── Sin ninguna seguridad configurada ─────────────────────────────
+            Box(
+                modifier = Modifier
+                    .size(96.dp)
+                    .clip(CircleShape)
+                    .background(Color(0xFFFEF3C7)),
+                contentAlignment = Alignment.Center
+            ) {
+                Text("🔒", fontSize = 48.sp)
+            }
+            Spacer(modifier = Modifier.height(16.dp))
+            Text(
+                text = "Seguridad requerida",
+                fontSize = 18.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = Color(0xFFD97706)
             )
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Text(
-            text = "Verifica tu identidad",
-            fontSize = 18.sp,
-            fontWeight = FontWeight.SemiBold,
-            color = textPrimary
-        )
-        Spacer(modifier = Modifier.height(8.dp))
-        Text(
-            text = if (hasBiometrics)
-                "Usa tu huella, rostro o PIN del dispositivo\npara confirmar la transferencia"
-            else
-                "Usa el PIN, patrón o contraseña\nde tu dispositivo para confirmar",
-            fontSize = 14.sp,
-            color = textSecondary,
-            textAlign = TextAlign.Center
-        )
-
-        Spacer(modifier = Modifier.weight(1f))
-
-        AnimatedVisibility(visible = uiState.transferError != null) {
-            Card(
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = "Para realizar transferencias tu dispositivo\ndebe tener configurado un PIN, patrón,\ncontraseña o huella dactilar.",
+                fontSize = 14.sp,
+                color = textSecondary,
+                textAlign = TextAlign.Center
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = "Esto protege tu dinero en caso de pérdida\no robo del teléfono.",
+                fontSize = 13.sp,
+                color = textSecondary,
+                textAlign = TextAlign.Center
+            )
+            Spacer(modifier = Modifier.weight(1f))
+            Button(
+                onClick = {
+                    context.startActivity(Intent(Settings.ACTION_SECURITY_SETTINGS))
+                },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(bottom = 16.dp),
-                colors = CardDefaults.cardColors(containerColor = errorCardBg)
+                    .height(56.dp),
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD97706))
             ) {
-                Row(
-                    modifier = Modifier.padding(12.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                Text("Configurar seguridad del dispositivo", fontWeight = FontWeight.Bold)
+            }
+        } else {
+            // ── Tiene seguridad: biometría o PIN/patrón ────────────────────────
+            Box(
+                modifier = Modifier
+                    .size(96.dp)
+                    .clip(CircleShape)
+                    .background(Color(0xFF2196F3).copy(alpha = 0.1f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Fingerprint,
+                    contentDescription = null,
+                    tint = Color(0xFF2196F3),
+                    modifier = Modifier.size(56.dp)
+                )
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Text(
+                text = "Verifica tu identidad",
+                fontSize = 18.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = textPrimary
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = if (hasBiometricSensor)
+                    "Usa tu huella, rostro o PIN del dispositivo\npara confirmar la transferencia"
+                else
+                    "Usa el PIN, patrón o contraseña\nde tu dispositivo para confirmar",
+                fontSize = 14.sp,
+                color = textSecondary,
+                textAlign = TextAlign.Center
+            )
+
+            Spacer(modifier = Modifier.weight(1f))
+
+            AnimatedVisibility(visible = uiState.transferError != null) {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 16.dp),
+                    colors = CardDefaults.cardColors(containerColor = errorCardBg)
                 ) {
-                    Text(
-                        text = uiState.transferError ?: "",
-                        color = Color(0xFFDC2626),
-                        modifier = Modifier.weight(1f)
-                    )
-                    IconButton(onClick = onClearError) {
-                        Icon(Icons.Default.Close, contentDescription = "Cerrar", tint = Color.Red)
+                    Row(
+                        modifier = Modifier.padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = uiState.transferError ?: "",
+                            color = Color(0xFFDC2626),
+                            modifier = Modifier.weight(1f)
+                        )
+                        IconButton(onClick = onClearError) {
+                            Icon(Icons.Default.Close, contentDescription = "Cerrar", tint = Color.Red)
+                        }
                     }
                 }
             }
-        }
 
-        Button(
-            onClick = onAuthenticate,
-            enabled = !uiState.isTransferring,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(56.dp),
-            shape = RoundedCornerShape(12.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2196F3))
-        ) {
-            if (uiState.isTransferring) {
-                CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
-            } else {
-                Icon(Icons.Default.Fingerprint, contentDescription = null, modifier = Modifier.size(20.dp))
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    if (hasBiometrics) "Confirmar con biometría" else "Confirmar con PIN / patrón",
-                    fontWeight = FontWeight.Bold
-                )
+            Button(
+                onClick = onAuthenticate,
+                enabled = !uiState.isTransferring,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp),
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2196F3))
+            ) {
+                if (uiState.isTransferring) {
+                    CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
+                } else {
+                    Icon(Icons.Default.Fingerprint, contentDescription = null, modifier = Modifier.size(20.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        if (hasBiometricSensor) "Confirmar con biometría" else "Confirmar con PIN / patrón",
+                        fontWeight = FontWeight.Bold
+                    )
+                }
             }
-        }
+        } // end else (hasAnySecurity)
     }
 }
 

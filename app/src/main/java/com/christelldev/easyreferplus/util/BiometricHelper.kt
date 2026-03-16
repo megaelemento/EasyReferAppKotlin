@@ -48,7 +48,7 @@ object BiometricHelper {
         ) == BiometricManager.BIOMETRIC_SUCCESS
     }
 
-    private fun hasBiometricSensor(context: Context): Boolean {
+    fun hasBiometrics(context: Context): Boolean {
         val manager = BiometricManager.from(context)
         return manager.canAuthenticate(
             BiometricManager.Authenticators.BIOMETRIC_STRONG or
@@ -65,7 +65,7 @@ object BiometricHelper {
 
         // Si el dispositivo tiene sensor biométrico → biometría + credencial de dispositivo
         // Si no tiene sensor (o no hay registrada) → solo credencial del dispositivo (PIN/patrón/contraseña)
-        val allowedAuthenticators = if (hasBiometricSensor(activity)) {
+        val allowedAuthenticators = if (hasBiometrics(activity)) {
             BiometricManager.Authenticators.BIOMETRIC_STRONG or
                     BiometricManager.Authenticators.BIOMETRIC_WEAK or
                     BiometricManager.Authenticators.DEVICE_CREDENTIAL
