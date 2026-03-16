@@ -19,7 +19,10 @@ import java.util.Locale
 object WalletReceiptImageBuilder {
 
     fun share(context: Context, transfer: TransferResponse) {
-        val bmp = buildBitmap(context, transfer)
+        val senderName = context
+            .getSharedPreferences("EasyReferPrefs", Context.MODE_PRIVATE)
+            .getString("user_nombres", null) ?: ""
+        val bmp = buildBitmap(context, transfer, senderName)
         val file = File(context.cacheDir, "comprobante_${transfer.id}.png")
         file.outputStream().use { bmp.compress(Bitmap.CompressFormat.PNG, 100, it) }
         bmp.recycle()
@@ -36,10 +39,14 @@ object WalletReceiptImageBuilder {
         )
     }
 
-    private fun fmtDate(iso: String): String = try {
-        val d = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.getDefault()).parse(iso)!!
-        SimpleDateFormat("dd MMM yyyy   HH:mm", Locale("es", "EC")).format(d)
-    } catch (_: Exception) { iso.take(16).replace("T", "   ") }
+    // "16 de marzo de 2026"
+    private fun fmtDateLong(iso: String): String = try {
+        val input = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.getDefault()).parse(iso)!!
+        val day   = SimpleDateFormat("d", Locale("es", "EC")).format(input)
+        val month = SimpleDateFormat("MMMM", Locale("es", "EC")).format(input)
+        val year  = SimpleDateFormat("yyyy", Locale("es", "EC")).format(input)
+        "El $day de $month de $year"
+    } catch (_: Exception) { iso.take(10) }
 
     private fun tp(
         size: Float,
@@ -58,118 +65,153 @@ object WalletReceiptImageBuilder {
         }
     }
 
-    private fun buildBitmap(context: Context, t: TransferResponse): Bitmap {
+    private fun buildBitmap(context: Context, t: TransferResponse, senderName: String): Bitmap {
         val dens = context.resources.displayMetrics.density
         fun f(v: Float) = v * dens
-        fun fi(v: Float) = (v * dens).toInt()
 
-        val W    = fi(380f)
+        // ── Palette ──────────────────────────────────────────────────────────
+        val BLUE       = Color.parseColor("#1565C0")
+        val DARK       = Color.parseColor("#1A2340")
+        val GRAY       = Color.parseColor("#6B7A99")
+        val LIGHT_GRAY = Color.parseColor("#E4EAF4")
+        val GREEN_BG   = Color.parseColor("#E8F5E9")
+        val GREEN_FG   = Color.parseColor("#2E7D32")
+
+        // ── Width & horizontal padding ────────────────────────────────────────
+        val W    = (380f * dens).toInt()
         val half = W / 2f
-        val PH   = f(20f)   // horizontal page padding
-        val CP   = f(22f)   // card inner padding
+        val PH   = f(28f)   // page horizontal padding
+        val CP   = f(24f)   // card inner padding
 
-        // ── Y-position trace (all in px, drawn in order) ─────────────────────
-        var y = f(154f) + CP                  // card top (154dp) + inner padding
+        // ── Y trace (top → bottom) ────────────────────────────────────────────
+        var y = f(24f)
 
-        val yTitle      = y + f(16f);  y += f(28f)
-        val yRef        = y + f(13f);  y += f(22f)
-        val yDiv1       = y;           y += f(20f)
-        val yRow1       = y + f(14f);  y += f(38f)
-        val yRow2       = y + f(14f);  y += f(38f)
-        val yRow3       = y + f(14f);  y += f(38f)
-        val yDiv2       = y;           y += f(18f)
-        val yAmtLabel   = y + f(13f)
-        val yAmtValue   = y + f(20f)
-        val cardB       = y + f(32f)           // card bottom = amount row + bottom padding
-        val yFooterLine = cardB + f(14f)       // thin line below card
-        val yFooter     = yFooterLine + f(24f) // footer text
-        val TOTAL_H     = fi(yFooter / dens + 24f)
+        // logo
+        val yLogo = y + f(13f);               y += f(32f)
 
-        val bmp = Bitmap.createBitmap(W, TOTAL_H, Bitmap.Config.ARGB_8888)
+        // divider after logo
+        val yLogoDivider = y;                 y += f(24f)
+
+        // check circle center
+        val yCircle = y + f(30f);             y += f(74f)
+
+        // "¡Transferencia Exitosa!"
+        val ySuccess = y + f(14f);            y += f(26f)
+
+        // amount
+        val yAmt = y + f(34f);               y += f(48f)
+
+        // "A [name]"
+        val yToName = y + f(16f);            y += f(24f)
+
+        // date
+        val yDate = y + f(14f);              y += f(22f)
+
+        // "De [sender]"
+        val yFrom = y + f(14f);              y += f(30f)
+
+        // divider
+        val yDiv = y;                         y += f(24f)
+
+        // detail rows (3 rows)
+        val rowH  = f(36f)
+        val yR1   = y + f(14f);              y += rowH
+        val yR2   = y + f(14f);              y += rowH
+        val yR3   = y + f(14f);              y += rowH + f(8f)
+
+        // footer
+        val yFooter = y + f(16f);            y += f(36f)
+
+        val TOTAL_H = (y / dens).toInt() + 12
+
+        // ── Bitmap & canvas ───────────────────────────────────────────────────
+        val bmp = Bitmap.createBitmap(W, (TOTAL_H * dens).toInt(), Bitmap.Config.ARGB_8888)
         val cv  = Canvas(bmp)
         val p   = Paint(Paint.ANTI_ALIAS_FLAG)
 
-        // ── Background ───────────────────────────────────────────────────────
-        p.color = Color.parseColor("#F0F4FF")
-        cv.drawRect(0f, 0f, W.toFloat(), TOTAL_H.toFloat(), p)
-
-        // ── Header gradient ──────────────────────────────────────────────────
-        val headerH = f(170f)
-        p.shader = LinearGradient(
-            0f, 0f, 0f, headerH,
-            Color.parseColor("#1565C0"), Color.parseColor("#2196F3"),
-            Shader.TileMode.CLAMP
-        )
-        cv.drawRect(0f, 0f, W.toFloat(), headerH, p)
-        p.shader = null
-
-        // Icon circle
-        p.color = Color.parseColor("#28FFFFFF")
-        cv.drawCircle(half, f(50f), f(26f), p)
-        cv.drawText("✓", half, f(59f), tp(f(18f), Color.WHITE, bold = true, center = true))
-
-        // Header texts
-        cv.drawText("¡Transferencia Exitosa!", half, f(96f),
-            tp(f(13f), Color.parseColor("#CCFFFFFF"), center = true))
-        cv.drawText("\$${String.format("%.2f", t.amount)}", half, f(140f),
-            tp(f(38f), Color.WHITE, bold = true, center = true))
-        cv.drawText("enviados", half, f(158f),
-            tp(f(11f), Color.parseColor("#99FFFFFF"), center = true))
-
-        // ── Card ─────────────────────────────────────────────────────────────
-        val cardL = PH; val cardR = W - PH
+        // ── Background white ─────────────────────────────────────────────────
         p.color = Color.WHITE
-        p.setShadowLayer(f(8f), 0f, f(3f), Color.parseColor("#18000000"))
-        cv.drawRoundRect(RectF(cardL, f(154f), cardR, cardB), f(18f), f(18f), p)
-        p.clearShadowLayer()
+        cv.drawRect(0f, 0f, W.toFloat(), bmp.height.toFloat(), p)
 
-        val cL = cardL + CP
-        val cR = cardR - CP
+        // ── Top logo area (background watermark strip) ────────────────────────
+        // Subtle top bar — very light blue tint
+        p.color = Color.parseColor("#F5F8FF")
+        cv.drawRect(0f, 0f, W.toFloat(), yLogoDivider + f(1f), p)
 
-        // Title
-        cv.drawText("Comprobante de Pago", cL, yTitle,
-            tp(f(14f), Color.parseColor("#1E293B"), bold = true))
+        // "EasyRefer+" logo text
+        cv.drawText("EasyRefer+", half, yLogo,
+            tp(f(15f), BLUE, bold = true, center = true))
 
-        // "Aprobado" badge
-        val badgeStr = "Aprobado"
-        val bTP = tp(f(10f), Color.parseColor("#059669"), bold = true)
-        val bW  = bTP.measureText(badgeStr) + f(22f)
-        val bRect = RectF(cR - bW, yTitle - f(16f), cR, yTitle + f(5f))
-        p.color = Color.parseColor("#D1FAE5")
-        cv.drawRoundRect(bRect, f(10f), f(10f), p)
-        cv.drawText(badgeStr, bRect.left + f(11f), yTitle, bTP)
+        // Logo divider
+        p.color = LIGHT_GRAY
+        cv.drawRect(PH, yLogoDivider, W - PH, yLogoDivider + f(0.8f), p)
 
-        // Ref number
-        cv.drawText("Ref. #${t.id.toString().padStart(6, '0')}", cL, yRef,
-            tp(f(11f), Color.parseColor("#CBD5E1")))
+        // ── Green check circle ────────────────────────────────────────────────
+        p.color = GREEN_BG
+        cv.drawCircle(half, yCircle, f(30f), p)
+        // Inner darker ring
+        p.color = Color.parseColor("#C8E6C9")
+        p.style = Paint.Style.STROKE
+        p.strokeWidth = f(1.5f)
+        cv.drawCircle(half, yCircle, f(30f), p)
+        p.style = Paint.Style.FILL
+        // Checkmark "✓"
+        cv.drawText("✓", half, yCircle + f(11f),
+            tp(f(28f), GREEN_FG, bold = true, center = true))
 
-        // Dividers
-        p.color = Color.parseColor("#E2E8F0")
-        cv.drawRect(cL, yDiv1, cR, yDiv1 + 1f, p)
-        cv.drawRect(cL, yDiv2, cR, yDiv2 + 1f, p)
+        // ── "¡Transferencia Exitosa!" ─────────────────────────────────────────
+        cv.drawText("¡Transferencia Exitosa!", half, ySuccess,
+            tp(f(14f), GREEN_FG, bold = true, center = true))
 
-        // Detail rows
-        fun row(label: String, value: String, yPos: Float, vColor: String = "#334155") {
-            cv.drawText(label, cL, yPos, tp(f(12f), Color.parseColor("#94A3B8")))
-            cv.drawText(value, cR, yPos, tp(f(12f), Color.parseColor(vColor), bold = true, right = true))
+        // ── Big amount ────────────────────────────────────────────────────────
+        cv.drawText("\$${String.format("%.2f", t.amount)}", half, yAmt,
+            tp(f(40f), DARK, bold = true, center = true))
+
+        // ── "A [recipient]" ───────────────────────────────────────────────────
+        val truncName = if (t.recipientName.length > 32) t.recipientName.take(30) + "…" else t.recipientName
+        cv.drawText("A $truncName", half, yToName,
+            tp(f(13f), DARK, bold = true, center = true))
+
+        // ── Date ─────────────────────────────────────────────────────────────
+        cv.drawText(fmtDateLong(t.createdAt), half, yDate,
+            tp(f(12f), GRAY, center = true))
+
+        // ── "De [sender]" ─────────────────────────────────────────────────────
+        if (senderName.isNotBlank()) {
+            val truncSender = if (senderName.length > 32) senderName.take(30) + "…" else senderName
+            cv.drawText("De $truncSender", half, yFrom,
+                tp(f(12f), GRAY, center = true))
         }
-        row("Beneficiario", t.recipientName,  yRow1)
-        row("Teléfono",     t.recipientPhone, yRow2)
-        row("Fecha",        fmtDate(t.createdAt), yRow3)
 
-        // Amount row
-        cv.drawText("Monto transferido", cL, yAmtLabel, tp(f(12f), Color.parseColor("#94A3B8")))
-        cv.drawText(
-            "\$${String.format("%.2f", t.amount)}", cR, yAmtValue,
-            tp(f(22f), Color.parseColor("#2196F3"), bold = true, right = true)
-        )
+        // ── Divider ───────────────────────────────────────────────────────────
+        p.color = LIGHT_GRAY
+        cv.drawRect(PH, yDiv, W - PH, yDiv + f(0.8f), p)
 
-        // ── Footer thin line ─────────────────────────────────────────────────
-        p.color = Color.parseColor("#CBD5E1")
-        cv.drawRect(PH, yFooterLine, W - PH, yFooterLine + 0.5f, p)
+        // ── Detail rows ───────────────────────────────────────────────────────
+        fun row(label: String, value: String, yPos: Float) {
+            cv.drawText(label, PH, yPos, tp(f(12f), GRAY))
+            cv.drawText(value, W - PH, yPos,
+                tp(f(12f), DARK, bold = true, right = true))
+        }
 
-        cv.drawText("Enviado con Enfoque Refer", half, yFooter,
-            tp(f(11f), Color.parseColor("#94A3B8"), center = true))
+        // Format phone: keep as-is or trim +593 prefix for display
+        val displayPhone = t.recipientPhone
+            .let { if (it.startsWith("+593")) "0${it.drop(4)}" else it }
+
+        row("Teléfono destino", displayPhone, yR1)
+        row("N° de comprobante", t.id.toString().padStart(8, '0'), yR2)
+        row("Saldo restante", "\$${String.format("%.2f", t.senderBalanceAfter)}", yR3)
+
+        // ── Footer ────────────────────────────────────────────────────────────
+        // Subtle gray footer background
+        p.color = Color.parseColor("#F5F8FF")
+        cv.drawRect(0f, yFooter - f(20f), W.toFloat(), bmp.height.toFloat(), p)
+
+        p.color = LIGHT_GRAY
+        cv.drawRect(PH, yFooter - f(20f), W - PH, yFooter - f(19.2f), p)
+
+        cv.drawText("EasyRefer+ · Plataforma de referidos", half, yFooter,
+            tp(f(10f), GRAY, center = true))
 
         return bmp
     }
