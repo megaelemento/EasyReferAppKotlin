@@ -77,6 +77,7 @@ class WebSocketManager(
     val connectionState: SharedFlow<ConnectionState> = _connectionState.asSharedFlow()
 
     private var isConnecting = false
+    fun isConnecting(): Boolean = isConnecting
     private var currentToken: String? = null
 
     sealed class ConnectionState {

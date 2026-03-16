@@ -70,7 +70,10 @@ class WalletViewModel(
     private var wsManager: WebSocketManager? = null
 
     fun connectWebSocket() {
-        if (wsManager != null) return  // ya conectado o conectando — evitar duplicados
+        // Si ya hay un wsManager activo (conectado o conectando), no hacer nada
+        if (wsManager != null && (wsManager!!.isConnected() || wsManager!!.isConnecting())) return
+        // Si existe pero está muerto, limpiar
+        wsManager?.disconnect()
         wsManager = WebSocketManager(AppConfig.WS_URL, getAccessToken)
         wsManager!!.connect()
         viewModelScope.launch {

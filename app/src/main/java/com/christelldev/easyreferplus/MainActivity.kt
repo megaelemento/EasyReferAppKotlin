@@ -1410,7 +1410,9 @@ fun MainNavigation(
                                 walletViewModel.loadBalance()
                                 walletViewModel.loadStatement(refresh = true)
                             }
-                            Lifecycle.Event.ON_STOP -> walletViewModel.disconnectWebSocket()
+                            // NO desconectar en ON_STOP — el socket debe mantenerse vivo
+                            // para recibir notificaciones en tiempo real. Se desconecta
+                            // solo cuando el ViewModel es destruido (onCleared).
                             else -> {}
                         }
                     }
