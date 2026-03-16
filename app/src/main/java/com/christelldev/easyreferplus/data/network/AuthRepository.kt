@@ -150,8 +150,10 @@ class AuthRepository(
     }
 
     suspend fun refreshToken(): Boolean = refreshMutex.withLock {
-        // Si otro hilo ya refrescó el token mientras esperábamos el Mutex, no hacer nada
-        if (!isTokenExpired() && !isTokenExpiringSoon()) return true
+        // Solo saltar el refresh si el token tiene expiry guardado Y aún no está vencido ni por vencer.
+        // Si expiryTime == 0 (sesión antigua sin expiry guardado), siempre refrescar.
+        val expiryTime = getTokenExpiryTime()
+        if (expiryTime > 0 && !isTokenExpired() && !isTokenExpiringSoon()) return true
 
         val refreshToken = getRefreshToken() ?: return false
         return try {
