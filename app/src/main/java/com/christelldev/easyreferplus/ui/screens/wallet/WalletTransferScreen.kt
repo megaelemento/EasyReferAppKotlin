@@ -47,6 +47,7 @@ import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -123,8 +124,8 @@ fun WalletTransferScreen(
     }
 
     val isDarkTheme = isSystemInDarkTheme()
-    val appBarBg = if (isDarkTheme) Color(0xFF0D1117) else Color.White
-    val appBarContent = if (isDarkTheme) Color(0xFFE6EDF3) else Color(0xFF1E293B)
+    val appBarBg = MaterialTheme.colorScheme.surface
+    val appBarContent = MaterialTheme.colorScheme.onSurface
 
     Scaffold(
         contentWindowInsets = WindowInsets(0),
@@ -275,7 +276,7 @@ private fun StepOneContactPicker(
                 "Ingresa el número de teléfono",
                 fontWeight = FontWeight.SemiBold,
                 fontSize = 15.sp,
-                color = Color(0xFF374151)
+                color = MaterialTheme.colorScheme.onSurface
             )
             Spacer(modifier = Modifier.height(8.dp))
             OutlinedTextField(
@@ -362,7 +363,7 @@ private fun StepOneContactPicker(
                     "Selecciona un contacto de tu agenda",
                     fontWeight = FontWeight.SemiBold,
                     fontSize = 15.sp,
-                    color = Color(0xFF374151)
+                    color = MaterialTheme.colorScheme.onSurface
                 )
             }
         }
@@ -372,7 +373,7 @@ private fun StepOneContactPicker(
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color(0xFFF0F4FF))
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
                 ) {
                     Column(
                         modifier = Modifier.padding(16.dp),
@@ -381,21 +382,21 @@ private fun StepOneContactPicker(
                         Icon(
                             Icons.Default.Contacts,
                             contentDescription = null,
-                            tint = Color(0xFF2196F3),
+                            tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(40.dp)
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
                             "Permite el acceso a tus contactos para buscar destinatarios fácilmente",
                             textAlign = TextAlign.Center,
-                            color = Color(0xFF475569),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             fontSize = 14.sp
                         )
                         Spacer(modifier = Modifier.height(12.dp))
                         Button(
                             onClick = { permissionLauncher.launch(Manifest.permission.READ_CONTACTS) },
                             shape = RoundedCornerShape(10.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2196F3))
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
                         ) {
                             Text("Permitir acceso a contactos")
                         }
@@ -429,7 +430,7 @@ private fun StepOneContactPicker(
                     Text(
                         text = if (searchQuery.isBlank()) "${contacts.size} contactos" else "${filteredContacts.size} resultados",
                         fontSize = 12.sp,
-                        color = Color.Gray
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
@@ -444,7 +445,7 @@ private fun StepOneContactPicker(
             } else if (contacts.isEmpty()) {
                 item {
                     Box(modifier = Modifier.fillMaxWidth().padding(24.dp), contentAlignment = Alignment.Center) {
-                        Text("No se encontraron contactos en tu agenda", color = Color.Gray, textAlign = TextAlign.Center)
+                        Text("No se encontraron contactos en tu agenda", color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center)
                     }
                 }
             }
@@ -453,7 +454,7 @@ private fun StepOneContactPicker(
             if (contacts.isNotEmpty() && filteredContacts.isEmpty()) {
                 item {
                     Box(modifier = Modifier.fillMaxWidth().padding(24.dp), contentAlignment = Alignment.Center) {
-                        Text("Sin resultados para \"$searchQuery\"", color = Color.Gray)
+                        Text("Sin resultados para \"$searchQuery\"", color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
             }
@@ -511,7 +512,7 @@ private fun ContactRow(
             Text(
                 text = contact.phone,
                 fontSize = 13.sp,
-                color = Color.Gray
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
         Icon(
@@ -557,7 +558,7 @@ private fun NotRegisteredScreen(
             fontSize = 22.sp,
             fontWeight = FontWeight.Bold,
             textAlign = TextAlign.Center,
-            color = Color(0xFF1E293B)
+            color = MaterialTheme.colorScheme.onSurface
         )
 
         Spacer(modifier = Modifier.height(12.dp))
@@ -565,7 +566,7 @@ private fun NotRegisteredScreen(
         Text(
             text = "Para enviarle dinero, tu contacto necesita tener la app instalada y una cuenta activa.",
             fontSize = 15.sp,
-            color = Color(0xFF64748B),
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
             lineHeight = 22.sp
         )
@@ -1040,11 +1041,11 @@ private fun StepFourSuccess(
     val scrollState = rememberScrollState()
     val isDark = isSystemInDarkTheme()
 
-    val bgColor = if (isDark) Color(0xFF0D1117) else Color(0xFFF0F4FF)
-    val cardBg = if (isDark) Color(0xFF161B22) else Color.White
-    val textPrimary = if (isDark) Color(0xFFE6EDF3) else Color(0xFF1E293B)
-    val textHint = if (isDark) Color(0xFF484F58) else Color(0xFFCBD5E1)
-    val dividerColor = if (isDark) Color(0xFF21262D) else Color(0xFFE2E8F0)
+    val bgColor = MaterialTheme.colorScheme.background
+    val cardBg = MaterialTheme.colorScheme.surface
+    val textPrimary = MaterialTheme.colorScheme.onSurface
+    val textHint = MaterialTheme.colorScheme.outlineVariant
+    val dividerColor = MaterialTheme.colorScheme.outlineVariant
 
     Column(
         modifier = Modifier

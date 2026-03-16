@@ -116,6 +116,9 @@ import com.christelldev.easyreferplus.ui.viewmodel.HistoryTab
 import com.christelldev.easyreferplus.ui.viewmodel.PublicCompaniesViewModel
 import com.christelldev.easyreferplus.ui.viewmodel.CompanyDetailViewModel
 import com.christelldev.easyreferplus.ui.viewmodel.ProductViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.compose.ui.platform.LocalLifecycleOwner
 
 class MainActivity : androidx.appcompat.app.AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -688,6 +691,19 @@ fun MainNavigation(
             }
 
             composable(Screen.Referral.route) {
+                val lifecycleOwner = LocalLifecycleOwner.current
+
+                // Reconectar al volver de bloqueo de pantalla
+                DisposableEffect(lifecycleOwner) {
+                    val observer = LifecycleEventObserver { _, event ->
+                        if (event == Lifecycle.Event.ON_RESUME) {
+                            referralViewModel.reconnectIfNeeded()
+                        }
+                    }
+                    lifecycleOwner.lifecycle.addObserver(observer)
+                    onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+                }
+
                 ReferralScreen(
                     viewModel = referralViewModel,
                     onBack = {
@@ -1272,11 +1288,26 @@ fun MainNavigation(
             // Pantalla de Ganancias del usuario
             composable(Screen.Earnings.route) {
                 val uiState by earningsViewModel.uiState.collectAsState()
+                val context = LocalContext.current
+                val lifecycleOwner = LocalLifecycleOwner.current
 
-                // Cargar ganancias al entrar
+                // Inicializar WS manager y conectar (en orden garantizado)
                 LaunchedEffect(Unit) {
-                    earningsViewModel.loadEarnings()
+                    earningsViewModel.initWebSocketManager(context)
+                    earningsViewModel.connectWebSocket()
+                    // Lista de comisiones sigue por REST (paginación)
                     earningsViewModel.loadCommissions()
+                }
+
+                // Reconectar al volver de bloqueo de pantalla
+                DisposableEffect(lifecycleOwner) {
+                    val observer = LifecycleEventObserver { _, event ->
+                        if (event == Lifecycle.Event.ON_RESUME) {
+                            earningsViewModel.reconnectIfNeeded()
+                        }
+                    }
+                    lifecycleOwner.lifecycle.addObserver(observer)
+                    onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
                 }
 
                 EarningsScreen(
@@ -1308,16 +1339,35 @@ fun MainNavigation(
                     onBack = { navController.popBackStack() },
                     onClearError = { earningsViewModel.clearError() },
                     onLoadMoreCommissions = { earningsViewModel.loadMoreCommissions() },
-                    onFilterChange = { filter -> earningsViewModel.setFilter(filter) }
+                    onFilterChange = { filter -> earningsViewModel.setFilter(filter) },
+                    onConnectWebSocket = { earningsViewModel.connectWebSocket() },
+                    onDisconnectWebSocket = { earningsViewModel.disconnectWebSocket() }
                 )
             }
 
             // Pantalla de Retiros
             composable(Screen.Withdrawal.route) {
                 val uiState by withdrawalViewModel.uiState.collectAsState()
+                val context = LocalContext.current
+                val lifecycleOwner = LocalLifecycleOwner.current
 
+                // Inicializar WS manager y conectar (en orden garantizado)
                 LaunchedEffect(Unit) {
-                    withdrawalViewModel.loadData()
+                    withdrawalViewModel.initWebSocketManager(context)
+                    withdrawalViewModel.connectWebSocket()
+                    // Cuentas bancarias e historial siguen por REST
+                    withdrawalViewModel.loadBankAccountsAndHistory()
+                }
+
+                // Reconectar al volver de bloqueo de pantalla
+                DisposableEffect(lifecycleOwner) {
+                    val observer = LifecycleEventObserver { _, event ->
+                        if (event == Lifecycle.Event.ON_RESUME) {
+                            withdrawalViewModel.reconnectIfNeeded()
+                        }
+                    }
+                    lifecycleOwner.lifecycle.addObserver(observer)
+                    onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
                 }
 
                 WithdrawalScreen(
@@ -1342,7 +1392,9 @@ fun MainNavigation(
                     onRequestWithdrawal = { amount -> withdrawalViewModel.requestWithdrawal(amount) },
                     onRefresh = { withdrawalViewModel.loadData() },
                     onBack = { navController.popBackStack() },
-                    onClearMessages = { withdrawalViewModel.clearMessages() }
+                    onClearMessages = { withdrawalViewModel.clearMessages() },
+                    onConnectWebSocket = { withdrawalViewModel.connectWebSocket() },
+                    onDisconnectWebSocket = { withdrawalViewModel.disconnectWebSocket() }
                 )
             }
 

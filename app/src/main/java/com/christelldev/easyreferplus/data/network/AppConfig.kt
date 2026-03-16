@@ -26,7 +26,7 @@ object AppConfig {
     // Cambia esta línea para elegir el servidor:
     // - LOCAL:    "http://192.168.9.13:8971"
     // - PRODUCCIÓN: "http://192.168.9.32:8000"
-    private const val SERVER_URL = "http://192.168.9.32:8000"
+    private const val SERVER_URL = "https://puntodeenfoque.online"
 
     // ==================== URLs DERIVADAS ====================
 

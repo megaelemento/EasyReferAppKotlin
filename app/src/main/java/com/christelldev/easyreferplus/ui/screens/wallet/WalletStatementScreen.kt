@@ -106,7 +106,7 @@ fun WalletStatementScreen(
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Atrás")
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.White)
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.surface)
             )
         }
     ) { paddingValues ->
@@ -132,8 +132,8 @@ fun WalletStatementScreen(
                         label = { Text(filter) },
                         shape = RoundedCornerShape(20.dp),
                         colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = Color(0xFF2196F3),
-                            selectedLabelColor = Color.White
+                            selectedContainerColor = MaterialTheme.colorScheme.primary,
+                            selectedLabelColor = MaterialTheme.colorScheme.onPrimary
                         )
                     )
                 }
@@ -168,7 +168,7 @@ fun WalletStatementScreen(
                             Text(
                                 text = dateLabel,
                                 style = MaterialTheme.typography.titleSmall,
-                                color = Color.Gray,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.padding(vertical = 8.dp)
                             )
                         }
@@ -213,7 +213,7 @@ private fun LoadingSkeletons() {
                     .fillMaxWidth()
                     .height(80.dp)
                     .clip(RoundedCornerShape(12.dp))
-                    .background(Color.Gray.copy(alpha = alpha))
+                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = alpha))
             )
         }
     }
@@ -229,12 +229,12 @@ private fun EmptyState() {
         Icon(
             imageVector = Icons.Default.AccountBalanceWallet,
             contentDescription = null,
-            tint = Color.Gray.copy(alpha = 0.5f),
+            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
             modifier = Modifier.size(72.dp)
         )
         Spacer(modifier = Modifier.height(16.dp))
-        Text("No tienes transferencias aún", style = MaterialTheme.typography.titleMedium, color = Color.Gray)
-        Text("Tus movimientos aparecerán aquí", style = MaterialTheme.typography.bodySmall, color = Color.LightGray, textAlign = TextAlign.Center)
+        Text("No tienes transferencias aún", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text("Tus movimientos aparecerán aquí", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.outline, textAlign = TextAlign.Center)
     }
 }
 
@@ -249,22 +249,22 @@ private fun SummaryCard(totalSent: Double, totalReceived: Double, netBalance: Do
     Card(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
         shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFFF8FAFC))
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
     ) {
         Row(
             modifier = Modifier.fillMaxWidth().padding(12.dp),
             horizontalArrangement = Arrangement.SpaceEvenly
         ) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text("Enviado", style = MaterialTheme.typography.labelSmall, color = Color.Gray)
+                Text("Enviado", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Text("-${"%.2f".format(totalSent)}", fontWeight = FontWeight.Bold, color = Color(0xFFEF4444))
             }
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text("Recibido", style = MaterialTheme.typography.labelSmall, color = Color.Gray)
+                Text("Recibido", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Text("+${"%.2f".format(totalReceived)}", fontWeight = FontWeight.Bold, color = Color(0xFF10B981))
             }
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text("Neto", style = MaterialTheme.typography.labelSmall, color = Color.Gray)
+                Text("Neto", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 val color = if (netBalance >= 0) Color(0xFF10B981) else Color(0xFFEF4444)
                 Text("${"%.2f".format(netBalance)}", fontWeight = FontWeight.Bold, color = color)
             }
@@ -333,9 +333,9 @@ private fun StatementItemCard(item: WalletStatementItem) {
             Spacer(modifier = Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(item.counterpartName, fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.bodyMedium)
-                Text(item.counterpartPhone, style = MaterialTheme.typography.bodySmall, color = Color.Gray)
+                Text(item.counterpartPhone, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 item.description?.takeIf { it.isNotBlank() }?.let {
-                    Text(it, style = MaterialTheme.typography.bodySmall, color = Color.LightGray, fontWeight = FontWeight.Light)
+                    Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.outline, fontWeight = FontWeight.Light)
                 }
             }
             Column(horizontalAlignment = Alignment.End) {
@@ -348,12 +348,12 @@ private fun StatementItemCard(item: WalletStatementItem) {
                 Text(
                     text = "Saldo: \$ ${"%.2f".format(item.balanceAfter)}",
                     style = MaterialTheme.typography.labelSmall,
-                    color = Color.LightGray
+                    color = MaterialTheme.colorScheme.outline
                 )
                 Text(
                     text = item.createdAt.substringAfter("T").take(5),
                     style = MaterialTheme.typography.labelSmall,
-                    color = Color.LightGray
+                    color = MaterialTheme.colorScheme.outline
                 )
             }
         }

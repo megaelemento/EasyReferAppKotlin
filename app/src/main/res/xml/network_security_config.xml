@@ -9,5 +9,6 @@
         <domain includeSubdomains="true">192.168.9.13</domain>
         <domain includeSubdomains="true">192.168.9.32</domain>
         <domain includeSubdomains="true">localhost</domain>
+        <domain includeSubdomains="true">puntodeenfoque.online</domain>
     </domain-config>
 </network-security-config>

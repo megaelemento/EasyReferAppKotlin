@@ -45,6 +45,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -81,9 +82,17 @@ fun ReferralScreen(
     val uiState by viewModel.uiState.collectAsState()
     val scrollState = rememberScrollState()
 
-    // Recargar referidos cuando se muestra la pantalla
+    // Inicializar WebSocket y conectar (en orden garantizado)
     LaunchedEffect(Unit) {
-        viewModel.loadReferrals()
+        viewModel.initWebSocketManager(context)
+        viewModel.connectWebSocket()
+    }
+
+    // Desconectar al salir de la pantalla
+    DisposableEffect(Unit) {
+        onDispose {
+            viewModel.disconnectWebSocket()
+        }
     }
 
     fun copyToClipboard(text: String) {

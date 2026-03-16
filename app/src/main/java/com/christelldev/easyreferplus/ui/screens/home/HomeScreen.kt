@@ -643,31 +643,15 @@ private fun QuickActionsSection(
             }
         }
 
-        // First row
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            actionItems.take(5).forEach { item ->
-                ModernQuickActionButton(
-                    icon = item.icon,
-                    label = item.label,
-                    gradient = item.gradient,
-                    onClick = item.onClick,
-                    modifier = Modifier.weight(1f)
-                )
-            }
-        }
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        // Second row
-        if (actionItems.size > 5) {
+        // Grid de 4 columnas, filas dinámicas
+        val rows = actionItems.chunked(4)
+        rows.forEachIndexed { rowIndex, rowItems ->
+            if (rowIndex > 0) Spacer(modifier = Modifier.height(10.dp))
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                actionItems.drop(5).forEach { item ->
+                rowItems.forEach { item ->
                     ModernQuickActionButton(
                         icon = item.icon,
                         label = item.label,
@@ -676,8 +660,8 @@ private fun QuickActionsSection(
                         modifier = Modifier.weight(1f)
                     )
                 }
-                // Fill remaining space if needed
-                if (actionItems.size <= 5) {
+                // Rellena slots vacíos en la última fila
+                repeat(4 - rowItems.size) {
                     Spacer(modifier = Modifier.weight(1f))
                 }
             }
@@ -702,10 +686,10 @@ private fun ModernQuickActionButton(
 ) {
     Card(
         modifier = modifier
-            .height(90.dp)
-            .shadow(2.dp, RoundedCornerShape(16.dp))
+            .height(132.dp)
+            .shadow(5.dp, RoundedCornerShape(20.dp))
             .clickable(onClick = onClick),
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(containerColor = Color.Transparent)
     ) {
         Box(
@@ -717,20 +701,30 @@ private fun ModernQuickActionButton(
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center,
-                modifier = Modifier.padding(8.dp)
+                modifier = Modifier.padding(horizontal = 6.dp, vertical = 14.dp)
             ) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.surface,
-                    modifier = Modifier.size(24.dp)
-                )
-                Spacer(modifier = Modifier.height(6.dp))
+                Box(
+                    modifier = Modifier
+                        .size(50.dp)
+                        .background(
+                            color = Color.White.copy(alpha = 0.22f),
+                            shape = RoundedCornerShape(14.dp)
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.size(28.dp)
+                    )
+                }
+                Spacer(modifier = Modifier.height(9.dp))
                 Text(
                     text = label,
-                    style = MaterialTheme.typography.labelSmall,
-                    fontWeight = FontWeight.Medium,
-                    color = MaterialTheme.colorScheme.surface,
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color.White,
                     textAlign = TextAlign.Center,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis

@@ -6,11 +6,14 @@ import androidx.lifecycle.viewModelScope
 import com.christelldev.easyreferplus.data.model.CompanyEarnings
 import com.christelldev.easyreferplus.data.model.CommissionResponse
 import com.christelldev.easyreferplus.data.model.EarningsByLevel
+import com.christelldev.easyreferplus.data.network.AppConfig
 import com.christelldev.easyreferplus.data.network.EarningsRepository
 import com.christelldev.easyreferplus.data.network.EarningsResult
+import com.christelldev.easyreferplus.data.network.SimpleWebSocketManager
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 
 data class EarningsUiState(
@@ -169,6 +172,140 @@ class EarningsViewModel(
 
     fun clearError() {
         _uiState.value = _uiState.value.copy(errorMessage = null)
+    }
+
+    // ==================== WEBSOCKET ====================
+    // WebSocket Manager para tiempo real
+    private var wsManager: SimpleWebSocketManager? = null
+
+    /**
+     * Inicializar WebSocket Manager con el contexto
+     */
+    fun initWebSocketManager(context: android.content.Context) {
+        if (wsManager == null) {
+            wsManager = SimpleWebSocketManager(
+                context = context,
+                baseUrl = AppConfig.BASE_URL,
+                getAccessToken = getAccessToken
+            )
+            // Observar datos en tiempo real
+            viewModelScope.launch {
+                wsManager?.earningsData?.collectLatest { data ->
+                    data?.let { updateFromWebSocket(it) }
+                }
+            }
+        }
+    }
+
+    /**
+     * Conectar al WebSocket (llamar cuando entra a la pantalla)
+     */
+    fun connectWebSocket() {
+        wsManager?.subscribe(SimpleWebSocketManager.CHANNEL_EARNINGS)
+    }
+
+    /**
+     * Desconectar del WebSocket (llamar cuando sale de la pantalla)
+     */
+    fun disconnectWebSocket() {
+        wsManager?.unsubscribe(SimpleWebSocketManager.CHANNEL_EARNINGS)
+    }
+
+    fun reconnectIfNeeded() {
+        val state = wsManager?.connectionState?.value
+        if (state == SimpleWebSocketManager.ConnectionState.Disconnected ||
+            state is SimpleWebSocketManager.ConnectionState.Error) {
+            wsManager?.subscribe(SimpleWebSocketManager.CHANNEL_EARNINGS)
+        }
+    }
+
+    /**
+     * Actualizar UI con datos del WebSocket
+     */
+    private fun updateFromWebSocket(data: Map<String, Any>) {
+        fun double(key: String) = (data[key] as? Double) ?: (_uiState.value.let {
+            when (key) {
+                "total_earned" -> it.totalEarned
+                "total_paid" -> it.totalPaid
+                "total_pending" -> it.totalPending
+                else -> 0.0
+            }
+        })
+        fun int(key: String) = (data[key] as? Double)?.toInt() ?: (data[key] as? Int)
+
+        val action = data["action"] as? String
+
+        when (action) {
+            "initial" -> {
+                val byLevel = data["earnings_by_level"]?.let { it as? Map<*, *> }
+                val commPercentages = data["commission_percentages"]?.let { it as? Map<*, *> }
+                @Suppress("UNCHECKED_CAST")
+                val commissions = (data["commissions"] as? List<Map<String, Any>>) ?: emptyList()
+                @Suppress("UNCHECKED_CAST")
+                val topCompaniesRaw = (data["top_companies"] as? List<Map<String, Any>>) ?: emptyList()
+
+                _uiState.value = _uiState.value.copy(
+                    totalEarned = double("total_earned"),
+                    totalPaid = double("total_paid"),
+                    totalPending = double("total_pending"),
+                    totalCommissions = int("total_commissions") ?: _uiState.value.totalCommissions,
+                    pendingCount = int("pending_count") ?: _uiState.value.pendingCount,
+                    paidCount = int("paid_count") ?: _uiState.value.paidCount,
+                    scheduledCount = int("scheduled_count") ?: _uiState.value.scheduledCount,
+                    earningsByLevel = if (byLevel != null) com.christelldev.easyreferplus.data.model.EarningsByLevel(
+                        level1 = (byLevel["level1_earned"] as? Double) ?: (byLevel["level_1"] as? Double) ?: 0.0,
+                        level2 = (byLevel["level2_earned"] as? Double) ?: (byLevel["level_2"] as? Double) ?: 0.0,
+                        level3 = (byLevel["level3_earned"] as? Double) ?: (byLevel["level_3"] as? Double) ?: 0.0,
+                    ) else com.christelldev.easyreferplus.data.model.EarningsByLevel(
+                        level1 = (data["level1_earned"] as? Double) ?: _uiState.value.earningsByLevel?.level1 ?: 0.0,
+                        level2 = (data["level2_earned"] as? Double) ?: _uiState.value.earningsByLevel?.level2 ?: 0.0,
+                        level3 = (data["level3_earned"] as? Double) ?: _uiState.value.earningsByLevel?.level3 ?: 0.0,
+                    ),
+                    level1Percentage = (data["level1_percentage"] as? Double) ?: (commPercentages?.get("level_1") as? Double) ?: _uiState.value.level1Percentage,
+                    level2Percentage = (data["level2_percentage"] as? Double) ?: (commPercentages?.get("level_2") as? Double) ?: _uiState.value.level2Percentage,
+                    level3Percentage = (data["level3_percentage"] as? Double) ?: (commPercentages?.get("level_3") as? Double) ?: _uiState.value.level3Percentage,
+                    topCompanies = topCompaniesRaw.map { c ->
+                        com.christelldev.easyreferplus.data.model.CompanyEarnings(
+                            companyName = (c["company_name"] as? String) ?: "",
+                            totalEarned = (c["total_earned"] as? Double) ?: 0.0
+                        )
+                    },
+                    isLoading = false,
+                    isEmpty = (int("total_commissions") ?: 0) == 0
+                )
+            }
+            "new_commission" -> {
+                val newTotalPending = _uiState.value.totalPending + ((data["commission"] as? Map<*, *>)?.get("amount") as? Double ?: 0.0)
+                _uiState.value = _uiState.value.copy(
+                    totalPending = newTotalPending,
+                    totalEarned = _uiState.value.totalEarned + ((data["commission"] as? Map<*, *>)?.get("amount") as? Double ?: 0.0),
+                    totalCommissions = _uiState.value.totalCommissions + 1,
+                    pendingCount = _uiState.value.pendingCount + 1
+                )
+            }
+            "commission_paid" -> {
+                val amount = (data["commission"] as? Map<*, *>)?.get("amount") as? Double ?: 0.0
+                _uiState.value = _uiState.value.copy(
+                    totalPaid = _uiState.value.totalPaid + amount,
+                    totalPending = (_uiState.value.totalPending - amount).coerceAtLeast(0.0),
+                    paidCount = _uiState.value.paidCount + 1,
+                    pendingCount = (_uiState.value.pendingCount - 1).coerceAtLeast(0)
+                )
+            }
+            else -> {
+                // Fallback: leer campos planos (compatibilidad)
+                val totalEarned = data["total_earned"] as? Double
+                val totalPaid = data["total_paid"] as? Double
+                val totalPending = data["total_pending"] as? Double
+                val totalCommissions = (data["total_commissions"] as? Double)?.toInt() ?: data["total_commissions"] as? Int
+                _uiState.value = _uiState.value.copy(
+                    totalEarned = totalEarned ?: _uiState.value.totalEarned,
+                    totalPaid = totalPaid ?: _uiState.value.totalPaid,
+                    totalPending = totalPending ?: _uiState.value.totalPending,
+                    totalCommissions = totalCommissions ?: _uiState.value.totalCommissions
+                )
+            }
+        }
     }
 
     // Factory para ViewModel

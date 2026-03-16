@@ -77,7 +77,7 @@ fun SetPinScreen(
     }
 
     val title = if (isChangingPin) "Cambiar PIN" else "Configurar PIN"
-    val primaryColor = Color(0xFF2196F3)
+    val primaryColor = MaterialTheme.colorScheme.primary
 
     Scaffold(
         topBar = {
@@ -93,8 +93,8 @@ fun SetPinScreen(
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = primaryColor,
-                    titleContentColor = Color.White,
-                    navigationIconContentColor = Color.White
+                    titleContentColor = MaterialTheme.colorScheme.onPrimary,
+                    navigationIconContentColor = MaterialTheme.colorScheme.onPrimary
                 )
             )
         }
@@ -116,17 +116,17 @@ fun SetPinScreen(
                 uiState.pinError?.let { error ->
                     Text(
                         text = error,
-                        color = Color.Red,
+                        color = MaterialTheme.colorScheme.error,
                         style = MaterialTheme.typography.bodySmall,
                         modifier = Modifier.padding(bottom = 8.dp)
                     )
                 }
-                
+
                 // Mostrar error local
                 localError?.let { error ->
                     Text(
                         text = error,
-                        color = Color.Red,
+                        color = MaterialTheme.colorScheme.error,
                         style = MaterialTheme.typography.bodySmall,
                         modifier = Modifier.padding(bottom = 8.dp)
                     )
@@ -141,7 +141,7 @@ fun SetPinScreen(
                             "Tu PIN de 6 dígitos protege tus transferencias. No uses tu contraseña de acceso.",
                             style = MaterialTheme.typography.bodyMedium,
                             textAlign = TextAlign.Center,
-                            color = Color.Gray,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(horizontal = 16.dp)
                         )
                         Spacer(modifier = Modifier.height(24.dp))
@@ -252,13 +252,13 @@ private fun IconSetup() {
         modifier = Modifier
             .size(80.dp)
             .clip(CircleShape)
-            .background(Color(0xFFE3F2FD)),
+            .background(MaterialTheme.colorScheme.primaryContainer),
         contentAlignment = Alignment.Center
     ) {
         Icon(
             imageVector = Icons.Default.Lock,
             contentDescription = null,
-            tint = Color(0xFF2196F3),
+            tint = MaterialTheme.colorScheme.primary,
             modifier = Modifier.size(40.dp)
         )
     }
@@ -274,8 +274,8 @@ fun PinInputDisplay(pin: String, maxLength: Int = 6) {
                     .size(16.dp)
                     .clip(CircleShape)
                     .background(
-                        if (index < pin.length) Color(0xFF2196F3)
-                        else Color.Gray.copy(alpha = 0.3f)
+                        if (index < pin.length) MaterialTheme.colorScheme.primary
+                        else MaterialTheme.colorScheme.outlineVariant
                     )
             )
         }
@@ -311,14 +311,14 @@ fun PinKeyboard(
                             modifier = Modifier
                                 .size(64.dp)
                                 .clip(CircleShape)
-                                .background(Color(0xFFF3F4F6))
+                                .background(MaterialTheme.colorScheme.surfaceVariant)
                                 .clickable { onDelete() },
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
                                 imageVector = Icons.AutoMirrored.Filled.Backspace,
                                 contentDescription = "Borrar",
-                                tint = Color(0xFF374151),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.size(24.dp)
                             )
                         }
@@ -327,7 +327,7 @@ fun PinKeyboard(
                             modifier = Modifier
                                 .size(64.dp)
                                 .clip(CircleShape)
-                                .background(Color(0xFFF3F4F6))
+                                .background(MaterialTheme.colorScheme.surfaceVariant)
                                 .clickable { onDigit(key) },
                             contentAlignment = Alignment.Center
                         ) {
@@ -335,7 +335,7 @@ fun PinKeyboard(
                                 text = key,
                                 style = MaterialTheme.typography.titleLarge,
                                 fontWeight = FontWeight.Bold,
-                                color = Color(0xFF111827)
+                                color = MaterialTheme.colorScheme.onSurface
                             )
                         }
                     }

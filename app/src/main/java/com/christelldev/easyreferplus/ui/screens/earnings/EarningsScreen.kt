@@ -66,9 +66,19 @@ fun EarningsScreen(
     onBack: () -> Unit,
     onClearError: () -> Unit,
     onLoadMoreCommissions: () -> Unit,
-    onFilterChange: (String) -> Unit
+    onFilterChange: (String) -> Unit,
+    // WebSocket callbacks
+    onConnectWebSocket: () -> Unit,
+    onDisconnectWebSocket: () -> Unit
 ) {
     val primaryColor = MaterialTheme.colorScheme.primary
+
+    // WebSocket: desconectar al salir (el connect lo maneja el LaunchedEffect del padre)
+    DisposableEffect(Unit) {
+        onDispose {
+            onDisconnectWebSocket()
+        }
+    }
 
     // Mostrar error
     LaunchedEffect(errorMessage) {
@@ -91,15 +101,6 @@ fun EarningsScreen(
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Volver",
-                            tint = MaterialTheme.colorScheme.onSurface
-                        )
-                    }
-                },
-                actions = {
-                    IconButton(onClick = onRefresh) {
-                        Icon(
-                            imageVector = Icons.Default.Refresh,
-                            contentDescription = "Actualizar",
                             tint = MaterialTheme.colorScheme.onSurface
                         )
                     }

@@ -5,11 +5,14 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.christelldev.easyreferplus.data.model.ReferralTree
 import com.christelldev.easyreferplus.data.model.ReferralTotals
+import com.christelldev.easyreferplus.data.network.AppConfig
 import com.christelldev.easyreferplus.data.network.ReferralRepository
 import com.christelldev.easyreferplus.data.network.ReferralResult
+import com.christelldev.easyreferplus.data.network.SimpleWebSocketManager
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 
 data class ReferralUiState(
@@ -128,6 +131,96 @@ class ReferralViewModel(
 
     fun clearSearchResult() {
         _uiState.value = _uiState.value.copy(searchResult = null)
+    }
+
+    // ==================== WEBSOCKET ====================
+    private var wsManager: SimpleWebSocketManager? = null
+
+    fun initWebSocketManager(context: android.content.Context) {
+        if (wsManager == null) {
+            wsManager = SimpleWebSocketManager(
+                context = context,
+                baseUrl = AppConfig.BASE_URL,
+                getAccessToken = getAccessToken
+            )
+            viewModelScope.launch {
+                wsManager?.referralsData?.collectLatest { data ->
+                    data?.let { updateFromWebSocket(it) }
+                }
+            }
+        }
+    }
+
+    fun connectWebSocket() {
+        wsManager?.subscribe(SimpleWebSocketManager.CHANNEL_REFERRALS)
+    }
+
+    fun disconnectWebSocket() {
+        wsManager?.unsubscribe(SimpleWebSocketManager.CHANNEL_REFERRALS)
+    }
+
+    fun reconnectIfNeeded() {
+        val state = wsManager?.connectionState?.value
+        if (state == SimpleWebSocketManager.ConnectionState.Disconnected ||
+            state is SimpleWebSocketManager.ConnectionState.Error) {
+            wsManager?.subscribe(SimpleWebSocketManager.CHANNEL_REFERRALS)
+        }
+    }
+
+    private fun updateFromWebSocket(data: Map<String, Any>) {
+        fun int(key: String) = (data[key] as? Double)?.toInt() ?: (data[key] as? Int)
+
+        val action = data["action"] as? String
+
+        when (action) {
+            "initial" -> {
+                @Suppress("UNCHECKED_CAST")
+                val level1Codes = (data["level1_codes"] as? List<*>)?.filterIsInstance<String>() ?: _uiState.value.level1Codes
+                @Suppress("UNCHECKED_CAST")
+                val level2Codes = (data["level2_codes"] as? List<*>)?.filterIsInstance<String>() ?: _uiState.value.level2Codes
+                @Suppress("UNCHECKED_CAST")
+                val level3Codes = (data["level3_codes"] as? List<*>)?.filterIsInstance<String>() ?: _uiState.value.level3Codes
+
+                _uiState.value = _uiState.value.copy(
+                    userReferralCode = (data["user_referral_code"] as? String) ?: _uiState.value.userReferralCode,
+                    totalCount = int("total_referrals") ?: _uiState.value.totalCount,
+                    level1Count = int("level1_count") ?: _uiState.value.level1Count,
+                    level2Count = int("level2_count") ?: _uiState.value.level2Count,
+                    level3Count = int("level3_count") ?: _uiState.value.level3Count,
+                    level1Codes = level1Codes,
+                    level2Codes = level2Codes,
+                    level3Codes = level3Codes,
+                    isLoading = false
+                )
+            }
+            "new_referral" -> {
+                _uiState.value = _uiState.value.copy(
+                    totalCount = _uiState.value.totalCount + 1,
+                    level1Count = _uiState.value.level1Count + 1
+                )
+            }
+            "level_upgrade" -> {
+                // Solo actualizar conteos — el servidor envía el nivel nuevo
+                val newLevel = int("new_level") ?: return
+                _uiState.value = _uiState.value.copy(
+                    level2Count = if (newLevel == 2) _uiState.value.level2Count + 1 else _uiState.value.level2Count,
+                    level3Count = if (newLevel == 3) _uiState.value.level3Count + 1 else _uiState.value.level3Count
+                )
+            }
+            else -> {
+                // Fallback compatibilidad
+                val totalCount = int("total_referrals")
+                val level1Count = int("level1_count")
+                val level2Count = int("level2_count")
+                val level3Count = int("level3_count")
+                _uiState.value = _uiState.value.copy(
+                    totalCount = totalCount ?: _uiState.value.totalCount,
+                    level1Count = level1Count ?: _uiState.value.level1Count,
+                    level2Count = level2Count ?: _uiState.value.level2Count,
+                    level3Count = level3Count ?: _uiState.value.level3Count
+                )
+            }
+        }
     }
 
     class Factory(

@@ -59,11 +59,21 @@ fun WithdrawalScreen(
     onRequestWithdrawal: (Double) -> Unit,
     onRefresh: () -> Unit,
     onBack: () -> Unit,
-    onClearMessages: () -> Unit
+    onClearMessages: () -> Unit,
+    // WebSocket
+    onConnectWebSocket: () -> Unit,
+    onDisconnectWebSocket: () -> Unit
 ) {
     val primaryColor = MaterialTheme.colorScheme.primary
     var showAddAccountDialog by remember { mutableStateOf(false) }
     var showWithdrawDialog by remember { mutableStateOf(false) }
+
+    // WebSocket: desconectar al salir (el connect lo maneja el LaunchedEffect del padre)
+    DisposableEffect(Unit) {
+        onDispose {
+            onDisconnectWebSocket()
+        }
+    }
 
     // Mostrar mensajes
     LaunchedEffect(successMessage, errorMessage) {
@@ -84,15 +94,6 @@ fun WithdrawalScreen(
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Volver",
-                            tint = MaterialTheme.colorScheme.onSurface
-                        )
-                    }
-                },
-                actions = {
-                    IconButton(onClick = onRefresh) {
-                        Icon(
-                            imageVector = Icons.Default.Refresh,
-                            contentDescription = "Actualizar",
                             tint = MaterialTheme.colorScheme.onSurface
                         )
                     }
