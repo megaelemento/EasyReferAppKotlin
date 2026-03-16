@@ -107,8 +107,9 @@ fun WalletScreen(
             )
         }
     ) { paddingValues ->
-        val hasData = uiState.availableBalance > 0.0 || uiState.statementItems.isNotEmpty()
-        if (uiState.isLoading && !hasData) {
+        // Solo mostrar spinner full-screen en la primera carga (hasLoadedOnce = false)
+        // Para evitar el parpadeo en visitas repetidas (especialmente con balance $0.00)
+        if (uiState.isLoading && !uiState.hasLoadedOnce) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()

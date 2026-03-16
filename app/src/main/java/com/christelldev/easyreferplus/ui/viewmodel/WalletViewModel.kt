@@ -22,6 +22,7 @@ import kotlinx.coroutines.launch
 data class WalletUiState(
     val availableBalance: Double = 0.0,
     val totalBalance: Double = 0.0,
+    val hasLoadedOnce: Boolean = false,
     // Formulario de transferencia
     val recipientPhone: String = "",
     val recipientName: String = "",
@@ -107,9 +108,13 @@ class WalletViewModel(
                 is WalletBalanceResult.Success -> {
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
+                        hasLoadedOnce = true,
                         availableBalance = result.balance.availableBalance,
                         totalBalance = result.balance.totalBalance
                     )
+                    // Token is confirmed valid here — reconnect WebSocket if needed
+                    // (handles case where WebSocket failed on first connect due to expired token)
+                    connectWebSocket()
                 }
                 is WalletBalanceResult.Error -> {
                     _uiState.value = _uiState.value.copy(
