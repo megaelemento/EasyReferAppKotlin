@@ -6,12 +6,14 @@ import androidx.lifecycle.viewModelScope
 import com.christelldev.easyreferplus.data.model.TransferResponse
 import com.christelldev.easyreferplus.data.model.WalletStatementItem
 import com.christelldev.easyreferplus.data.model.WalletTransferNotification
+import com.christelldev.easyreferplus.data.network.AppConfig
 import com.christelldev.easyreferplus.data.network.WalletBalanceResult
 import com.christelldev.easyreferplus.data.network.WalletPinResult
 import com.christelldev.easyreferplus.data.network.WalletRepository
 import com.christelldev.easyreferplus.data.network.WalletStatementResult
 import com.christelldev.easyreferplus.data.network.WalletTransferResult
 import com.christelldev.easyreferplus.data.network.WalletCheckRecipientResult
+import com.christelldev.easyreferplus.data.network.WebSocketManager
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -53,7 +55,8 @@ data class WalletUiState(
 )
 
 class WalletViewModel(
-    private val repository: WalletRepository
+    private val repository: WalletRepository,
+    private val getAccessToken: () -> String
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(WalletUiState())
@@ -62,6 +65,32 @@ class WalletViewModel(
     // Preserve active date filter for pagination
     private var activeStartDate: String? = null
     private var activeEndDate: String? = null
+
+    // WebSocket propio del wallet
+    private var wsManager: WebSocketManager? = null
+
+    fun connectWebSocket() {
+        if (wsManager?.isConnected() == true) return
+        wsManager = WebSocketManager(AppConfig.WS_URL, getAccessToken)
+        wsManager!!.connect()
+        viewModelScope.launch {
+            wsManager!!.walletTransferFlow.collect { notification ->
+                onWalletNotificationReceived(notification)
+                // Recargar estado de cuenta para que aparezca la transacción entrante
+                loadStatement(refresh = true)
+            }
+        }
+    }
+
+    fun disconnectWebSocket() {
+        wsManager?.disconnect()
+        wsManager = null
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        wsManager?.disconnect()
+    }
 
     // --------------------------------------------------
     // Carga de saldo
@@ -232,12 +261,14 @@ class WalletViewModel(
                         isTransferring = false,
                         transferSuccess = result.transfer,
                         availableBalance = result.transfer.senderBalanceAfter,
-                        // Limpiar formulario tras transferencia exitosa
                         recipientPhone = "",
                         amount = "",
                         description = "",
                         pin = ""
                     )
+                    // Recargar saldo y estado de cuenta desde el servidor
+                    loadBalance()
+                    loadStatement(refresh = true)
                 }
                 is WalletTransferResult.Error -> {
                     _uiState.value = _uiState.value.copy(
@@ -281,6 +312,9 @@ class WalletViewModel(
                         description = "",
                         pin = ""
                     )
+                    // Recargar saldo y estado de cuenta desde el servidor
+                    loadBalance()
+                    loadStatement(refresh = true)
                 }
                 is WalletTransferResult.Error -> {
                     _uiState.value = _uiState.value.copy(
@@ -427,14 +461,14 @@ class WalletViewModel(
         _uiState.value = _uiState.value.copy(recipientVerified = false)
     }
 
-    // Factory para instanciar desde Composable / Activity sin AndroidViewModel
     class Factory(
-        private val repository: WalletRepository
+        private val repository: WalletRepository,
+        private val getAccessToken: () -> String
     ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
             if (modelClass.isAssignableFrom(WalletViewModel::class.java)) {
-                return WalletViewModel(repository) as T
+                return WalletViewModel(repository, getAccessToken) as T
             }
             throw IllegalArgumentException("Unknown ViewModel class")
         }

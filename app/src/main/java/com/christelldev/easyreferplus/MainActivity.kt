@@ -360,7 +360,7 @@ fun MainNavigation(
     // Wallet ViewModel
     val walletRepository = com.christelldev.easyreferplus.data.network.WalletRepository.Factory()
     val walletViewModel: WalletViewModel = viewModel(
-        factory = WalletViewModel.Factory(walletRepository)
+        factory = WalletViewModel.Factory(walletRepository) { authRepository.getAccessToken() ?: "" }
     )
 
     // Product & Cart ViewModel
@@ -1400,11 +1400,22 @@ fun MainNavigation(
 
             // ── BILLETERA DIGITAL ─────────────────────────────────────────
             composable(Screen.Wallet.route) {
-                // Conectar wallet transfer notifications via WebSocket
-                LaunchedEffect(webSocketManager) {
-                    webSocketManager?.walletTransferFlow?.collect { notification ->
-                        walletViewModel.onWalletNotificationReceived(notification)
+                val walletLifecycleOwner = LocalLifecycleOwner.current
+                DisposableEffect(walletLifecycleOwner) {
+                    val observer = LifecycleEventObserver { _, event ->
+                        when (event) {
+                            Lifecycle.Event.ON_START -> walletViewModel.connectWebSocket()
+                            Lifecycle.Event.ON_RESUME -> {
+                                // Recargar al volver de cualquier sub-pantalla (transferencia, estado de cuenta)
+                                walletViewModel.loadBalance()
+                                walletViewModel.loadStatement(refresh = true)
+                            }
+                            Lifecycle.Event.ON_STOP -> walletViewModel.disconnectWebSocket()
+                            else -> {}
+                        }
                     }
+                    walletLifecycleOwner.lifecycle.addObserver(observer)
+                    onDispose { walletLifecycleOwner.lifecycle.removeObserver(observer) }
                 }
                 WalletScreen(
                     viewModel = walletViewModel,
