@@ -610,9 +610,12 @@ fun MainNavigation(
             }
 
             composable(Screen.Home.route) {
-                // Cargar carrito cuando se muestra el Home
+                // Cargar carrito y conectar WebSocket de billetera cuando se muestra el Home
                 LaunchedEffect(Unit) {
                     productViewModel.loadCart()
+                    // Conectar WebSocket de wallet desde el Home para recibir notificaciones
+                    // de transferencias incluso si el usuario no abre la pantalla Mi Billetera
+                    walletViewModel.connectWebSocket()
                 }
 
                 val cartCount by productViewModel.cartCount.collectAsState()
