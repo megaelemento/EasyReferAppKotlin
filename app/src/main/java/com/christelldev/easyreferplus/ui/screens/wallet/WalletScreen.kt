@@ -1,6 +1,8 @@
 package com.christelldev.easyreferplus.ui.screens.wallet
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -14,6 +16,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -42,17 +45,18 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.platform.LocalContext
-import com.christelldev.easyreferplus.util.BiometricHelper
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.christelldev.easyreferplus.data.model.WalletStatementItem
 import com.christelldev.easyreferplus.ui.viewmodel.WalletViewModel
+import com.christelldev.easyreferplus.util.BiometricHelper
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -65,7 +69,9 @@ fun WalletScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
+    val isDark = isSystemInDarkTheme()
     var pendingPin by remember { mutableStateOf<String?>(null) }
+    var selectedItem by remember { mutableStateOf<WalletStatementItem?>(null) }
 
     // Store PIN locally once backend confirms it was set
     LaunchedEffect(uiState.hasPinSet) {
@@ -76,10 +82,10 @@ fun WalletScreen(
         }
     }
 
-    LaunchedEffect(Unit) {
-        // Auto-setup biometric PIN transparently on first use
-        // connect/disconnect and data loading are handled by MainActivity's lifecycle observer
-        if (!BiometricHelper.isPinStored(context)) {
+    // Auto-setup biometric PIN transparently on first use.
+    // Wait until loadBalance() succeeds (hasLoadedOnce = true) to confirm the token is valid.
+    LaunchedEffect(uiState.hasLoadedOnce) {
+        if (uiState.hasLoadedOnce && !BiometricHelper.isPinStored(context)) {
             val newPin = BiometricHelper.generatePin()
             pendingPin = newPin
             viewModel.setPin(newPin)
@@ -89,7 +95,9 @@ fun WalletScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Mi Billetera") },
+                title = {
+                    Text("Mi Billetera", fontWeight = FontWeight.Bold)
+                },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(
@@ -105,10 +113,11 @@ fun WalletScreen(
                     actionIconContentColor = MaterialTheme.colorScheme.onPrimary
                 )
             )
-        }
+        },
+        containerColor = MaterialTheme.colorScheme.background
     ) { paddingValues ->
-        // Solo mostrar spinner full-screen en la primera carga (hasLoadedOnce = false)
-        // Para evitar el parpadeo en visitas repetidas (especialmente con balance $0.00)
+
+        // Solo spinner full-screen en la primera carga
         if (uiState.isLoading && !uiState.hasLoadedOnce) {
             Box(
                 modifier = Modifier
@@ -116,32 +125,31 @@ fun WalletScreen(
                     .padding(paddingValues),
                 contentAlignment = Alignment.Center
             ) {
-                CircularProgressIndicator()
+                CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
             }
         } else {
             LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(paddingValues)
-                    .padding(16.dp),
+                    .padding(horizontal = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                // 1. Balance Card (Blue Gradient)
+                item { Spacer(Modifier.height(8.dp)) }
+
+                // ── 1. Tarjeta de saldo ─────────────────────────────────────
                 item {
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(20.dp),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+                        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
                     ) {
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .background(
                                     brush = Brush.horizontalGradient(
-                                        colors = listOf(
-                                            Color(0xFF03A9F4),
-                                            Color(0xFF2196F3)
-                                        )
+                                        colors = listOf(Color(0xFF0288D1), Color(0xFF1565C0))
                                     )
                                 )
                                 .padding(24.dp)
@@ -150,48 +158,50 @@ fun WalletScreen(
                                 Text(
                                     text = "SALDO DISPONIBLE",
                                     style = MaterialTheme.typography.labelSmall,
-                                    color = Color.White.copy(alpha = 0.8f)
+                                    color = Color.White.copy(alpha = 0.75f),
+                                    letterSpacing = 1.sp
                                 )
-                                Spacer(modifier = Modifier.height(8.dp))
+                                Spacer(Modifier.height(6.dp))
                                 Text(
-                                    text = "$${String.format("%.2f", uiState.availableBalance)}",
+                                    text = "\$${String.format("%.2f", uiState.availableBalance)}",
                                     style = MaterialTheme.typography.headlineLarge,
-                                    fontWeight = FontWeight.Bold,
+                                    fontWeight = FontWeight.ExtraBold,
                                     color = Color.White
                                 )
-                                Spacer(modifier = Modifier.height(16.dp))
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween
-                                ) {
-                                    Column {
-                                        Text(
-                                            text = "Saldo total",
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = Color.White.copy(alpha = 0.7f)
-                                        )
-                                        Text(
-                                            text = "$${String.format("%.2f", uiState.totalBalance)}",
-                                            style = MaterialTheme.typography.bodyMedium,
-                                            color = Color.White
-                                        )
-                                    }
-                                    // Nota: No hay campo de "Pendiente" en el estado, 
-                                    // asumiendo lógica de negocio o se omite. 
-                                    // Aquí calculo la diferencia como ejemplo si existiera concepto de pendiente.
-                                    val pending = uiState.totalBalance - uiState.availableBalance
-                                    if (pending > 0) {
+                                val pending = uiState.totalBalance - uiState.availableBalance
+                                if (uiState.totalBalance > 0 || pending > 0) {
+                                    Spacer(Modifier.height(14.dp))
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween
+                                    ) {
                                         Column {
                                             Text(
-                                                text = "Pendiente",
+                                                "Saldo total",
                                                 style = MaterialTheme.typography.bodySmall,
-                                                color = Color.White.copy(alpha = 0.7f)
+                                                color = Color.White.copy(alpha = 0.65f)
                                             )
                                             Text(
-                                                text = "$${String.format("%.2f", pending)}",
+                                                "\$${String.format("%.2f", uiState.totalBalance)}",
                                                 style = MaterialTheme.typography.bodyMedium,
-                                                color = Color.White
+                                                color = Color.White,
+                                                fontWeight = FontWeight.Medium
                                             )
+                                        }
+                                        if (pending > 0.001) {
+                                            Column(horizontalAlignment = Alignment.End) {
+                                                Text(
+                                                    "Pendiente",
+                                                    style = MaterialTheme.typography.bodySmall,
+                                                    color = Color.White.copy(alpha = 0.65f)
+                                                )
+                                                Text(
+                                                    "\$${String.format("%.2f", pending)}",
+                                                    style = MaterialTheme.typography.bodyMedium,
+                                                    color = Color(0xFFFFD54F),
+                                                    fontWeight = FontWeight.Medium
+                                                )
+                                            }
                                         }
                                     }
                                 }
@@ -200,13 +210,13 @@ fun WalletScreen(
                     }
                 }
 
-                // 2. Transfer Button
+                // ── 2. Botón Transferir ─────────────────────────────────────
                 item {
                     Button(
                         onClick = onNavigateToTransfer,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(56.dp),
+                            .height(52.dp),
                         shape = RoundedCornerShape(12.dp),
                         colors = ButtonDefaults.buttonColors(
                             containerColor = MaterialTheme.colorScheme.primary
@@ -215,17 +225,18 @@ fun WalletScreen(
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.Send,
                             contentDescription = null,
-                            modifier = Modifier.size(20.dp)
+                            modifier = Modifier.size(18.dp)
                         )
-                        Spacer(modifier = Modifier.width(8.dp))
+                        Spacer(Modifier.width(8.dp))
                         Text(
-                            text = "Transferir",
-                            style = MaterialTheme.typography.titleMedium
+                            "Transferir",
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.SemiBold
                         )
                     }
                 }
 
-                // 3. Recent Transactions Header
+                // ── 3. Encabezado Últimos movimientos ───────────────────────
                 item {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -233,7 +244,7 @@ fun WalletScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = "Últimos movimientos",
+                            "Últimos movimientos",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold
                         )
@@ -243,7 +254,7 @@ fun WalletScreen(
                     }
                 }
 
-                // 4. Transactions List or Empty State
+                // ── 4. Lista de transacciones ───────────────────────────────
                 if (uiState.statementItems.isEmpty()) {
                     item {
                         Box(
@@ -253,82 +264,114 @@ fun WalletScreen(
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
-                                text = "No tienes transferencias aún",
+                                "No tienes transferencias aún",
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                     }
                 } else {
-                    items(uiState.statementItems.take(5)) { item ->
-                        TransactionItem(item = item)
+                    items(uiState.statementItems.take(5)) { txItem ->
+                        TransactionItem(
+                            item = txItem,
+                            isDark = isDark,
+                            onClick = { selectedItem = txItem }
+                        )
                     }
                 }
+
+                item { Spacer(Modifier.height(8.dp)) }
             }
         }
     }
+
+    // ── Sheet de detalle ────────────────────────────────────────────────────
+    selectedItem?.let { item ->
+        TransactionDetailSheet(item = item, onDismiss = { selectedItem = null })
+    }
 }
 
+// ─── Componente de ítem de transacción ────────────────────────────────────────
+
 @Composable
-private fun TransactionItem(item: WalletStatementItem) {
+private fun TransactionItem(
+    item: WalletStatementItem,
+    isDark: Boolean,
+    onClick: () -> Unit
+) {
     val isSent = item.type == "sent"
-    val amountColor = if (isSent) Color(0xFFE53935) else Color(0xFF10B981) // Rojo o Verde
-    val iconColor = if (isSent) Color(0xFFE53935) else Color(0xFF10B981)
-    val arrowIcon = if (isSent) Icons.Default.ArrowUpward else Icons.Default.ArrowDownward
-    val amountPrefix = if (isSent) "- $${item.amount}" else "+ $${item.amount}"
+    val accentColor = if (isSent) Color(0xFFEF4444) else Color(0xFF10B981)
+    val iconBg = accentColor.copy(alpha = if (isDark) 0.18f else 0.12f)
+    val amountPrefix = if (isSent) "-\$${String.format("%.2f", item.amount)}"
+                       else "+\$${String.format("%.2f", item.amount)}"
 
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
         shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        ),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(12.dp),
+                .padding(14.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Box(
                 modifier = Modifier
-                    .size(40.dp)
-                    .background(
-                        color = iconColor.copy(alpha = 0.1f),
-                        shape = RoundedCornerShape(20.dp)
-                    ),
+                    .size(42.dp)
+                    .clip(CircleShape)
+                    .background(iconBg),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    imageVector = arrowIcon,
+                    imageVector = if (isSent) Icons.Default.ArrowUpward
+                                  else Icons.Default.ArrowDownward,
                     contentDescription = null,
-                    tint = iconColor,
+                    tint = accentColor,
                     modifier = Modifier.size(20.dp)
                 )
             }
-            
-            Spacer(modifier = Modifier.width(12.dp))
-            
+
+            Spacer(Modifier.width(12.dp))
+
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = item.counterpartName,
                     style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Bold,
+                    fontWeight = FontWeight.SemiBold,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
                 Text(
-                    text = item.counterpartPhone,
+                    text = if (item.counterpartPhone.startsWith("+593"))
+                               "0${item.counterpartPhone.drop(4)}"
+                           else item.counterpartPhone,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-            
-            Text(
-                text = amountPrefix,
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.Bold,
-                color = amountColor
-            )
+
+            Column(horizontalAlignment = Alignment.End) {
+                Text(
+                    text = amountPrefix,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = accentColor
+                )
+                Text(
+                    text = item.createdAt.substringAfter("T").take(5),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.outline
+                )
+            }
         }
     }
 }
+
+// Alias para no usar directamente la extension en Compose
+private val Int.sp get() = this.dp

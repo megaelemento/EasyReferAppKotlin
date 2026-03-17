@@ -740,6 +740,9 @@ fun MainNavigation(
                     },
                     onNavigateToWallet = {
                         navController.navigate(Screen.Wallet.route)
+                    },
+                    onNavigateToWalletTransfer = {
+                        navController.navigate(Screen.WalletTransfer.route)
                     }
                 )
             }

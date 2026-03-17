@@ -7,6 +7,8 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -77,6 +79,7 @@ fun WalletStatementScreen(
     val uiState by viewModel.uiState.collectAsState()
     val listState = rememberLazyListState()
     var selectedFilter by remember { mutableStateOf("Todo") }
+    var selectedItem by remember { mutableStateOf<WalletStatementItem?>(null) }
 
     // Cargar datos al inicio
     LaunchedEffect(Unit) {
@@ -106,7 +109,11 @@ fun WalletStatementScreen(
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Atrás")
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.surface)
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    titleContentColor = MaterialTheme.colorScheme.onPrimary,
+                    navigationIconContentColor = MaterialTheme.colorScheme.onPrimary
+                )
             )
         }
     ) { paddingValues ->
@@ -175,7 +182,7 @@ fun WalletStatementScreen(
                         
                         items(items.size) { index ->
                             val item = items[index]
-                            StatementItemCard(item = item)
+                            StatementItemCard(item = item, onClick = { selectedItem = item })
                         }
                     }
 
@@ -195,6 +202,10 @@ fun WalletStatementScreen(
                 }
             }
         }
+    }
+
+    selectedItem?.let { item ->
+        TransactionDetailSheet(item = item, onDismiss = { selectedItem = null })
     }
 }
 
@@ -305,16 +316,22 @@ private fun getDateGroup(createdAt: String): String {
 }
 
 @Composable
-private fun StatementItemCard(item: WalletStatementItem) {
+private fun StatementItemCard(item: WalletStatementItem, onClick: () -> Unit) {
     val isSent = item.type == "sent"
-    val amountColor = if (isSent) Color(0xFFEF4444) else Color(0xFF10B981)
-    val amountSign = if (isSent) "-" else "+"
-    val iconBg = if (isSent) Color(0xFFFEE2E2) else Color(0xFFD1FAE5)
-    val iconTint = if (isSent) Color(0xFFEF4444) else Color(0xFF10B981)
+    val isDark = isSystemInDarkTheme()
+    val accentColor = if (isSent) Color(0xFFEF4444) else Color(0xFF10B981)
+    val iconBg = accentColor.copy(alpha = if (isDark) 0.18f else 0.12f)
+    val amountPrefix = if (isSent) "-\$${String.format("%.2f", item.amount)}"
+                       else "+\$${String.format("%.2f", item.amount)}"
+    val phone = if (item.counterpartPhone.startsWith("+593")) "0${item.counterpartPhone.drop(4)}"
+                else item.counterpartPhone
 
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
         shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Row(
@@ -327,26 +344,26 @@ private fun StatementItemCard(item: WalletStatementItem) {
             ) {
                 Icon(
                     imageVector = if (isSent) Icons.Default.ArrowUpward else Icons.Default.ArrowDownward,
-                    contentDescription = null, tint = iconTint, modifier = Modifier.size(20.dp)
+                    contentDescription = null, tint = accentColor, modifier = Modifier.size(20.dp)
                 )
             }
             Spacer(modifier = Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(item.counterpartName, fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.bodyMedium)
-                Text(item.counterpartPhone, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(phone, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 item.description?.takeIf { it.isNotBlank() }?.let {
                     Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.outline, fontWeight = FontWeight.Light)
                 }
             }
             Column(horizontalAlignment = Alignment.End) {
                 Text(
-                    text = "$amountSign\$ ${"%.2f".format(item.amount)}",
+                    text = amountPrefix,
                     fontWeight = FontWeight.Bold,
-                    color = amountColor,
+                    color = accentColor,
                     style = MaterialTheme.typography.bodyMedium
                 )
                 Text(
-                    text = "Saldo: \$ ${"%.2f".format(item.balanceAfter)}",
+                    text = "Saldo: \$${String.format("%.2f", item.balanceAfter)}",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.outline
                 )

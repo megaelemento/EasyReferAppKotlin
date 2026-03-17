@@ -299,6 +299,13 @@ class WalletViewModel(
             return
         }
 
+        if (amount > state.availableBalance) {
+            _uiState.value = _uiState.value.copy(
+                transferError = "Saldo insuficiente. Tu saldo disponible es \$${String.format("%.2f", state.availableBalance)}"
+            )
+            return
+        }
+
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(
                 isTransferring = true,

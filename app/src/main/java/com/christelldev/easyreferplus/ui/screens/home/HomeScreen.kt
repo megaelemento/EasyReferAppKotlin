@@ -35,6 +35,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.filled.Logout
+import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.AccountBalanceWallet
 import androidx.compose.material.icons.filled.AdminPanelSettings
 import androidx.compose.material.icons.filled.Add
@@ -108,6 +109,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.christelldev.easyreferplus.R
+import com.christelldev.easyreferplus.data.network.AppConfig
 import com.christelldev.easyreferplus.ui.theme.AppBlue
 import com.christelldev.easyreferplus.ui.viewmodel.HomeViewModel
 import kotlinx.coroutines.launch
@@ -151,6 +153,7 @@ fun HomeScreen(
     onNavigateToCart: () -> Unit = {},
     onNavigateToMyProducts: () -> Unit = {},
     onNavigateToWallet: () -> Unit = {},
+    onNavigateToWalletTransfer: () -> Unit = {},
     onLogout: () -> Unit = {}
 ) {
     val context = LocalContext.current
@@ -241,6 +244,10 @@ fun HomeScreen(
                     scope.launch { drawerState.close() }
                     onNavigateToWallet()
                 },
+                onNavigateToWalletTransfer = {
+                    scope.launch { drawerState.close() }
+                    onNavigateToWalletTransfer()
+                },
                 onLogout = {
                     scope.launch { drawerState.close() }
                     showLogoutDialog = true
@@ -309,7 +316,8 @@ fun HomeScreen(
                             onWithdrawClick = onNavigateToWithdrawal,
                             onCartClick = onNavigateToCart,
                             onMyProductsClick = onNavigateToMyProducts,
-                            onWalletClick = onNavigateToWallet
+                            onWalletClick = onNavigateToWallet,
+                            onWalletTransferClick = onNavigateToWalletTransfer
                         )
                     }
 
@@ -601,7 +609,8 @@ private fun QuickActionsSection(
     onWithdrawClick: () -> Unit,
     onCartClick: () -> Unit = {},
     onMyProductsClick: () -> Unit = {},
-    onWalletClick: () -> Unit = {}
+    onWalletClick: () -> Unit = {},
+    onWalletTransferClick: () -> Unit = {}
 ) {
     Column(modifier = Modifier.padding(horizontal = CARD_MARGIN_HORIZONTAL)) {
         Row(
@@ -633,7 +642,8 @@ private fun QuickActionsSection(
             add(ActionItem(Icons.Default.AccountBalanceWallet, "Retiros", GradientWarning, onWithdrawClick))
             add(ActionItem(Icons.Default.TrendingUp, "Ganancias", GradientSuccess, onEarningsClick))
             add(ActionItem(Icons.Default.AccountBalanceWallet, "Billetera", listOf(Color(0xFF8B5CF6), Color(0xFFA78BFA)), onWalletClick))
-            
+            add(ActionItem(Icons.AutoMirrored.Filled.Send, "Transferir", listOf(Color(0xFF0891B2), Color(0xFF22D3EE)), onWalletTransferClick))
+
             // Solo mostrar si tiene empresa
             if (hasCompany) {
                 add(ActionItem(Icons.Default.History, "Historial", GradientTeal, onHistoryClick))
@@ -1361,7 +1371,16 @@ private fun ModernDrawerContent(
                     color = errorColor
                 )
             }
-            Spacer(modifier = Modifier.height(16.dp))
+            // ── VERSIÓN ──────────────────────────────────────────────────────
+            Text(
+                text = "Versión ${AppConfig.APP_VERSION}",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.35f),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 16.dp),
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+            )
         }
     }
 }
