@@ -77,7 +77,7 @@ fun WalletScreen(
     LaunchedEffect(uiState.hasPinSet) {
         val pin = pendingPin
         if (uiState.hasPinSet && pin != null) {
-            BiometricHelper.storePin(context, pin)
+            runCatching { BiometricHelper.storePin(context, pin) }
             pendingPin = null
         }
     }
@@ -85,10 +85,13 @@ fun WalletScreen(
     // Auto-setup biometric PIN transparently on first use.
     // Wait until loadBalance() succeeds (hasLoadedOnce = true) to confirm the token is valid.
     LaunchedEffect(uiState.hasLoadedOnce) {
-        if (uiState.hasLoadedOnce && !BiometricHelper.isPinStored(context)) {
-            val newPin = BiometricHelper.generatePin()
-            pendingPin = newPin
-            viewModel.setPin(newPin)
+        if (uiState.hasLoadedOnce) {
+            val pinAlreadyStored = runCatching { BiometricHelper.isPinStored(context) }.getOrDefault(false)
+            if (!pinAlreadyStored) {
+                val newPin = BiometricHelper.generatePin()
+                pendingPin = newPin
+                viewModel.setPin(newPin)
+            }
         }
     }
 

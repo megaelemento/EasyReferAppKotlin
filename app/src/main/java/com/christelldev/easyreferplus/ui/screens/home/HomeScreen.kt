@@ -1308,15 +1308,14 @@ private fun ModernDrawerContent(
             DrawerItem(Icons.Default.Business, "Mi Empresa", primary, onNavigateToCompany)
 
             // ── SECCIÓN: FINANZAS ────────────────────────────────────────────
-            if (hasEarningsAvailable || hasWithdrawalsAvailable) {
-                Spacer(modifier = Modifier.height(4.dp))
-                DrawerSectionLabel("Finanzas", primary)
-                if (hasEarningsAvailable)
-                    DrawerItem(Icons.Default.TrendingUp, "Ganancias", primary, onNavigateToEarnings)
-                if (hasWithdrawalsAvailable)
-                    DrawerItem(Icons.Default.Money, "Retiros", primary, onNavigateToWithdrawal)
-                    DrawerItem(Icons.Default.AccountBalanceWallet, "Billetera", primary, onNavigateToWallet)
-            }
+            Spacer(modifier = Modifier.height(4.dp))
+            DrawerSectionLabel("Finanzas", primary)
+            DrawerItem(Icons.Default.AccountBalanceWallet, "Mi Billetera", primary, onNavigateToWallet)
+            DrawerItem(Icons.AutoMirrored.Filled.Send, "Transferir", primary, onNavigateToWalletTransfer)
+            if (hasEarningsAvailable)
+                DrawerItem(Icons.Default.TrendingUp, "Ganancias", primary, onNavigateToEarnings)
+            if (hasWithdrawalsAvailable)
+                DrawerItem(Icons.Default.Money, "Retiros", primary, onNavigateToWithdrawal)
 
             // ── SECCIÓN: MI EMPRESA ──────────────────────────────────────────
             if (hasCompany) {
