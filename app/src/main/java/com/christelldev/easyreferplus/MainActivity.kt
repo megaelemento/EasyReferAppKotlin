@@ -319,6 +319,7 @@ fun MainNavigation(
     }
 
     val navController = rememberNavController()
+    val mainScope = androidx.compose.runtime.rememberCoroutineScope()
     val loginViewModel: LoginViewModel = viewModel(
         factory = LoginViewModel.Factory(authRepository)
     )
@@ -586,9 +587,31 @@ fun MainNavigation(
                 AppLockScreen(
                     userName = authRepository.getUserNombres(),
                     onBiometricSuccess = {
-                        AppLockManager.unlock()
-                        navController.navigate(Screen.Home.route) {
-                            popUpTo(Screen.AppLock.route) { inclusive = true }
+                        // Renovar token justo después de que el usuario confirma su identidad.
+                        // Si el refresh falla (sesión muy vieja), ir a Login en lugar de
+                        // dejar que el error aparezca de sorpresa dentro de la app.
+                        mainScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+                            val refreshed = authRepository.refreshToken()
+                            kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
+                                AppLockManager.unlock()
+                                if (refreshed) {
+                                    navController.navigate(Screen.Home.route) {
+                                        popUpTo(Screen.AppLock.route) { inclusive = true }
+                                    }
+                                } else {
+                                    // Token no renovable → pedir login limpio
+                                    authRepository.clearAllData()
+                                    AppLockManager.reset()
+                                    android.widget.Toast.makeText(
+                                        context,
+                                        "Tu sesión expiró. Inicia sesión nuevamente.",
+                                        android.widget.Toast.LENGTH_LONG
+                                    ).show()
+                                    navController.navigate(Screen.Login.route) {
+                                        popUpTo(Screen.AppLock.route) { inclusive = true }
+                                    }
+                                }
+                            }
                         }
                     },
                     onUsePassword = {
@@ -1516,8 +1539,28 @@ fun MainNavigation(
             AppLockScreen(
                 userName = authRepository.getUserNombres(),
                 onBiometricSuccess = {
-                    AppLockManager.unlock()
-                    showLockOverlay = false
+                    mainScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+                        val refreshed = authRepository.refreshToken()
+                        kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
+                            AppLockManager.unlock()
+                            if (refreshed) {
+                                showLockOverlay = false
+                            } else {
+                                authRepository.clearAllData()
+                                AppLockManager.reset()
+                                showLockOverlay = false
+                                isLoggedIn = false
+                                android.widget.Toast.makeText(
+                                    context,
+                                    "Tu sesión expiró. Inicia sesión nuevamente.",
+                                    android.widget.Toast.LENGTH_LONG
+                                ).show()
+                                navController.navigate(Screen.Login.route) {
+                                    popUpTo(0) { inclusive = true }
+                                }
+                            }
+                        }
+                    }
                 },
                 onUsePassword = {
                     AppLockManager.reset()
