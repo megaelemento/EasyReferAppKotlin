@@ -587,31 +587,15 @@ fun MainNavigation(
                 AppLockScreen(
                     userName = authRepository.getUserNombres(),
                     onBiometricSuccess = {
-                        // Renovar token justo después de que el usuario confirma su identidad.
-                        // Si el refresh falla (sesión muy vieja), ir a Login en lugar de
-                        // dejar que el error aparezca de sorpresa dentro de la app.
+                        // Renovar token en segundo plano — best effort.
+                        // NO bloqueamos navegación ni cerramos sesión en base al resultado:
+                        // el logout real llega solo via authRepository.logoutEvent (AuthInterceptor).
                         mainScope.launch(kotlinx.coroutines.Dispatchers.IO) {
-                            val refreshed = authRepository.refreshToken()
-                            kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
-                                AppLockManager.unlock()
-                                if (refreshed) {
-                                    navController.navigate(Screen.Home.route) {
-                                        popUpTo(Screen.AppLock.route) { inclusive = true }
-                                    }
-                                } else {
-                                    // Token no renovable → pedir login limpio
-                                    authRepository.clearAllData()
-                                    AppLockManager.reset()
-                                    android.widget.Toast.makeText(
-                                        context,
-                                        "Tu sesión expiró. Inicia sesión nuevamente.",
-                                        android.widget.Toast.LENGTH_LONG
-                                    ).show()
-                                    navController.navigate(Screen.Login.route) {
-                                        popUpTo(Screen.AppLock.route) { inclusive = true }
-                                    }
-                                }
-                            }
+                            authRepository.refreshToken()
+                        }
+                        AppLockManager.unlock()
+                        navController.navigate(Screen.Home.route) {
+                            popUpTo(Screen.AppLock.route) { inclusive = true }
                         }
                     },
                     onUsePassword = {
@@ -1540,27 +1524,10 @@ fun MainNavigation(
                 userName = authRepository.getUserNombres(),
                 onBiometricSuccess = {
                     mainScope.launch(kotlinx.coroutines.Dispatchers.IO) {
-                        val refreshed = authRepository.refreshToken()
-                        kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
-                            AppLockManager.unlock()
-                            if (refreshed) {
-                                showLockOverlay = false
-                            } else {
-                                authRepository.clearAllData()
-                                AppLockManager.reset()
-                                showLockOverlay = false
-                                isLoggedIn = false
-                                android.widget.Toast.makeText(
-                                    context,
-                                    "Tu sesión expiró. Inicia sesión nuevamente.",
-                                    android.widget.Toast.LENGTH_LONG
-                                ).show()
-                                navController.navigate(Screen.Login.route) {
-                                    popUpTo(0) { inclusive = true }
-                                }
-                            }
-                        }
+                        authRepository.refreshToken()
                     }
+                    AppLockManager.unlock()
+                    showLockOverlay = false
                 },
                 onUsePassword = {
                     AppLockManager.reset()

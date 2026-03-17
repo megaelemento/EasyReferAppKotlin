@@ -40,7 +40,9 @@ class AuthInterceptor(
 
             response.close()
 
-            val refreshed = runBlocking { authRepository.refreshToken() }
+            // forceRefresh=true: ignorar el skip proactivo y hacer siempre la llamada
+            // de red. Con rotation=true, esto consume el refresh token actual y emite uno nuevo.
+            val refreshed = runBlocking { authRepository.refreshToken(forceRefresh = true) }
             if (refreshed) {
                 val newToken = authRepository.getAccessToken()
                 if (!newToken.isNullOrBlank()) {

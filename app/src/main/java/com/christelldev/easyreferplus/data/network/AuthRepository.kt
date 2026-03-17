@@ -154,11 +154,23 @@ class AuthRepository(
         sharedPreferences.edit().clear().apply()
     }
 
-    suspend fun refreshToken(): Boolean = refreshMutex.withLock {
-        // Solo saltar el refresh si el token tiene expiry guardado Y aún no está vencido ni por vencer.
-        // Si expiryTime == 0 (sesión antigua sin expiry guardado), siempre refrescar.
+    /**
+     * Refresca el access token usando el refresh token.
+     *
+     * - Uso PROACTIVO (AppLock, inicio): si el token aún es válido → skip (best effort).
+     * - Uso REACTIVO (AuthInterceptor tras 401): [forceRefresh]=true para ignorar el skip
+     *   y hacer siempre la llamada de red, incluso si el token "parece" válido localmente.
+     *
+     * Con [refresh_token_rotation]=true en el backend, cada llamada al endpoint de refresh
+     * invalida el refresh token anterior. Por eso el skip proactivo es importante: evita
+     * consumir el refresh token cuando no es necesario.
+     */
+    suspend fun refreshToken(forceRefresh: Boolean = false): Boolean = refreshMutex.withLock {
         val expiryTime = getTokenExpiryTime()
-        if (expiryTime > 0 && !isTokenExpired() && !isTokenExpiringSoon()) return true
+        // Skip si no se fuerza Y el token es válido (o no conocemos el expiry).
+        if (!forceRefresh && getAccessToken() != null &&
+            (expiryTime == 0L || (!isTokenExpired() && !isTokenExpiringSoon()))
+        ) return true
 
         val refreshToken = getRefreshToken() ?: return false
         return try {
