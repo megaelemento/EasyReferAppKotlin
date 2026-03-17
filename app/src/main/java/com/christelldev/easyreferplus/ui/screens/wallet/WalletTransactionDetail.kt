@@ -22,7 +22,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -48,11 +47,9 @@ fun TransactionDetailSheet(
     val dividerColor = if (isDark) Color.White.copy(alpha = 0.08f)
                        else Color.Black.copy(alpha = 0.06f)
     val labelColor = MaterialTheme.colorScheme.onSurfaceVariant
-    val sheetState = rememberModalBottomSheetState(skipPartialExpansion = true)
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
-        sheetState = sheetState,
         containerColor = MaterialTheme.colorScheme.surface
     ) {
         Column(

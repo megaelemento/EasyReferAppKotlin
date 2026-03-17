@@ -1202,6 +1202,7 @@ private fun ModernDrawerContent(
     onNavigateToEarnings: () -> Unit = {},
     onNavigateToWithdrawal: () -> Unit = {},
     onNavigateToWallet: () -> Unit = {},
+    onNavigateToWalletTransfer: () -> Unit = {},
     onLogout: () -> Unit
 ) {
     val primary = MaterialTheme.colorScheme.primary

@@ -158,8 +158,7 @@ fun WalletScreen(
                                 Text(
                                     text = "SALDO DISPONIBLE",
                                     style = MaterialTheme.typography.labelSmall,
-                                    color = Color.White.copy(alpha = 0.75f),
-                                    letterSpacing = 1.sp
+                                    color = Color.White.copy(alpha = 0.75f)
                                 )
                                 Spacer(Modifier.height(6.dp))
                                 Text(
@@ -373,5 +372,3 @@ private fun TransactionItem(
     }
 }
 
-// Alias para no usar directamente la extension en Compose
-private val Int.sp get() = this.dp
