@@ -150,7 +150,7 @@ object BiometricHelper {
         )
 
         val promptInfo = BiometricPrompt.PromptInfo.Builder()
-            .setTitle("Acceder a EasyRefer")
+            .setTitle("Acceder a Enfoque Refer")
             .setSubtitle("Usa tu huella, Face ID o PIN del teléfono")
             .setAllowedAuthenticators(allowedAuthenticators)
             .build()

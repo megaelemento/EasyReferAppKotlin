@@ -5,6 +5,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -19,6 +20,7 @@ import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -37,6 +39,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.SnackbarHost
@@ -47,28 +50,22 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.tooling.preview.Preview
 import com.christelldev.easyreferplus.R
 import com.christelldev.easyreferplus.ui.theme.DesignConstants
-import com.christelldev.easyreferplus.ui.theme.EasyReferPlusTheme
-import com.christelldev.easyreferplus.ui.viewmodel.LoginUiState
 import com.christelldev.easyreferplus.ui.viewmodel.LoginViewModel
 
 @Composable
@@ -98,19 +95,27 @@ fun LoginScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(
-                brush = Brush.verticalGradient(
-                    colors = listOf(
-                        MaterialTheme.colorScheme.primary,
-                        MaterialTheme.colorScheme.primaryContainer,
-                        MaterialTheme.colorScheme.surface
-                    )
-                )
-            )
+            .background(MaterialTheme.colorScheme.background)
             .windowInsetsPadding(WindowInsets.statusBars)
             .windowInsetsPadding(WindowInsets.navigationBars)
             .imePadding()
     ) {
+        // Fondo con gradiente sutil superior
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(300.dp)
+                .background(
+                    brush = Brush.verticalGradient(
+                        colors = listOf(
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.8f),
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                            Color.Transparent
+                        )
+                    )
+                )
+        )
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -121,19 +126,22 @@ fun LoginScreen(
         ) {
             Spacer(modifier = Modifier.height(48.dp))
 
-            // Logo/Icono elegante
-            Box(
-                modifier = Modifier
-                    .size(80.dp)
-                    .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f), RoundedCornerShape(20.dp)),
-                contentAlignment = Alignment.Center
+            // Logo/Icono elegante y moderno
+            Surface(
+                modifier = Modifier.size(90.dp),
+                shape = RoundedCornerShape(24.dp),
+                color = MaterialTheme.colorScheme.primaryContainer,
+                tonalElevation = 8.dp,
+                shadowElevation = 4.dp
             ) {
-                Text(
-                    text = "ER",
-                    style = MaterialTheme.typography.headlineLarge,
-                    color = MaterialTheme.colorScheme.surface,
-                    fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
-                )
+                Box(contentAlignment = Alignment.Center) {
+                    Text(
+                        text = "ER",
+                        style = MaterialTheme.typography.headlineLarge,
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.ExtraBold
+                    )
+                }
             }
 
             Spacer(modifier = Modifier.height(24.dp))
@@ -141,8 +149,8 @@ fun LoginScreen(
             Text(
                 text = stringResource(R.string.welcome_title),
                 style = MaterialTheme.typography.headlineLarge,
-                color = MaterialTheme.colorScheme.surface,
-                fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
+                color = if (isSystemInDarkTheme()) MaterialTheme.colorScheme.onBackground else Color.White,
+                fontWeight = FontWeight.ExtraBold
             )
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -150,31 +158,30 @@ fun LoginScreen(
             Text(
                 text = stringResource(R.string.app_subtitle),
                 style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
+                color = if (isSystemInDarkTheme()) MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f) else Color.White.copy(alpha = 0.9f),
+                fontWeight = FontWeight.Medium
             )
 
             Spacer(modifier = Modifier.height(40.dp))
 
-            // Card del formulario con sombra
-            Box(
+            // Card del formulario
+            Surface(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .shadow(
-                        elevation = DesignConstants.CARD_ELEVATION,
-                        shape = RoundedCornerShape(DesignConstants.CARD_CORNER_RADIUS)
-                    )
-                    .background(
-                        color = MaterialTheme.colorScheme.surface,
-                        shape = RoundedCornerShape(DesignConstants.CARD_CORNER_RADIUS)
-                    )
-                    .padding(24.dp)
+                    .fillMaxWidth(),
+                shape = RoundedCornerShape(DesignConstants.CARD_CORNER_RADIUS),
+                color = MaterialTheme.colorScheme.surface,
+                tonalElevation = 2.dp,
+                shadowElevation = 8.dp
             ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Column(
+                    modifier = Modifier.padding(24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
                     Text(
-                        text = "Iniciar Sesión",
+                        text = "Acceso a tu cuenta",
                         style = MaterialTheme.typography.titleLarge,
-                        color = DesignConstants.TextPrimary,
-                        fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
+                        color = MaterialTheme.colorScheme.onSurface,
+                        fontWeight = FontWeight.Bold
                     )
 
                     Spacer(modifier = Modifier.height(24.dp))
@@ -217,8 +224,8 @@ fun LoginScreen(
                         Text(
                             text = stringResource(R.string.forgot_password),
                             style = MaterialTheme.typography.bodyMedium,
-                            color = DesignConstants.PrimaryColor,
-                            fontWeight = androidx.compose.ui.text.font.FontWeight.Medium
+                            color = MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.SemiBold
                         )
                     }
 
@@ -232,66 +239,50 @@ fun LoginScreen(
                         enabled = !uiState.isLoading,
                         shape = RoundedCornerShape(DesignConstants.BUTTON_CORNER_RADIUS),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = DesignConstants.PrimaryColor
-                        ),
-                        elevation = ButtonDefaults.buttonElevation(
-                    defaultElevation = 0.dp,
-                    pressedElevation = 2.dp
-                )
-            ) {
-                if (uiState.isLoading) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(24.dp),
-                        color = MaterialTheme.colorScheme.surface,
-                        strokeWidth = 2.dp
-                    )
-                } else {
-                    Text(
-                        text = stringResource(R.string.login_title),
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.surface,
-                        fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
-                    )
-                }
+                            containerColor = MaterialTheme.colorScheme.primary,
+                            contentColor = MaterialTheme.colorScheme.onPrimary
+                        )
+                    ) {
+                        if (uiState.isLoading) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(24.dp),
+                                color = MaterialTheme.colorScheme.onPrimary,
+                                strokeWidth = 2.dp
+                            )
+                        } else {
+                            Text(
+                                text = stringResource(R.string.login_title),
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
                     }
 
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    // Botón de Registrarse
-                    Button(
+                    // Botón de Registrarse - Diferenciado como secundario (Outlined)
+                    OutlinedButton(
                         onClick = onNavigateToRegister,
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(56.dp),
                         enabled = !uiState.isLoading,
                         shape = RoundedCornerShape(DesignConstants.BUTTON_CORNER_RADIUS),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.surface,
-                            contentColor = DesignConstants.PrimaryColor
-                        ),
-                        elevation = ButtonDefaults.buttonElevation(
-                            defaultElevation = 2.dp,
-                            pressedElevation = 4.dp
-                        )
+                        border = ButtonDefaults.outlinedButtonBorder(enabled = !uiState.isLoading)
                     ) {
                         Text(
-                            text = stringResource(R.string.register),
+                            text = "Crear nueva cuenta",
                             style = MaterialTheme.typography.titleMedium,
-                            color = DesignConstants.PrimaryColor,
-                            fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
+                            color = MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.Bold
                         )
                     }
 
-                    Spacer(modifier = Modifier.weight(1f))
-
-                    Spacer(modifier = Modifier.height(24.dp))
-
-                    // El botón de registro ya está arriba, texto redundante eliminado
-                    Spacer(modifier = Modifier.height(24.dp))
+                    Spacer(modifier = Modifier.height(16.dp))
                 }
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(32.dp))
         }
 
         SnackbarHost(
@@ -300,23 +291,32 @@ fun LoginScreen(
                 .align(Alignment.BottomCenter)
                 .padding(16.dp)
         ) { snackbarData ->
-            // Snackbar personalizado con mejor visibilidad
             Surface(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 8.dp),
-                shape = RoundedCornerShape(12.dp),
-                color = DesignConstants.ErrorColor,
+                shape = RoundedCornerShape(16.dp),
+                color = MaterialTheme.colorScheme.errorContainer,
                 tonalElevation = 4.dp,
-                shadowElevation = 4.dp
+                shadowElevation = 6.dp
             ) {
-                Text(
-                    text = snackbarData.visuals.message,
+                Row(
                     modifier = Modifier.padding(16.dp),
-                    color = MaterialTheme.colorScheme.surface,
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Medium
-                )
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Error,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.error
+                    )
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Text(
+                        text = snackbarData.visuals.message,
+                        color = MaterialTheme.colorScheme.onErrorContainer,
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
             }
         }
     }
@@ -339,8 +339,8 @@ fun PhoneTextField(
             leadingIcon = {
                 Icon(
                     imageVector = Icons.Default.Person,
-                    contentDescription = stringResource(R.string.content_description_phone),
-                    tint = DesignConstants.PrimaryColor
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary
                 )
             },
             isError = isError,
@@ -351,13 +351,13 @@ fun PhoneTextField(
                 imeAction = ImeAction.Next
             ),
             colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = DesignConstants.PrimaryColor,
-                unfocusedBorderColor = MaterialTheme.colorScheme.outline,
-                errorBorderColor = DesignConstants.ErrorColor,
-                focusedLabelColor = DesignConstants.PrimaryColor,
-                cursorColor = DesignConstants.PrimaryColor
+                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                focusedLabelColor = MaterialTheme.colorScheme.primary,
+                cursorColor = MaterialTheme.colorScheme.primary,
+                focusedContainerColor = MaterialTheme.colorScheme.surface,
+                unfocusedContainerColor = MaterialTheme.colorScheme.surface
             ),
-            shape = RoundedCornerShape(12.dp)
+            shape = RoundedCornerShape(16.dp)
         )
 
         AnimatedVisibility(
@@ -368,20 +368,21 @@ fun PhoneTextField(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(start = 16.dp, top = 4.dp),
+                    .padding(start = 12.dp, top = 6.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Icon(
                     imageVector = Icons.Default.Error,
-                    contentDescription = stringResource(R.string.content_description_error),
+                    contentDescription = null,
                     tint = MaterialTheme.colorScheme.error,
-                    modifier = Modifier.size(16.dp)
+                    modifier = Modifier.size(14.dp)
                 )
-                Spacer(modifier = Modifier.size(4.dp))
+                Spacer(modifier = Modifier.size(6.dp))
                 Text(
                     text = errorMessage ?: "",
                     color = MaterialTheme.colorScheme.error,
-                    style = MaterialTheme.typography.bodySmall
+                    style = MaterialTheme.typography.bodySmall,
+                    fontWeight = FontWeight.Medium
                 )
             }
         }
@@ -407,32 +408,20 @@ fun PasswordTextField(
             leadingIcon = {
                 Icon(
                     imageVector = Icons.Default.Lock,
-                    contentDescription = stringResource(R.string.content_description_password),
-                    tint = DesignConstants.PrimaryColor
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary
                 )
             },
             trailingIcon = {
                 IconButton(onClick = onToggleVisibility) {
                     Icon(
-                        imageVector = if (isPasswordVisible) {
-                            Icons.Default.VisibilityOff
-                        } else {
-                            Icons.Default.Visibility
-                        },
-                        contentDescription = if (isPasswordVisible) {
-                            stringResource(R.string.hide_password)
-                        } else {
-                            stringResource(R.string.show_password)
-                        },
-                        tint = DesignConstants.PrimaryColor
+                        imageVector = if (isPasswordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary
                     )
                 }
             },
-            visualTransformation = if (isPasswordVisible) {
-                VisualTransformation.None
-            } else {
-                PasswordVisualTransformation()
-            },
+            visualTransformation = if (isPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
             isError = isError,
             modifier = Modifier.fillMaxWidth(),
             singleLine = true,
@@ -442,13 +431,13 @@ fun PasswordTextField(
             ),
             keyboardActions = keyboardActions,
             colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = DesignConstants.PrimaryColor,
-                unfocusedBorderColor = MaterialTheme.colorScheme.outline,
-                errorBorderColor = DesignConstants.ErrorColor,
-                focusedLabelColor = DesignConstants.PrimaryColor,
-                cursorColor = DesignConstants.PrimaryColor
+                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                focusedLabelColor = MaterialTheme.colorScheme.primary,
+                cursorColor = MaterialTheme.colorScheme.primary,
+                focusedContainerColor = MaterialTheme.colorScheme.surface,
+                unfocusedContainerColor = MaterialTheme.colorScheme.surface
             ),
-            shape = RoundedCornerShape(12.dp)
+            shape = RoundedCornerShape(16.dp)
         )
 
         AnimatedVisibility(
@@ -459,144 +448,22 @@ fun PasswordTextField(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(start = 16.dp, top = 4.dp),
+                    .padding(start = 12.dp, top = 6.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Icon(
                     imageVector = Icons.Default.Error,
-                    contentDescription = stringResource(R.string.content_description_error),
+                    contentDescription = null,
                     tint = MaterialTheme.colorScheme.error,
-                    modifier = Modifier.size(16.dp)
+                    modifier = Modifier.size(14.dp)
                 )
-                Spacer(modifier = Modifier.size(4.dp))
+                Spacer(modifier = Modifier.size(6.dp))
                 Text(
                     text = errorMessage ?: "",
                     color = MaterialTheme.colorScheme.error,
-                    style = MaterialTheme.typography.bodySmall
+                    style = MaterialTheme.typography.bodySmall,
+                    fontWeight = FontWeight.Medium
                 )
-            }
-        }
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun LoginScreenPreview() {
-    EasyReferPlusTheme {
-        var phone by remember { mutableStateOf("0987654321") }
-        var password by remember { mutableStateOf("123456") }
-        var isPasswordVisible by remember { mutableStateOf(false) }
-
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(MaterialTheme.colorScheme.background)
-                .windowInsetsPadding(WindowInsets.statusBars)
-                .windowInsetsPadding(WindowInsets.navigationBars)
-                .imePadding()
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(24.dp)
-                    .verticalScroll(rememberScrollState()),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Spacer(modifier = Modifier.height(48.dp))
-
-                Text(
-                    text = stringResource(R.string.welcome_title),
-                    style = MaterialTheme.typography.headlineLarge,
-                    color = MaterialTheme.colorScheme.primary
-                )
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                Text(
-                    text = stringResource(R.string.app_subtitle),
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-
-                Spacer(modifier = Modifier.height(48.dp))
-
-                OutlinedTextField(
-                    value = phone,
-                    onValueChange = { phone = it.filter { c -> c.isDigit() }.take(10) },
-                    label = { Text(stringResource(R.string.phone_label)) },
-                    placeholder = { Text(stringResource(R.string.phone_placeholder)) },
-                    leadingIcon = {
-                        Icon(
-                            imageVector = Icons.Default.Person,
-                            contentDescription = stringResource(R.string.content_description_phone),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = MaterialTheme.colorScheme.primary,
-                        unfocusedBorderColor = MaterialTheme.colorScheme.outline
-                    ),
-                    shape = RoundedCornerShape(12.dp)
-                )
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                OutlinedTextField(
-                    value = password,
-                    onValueChange = { password = it },
-                    label = { Text(stringResource(R.string.password_label)) },
-                    leadingIcon = {
-                        Icon(
-                            imageVector = Icons.Default.Lock,
-                            contentDescription = stringResource(R.string.content_description_password),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    },
-                    trailingIcon = {
-                        IconButton(onClick = { isPasswordVisible = !isPasswordVisible }) {
-                            Icon(
-                                imageVector = if (isPasswordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
-                                contentDescription = if (isPasswordVisible) stringResource(R.string.hide_password) else stringResource(R.string.show_password)
-                            )
-                        }
-                    },
-                    visualTransformation = if (isPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = MaterialTheme.colorScheme.primary,
-                        unfocusedBorderColor = MaterialTheme.colorScheme.outline
-                    ),
-                    shape = RoundedCornerShape(12.dp)
-                )
-
-                Spacer(modifier = Modifier.height(24.dp))
-
-                Button(
-                    onClick = {},
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(56.dp),
-                    shape = RoundedCornerShape(12.dp)
-                ) {
-                    Text(stringResource(R.string.login_title))
-                }
-
-                Spacer(modifier = Modifier.weight(1f))
-
-                Row {
-                    Text(
-                        text = stringResource(R.string.no_account),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Text(
-                        text = stringResource(R.string.register),
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                }
             }
         }
     }

@@ -8,77 +8,38 @@ import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.imePadding
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.ArrowForward
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Contacts
-import androidx.compose.material.icons.filled.Fingerprint
-import androidx.compose.material.icons.filled.Notes
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Phone
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Share
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
+import androidx.compose.material.icons.automirrored.filled.*
+import androidx.compose.material.icons.automirrored.filled.Notes
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -86,7 +47,9 @@ import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.christelldev.easyreferplus.R
 import com.christelldev.easyreferplus.data.model.TransferResponse
+import com.christelldev.easyreferplus.ui.theme.DesignConstants
 import com.christelldev.easyreferplus.ui.viewmodel.WalletUiState
 import com.christelldev.easyreferplus.ui.viewmodel.WalletViewModel
 import com.christelldev.easyreferplus.util.BiometricHelper
@@ -108,16 +71,34 @@ fun WalletTransferScreen(
     val context = LocalContext.current
     val activity = context as FragmentActivity
     var step by remember { mutableIntStateOf(1) }
+    val isDark = isSystemInDarkTheme()
+    var pendingPin by remember { mutableStateOf<String?>(null) }
 
-    // Cargar saldo si el usuario llegó directo a esta pantalla sin pasar por WalletScreen
-    // (el lifecycle observer que llama loadBalance() solo existe dentro de WalletScreen)
     LaunchedEffect(Unit) {
-        if (!viewModel.uiState.value.hasLoadedOnce) {
-            viewModel.loadBalance()
+        viewModel.clearTransferSuccess()
+        if (!uiState.hasLoadedOnce) viewModel.loadBalance()
+    }
+
+    // Inicializar PIN local si el usuario entra directo sin pasar por WalletScreen
+    LaunchedEffect(uiState.hasLoadedOnce) {
+        if (uiState.hasLoadedOnce) {
+            val pinAlreadyStored = runCatching { BiometricHelper.isPinStored(context) }.getOrDefault(false)
+            if (!pinAlreadyStored) {
+                val newPin = BiometricHelper.generatePin()
+                pendingPin = newPin
+                viewModel.setPin(newPin)
+            }
         }
     }
 
-    // Auto-advance to step 2 when recipient is verified
+    LaunchedEffect(uiState.hasPinSet) {
+        val pin = pendingPin
+        if (uiState.hasPinSet && pin != null) {
+            runCatching { BiometricHelper.storePin(context, pin) }
+            pendingPin = null
+        }
+    }
+
     LaunchedEffect(uiState.recipientVerified) {
         if (uiState.recipientVerified && step == 1) {
             step = 2
@@ -125,95 +106,87 @@ fun WalletTransferScreen(
         }
     }
 
-    // Auto-advance to step 4 on transfer success
     LaunchedEffect(uiState.transferSuccess) {
-        if (uiState.transferSuccess != null) {
-            step = 4
-        }
+        if (uiState.transferSuccess != null) step = 4
     }
 
-    val isDarkTheme = isSystemInDarkTheme()
-    val appBarBg = MaterialTheme.colorScheme.surface
-    val appBarContent = MaterialTheme.colorScheme.onSurface
-
     Scaffold(
-        contentWindowInsets = WindowInsets(0),
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        text = when (step) {
-                            4 -> "Éxito"
-                            else -> "Nueva Transferencia"
-                        },
-                        fontWeight = FontWeight.Bold,
-                        color = appBarContent
-                    )
-                },
-                navigationIcon = {
-                    if (step != 4) {
-                        IconButton(onClick = {
-                            if (step > 1) step-- else onBack()
-                        }) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Atrás", tint = appBarContent)
-                        }
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = appBarBg)
-            )
-        }
+        containerColor = MaterialTheme.colorScheme.background
     ) { paddingValues ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-        ) {
-            when (step) {
-                1 -> StepOneContactPicker(
-                    uiState = uiState,
-                    context = context,
-                    onCheckRecipient = { phone -> viewModel.checkAndSetRecipient(phone) },
-                    onDismissNotRegistered = { viewModel.dismissRecipientNotRegistered() }
+        Box(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
+            if (step != 4) {
+                Box(
+                    modifier = Modifier.fillMaxWidth().height(200.dp)
+                        .background(Brush.verticalGradient(listOf(MaterialTheme.colorScheme.primary.copy(alpha = 0.8f), Color.Transparent)))
                 )
-                2 -> StepTwoAmountForm(
-                    uiState = uiState,
-                    onContinue = { amount, desc ->
-                        viewModel.updateAmount(amount)
-                        viewModel.updateDescription(desc)
-                        step = 3
-                    }
-                )
-                3 -> StepThreeBiometric(
-                    uiState = uiState,
-                    onAuthenticate = {
-                        BiometricHelper.showPrompt(
-                            activity = activity,
-                            onSuccess = {
-                                val pin = BiometricHelper.getStoredPin(context)
-                                if (pin != null) viewModel.executeTransferDirect(pin)
-                            },
-                            onError = {}
+            }
+
+            Column(modifier = Modifier.fillMaxSize()) {
+                if (step != 4) {
+                    TopAppBar(
+                        title = {
+                            Text(
+                                text = "Nueva Transferencia",
+                                fontWeight = FontWeight.ExtraBold,
+                                color = if (isDark) MaterialTheme.colorScheme.onBackground else Color.White
+                            )
+                        },
+                        navigationIcon = {
+                            IconButton(onClick = { if (step > 1) step-- else onBack() }) {
+                                Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = if (isDark) MaterialTheme.colorScheme.onBackground else Color.White)
+                            }
+                        },
+                        colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
+                    )
+                }
+
+                Box(modifier = Modifier.fillMaxSize()) {
+                    when (step) {
+                        1 -> StepOneContactPicker(
+                            uiState = uiState,
+                            context = context,
+                            onCheckRecipient = { viewModel.checkAndSetRecipient(it) },
+                            onDismissNotRegistered = { viewModel.dismissRecipientNotRegistered() }
                         )
-                    },
-                    onClearError = { viewModel.clearError() }
-                )
-                4 -> StepFourSuccess(
-                    transferResponse = uiState.transferSuccess,
-                    onNewTransfer = {
-                        viewModel.clearTransferSuccess()
-                        viewModel.updateRecipientPhone("")
-                        viewModel.updateAmount("")
-                        viewModel.updateDescription("")
-                        step = 1
-                    },
-                    onGoToWallet = onSuccess
-                )
+                        2 -> StepTwoAmountForm(
+                            uiState = uiState,
+                            onContinue = { amount, desc ->
+                                viewModel.updateAmount(amount)
+                                viewModel.updateDescription(desc)
+                                step = 3
+                            }
+                        )
+                        3 -> StepThreeBiometric(
+                            uiState = uiState,
+                            onAuthenticate = {
+                                BiometricHelper.showPrompt(
+                                    activity = activity,
+                                    onSuccess = {
+                                        val pin = BiometricHelper.getStoredPin(context)
+                                        if (pin != null) viewModel.executeTransferDirect(pin)
+                                    },
+                                    onError = {}
+                                )
+                            },
+                            onClearError = { viewModel.clearError() }
+                        )
+                        4 -> StepFourSuccess(
+                            transferResponse = uiState.transferSuccess,
+                            onNewTransfer = {
+                                viewModel.clearTransferSuccess()
+                                viewModel.updateRecipientPhone("")
+                                viewModel.updateAmount("0.00")
+                                viewModel.updateDescription("")
+                                step = 1
+                            },
+                            onGoToWallet = onSuccess
+                        )
+                    }
+                }
             }
         }
     }
 }
-
-// ─── STEP 1: Contact Picker ────────────────────────────────────────────────
 
 @Composable
 private fun StepOneContactPicker(
@@ -223,25 +196,18 @@ private fun StepOneContactPicker(
     onDismissNotRegistered: () -> Unit
 ) {
     var hasPermission by remember {
-        mutableStateOf(
-            ContextCompat.checkSelfPermission(context, Manifest.permission.READ_CONTACTS)
-                    == PackageManager.PERMISSION_GRANTED
-        )
+        mutableStateOf(ContextCompat.checkSelfPermission(context, Manifest.permission.READ_CONTACTS) == PackageManager.PERMISSION_GRANTED)
     }
-    val permissionLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.RequestPermission()
-    ) { granted -> hasPermission = granted }
-
+    val permissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { hasPermission = it }
+    
     var contacts by remember { mutableStateOf<List<DeviceContact>>(emptyList()) }
     var contactsLoaded by remember { mutableStateOf(false) }
     var searchQuery by remember { mutableStateOf("") }
     var manualPhone by remember { mutableStateOf("") }
-    var manualError by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
 
     LaunchedEffect(hasPermission) {
         if (hasPermission) {
-            contactsLoaded = false
             scope.launch {
                 contacts = ContactsHelper.loadContacts(context)
                 contactsLoaded = true
@@ -249,594 +215,228 @@ private fun StepOneContactPicker(
         }
     }
 
-    val filteredContacts = remember(contacts, searchQuery) {
-        ContactsHelper.filter(contacts, searchQuery).take(100)
-    }
+    val filteredContacts = remember(contacts, searchQuery) { ContactsHelper.filter(contacts, searchQuery).take(50) }
 
-    // "Not registered" full-screen overlay
     if (uiState.recipientNotRegistered) {
-        NotRegisteredScreen(
-            onBack = onDismissNotRegistered,
-            onShare = {
-                val shareIntent = Intent(Intent.ACTION_SEND).apply {
-                    type = "text/plain"
-                    putExtra(
-                        Intent.EXTRA_TEXT,
-                        "¡Únete a Easy Refer y transfiere dinero fácilmente!\n" +
-                                "Descarga la app: https://easyreferapp.com/download"
-                    )
-                }
-                context.startActivity(Intent.createChooser(shareIntent, "Compartir Easy Refer"))
-            }
-        )
+        NotRegisteredScreen(onBack = onDismissNotRegistered)
         return
     }
 
     LazyColumn(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(horizontal = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+        modifier = Modifier.fillMaxSize().padding(horizontal = 24.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // Manual phone entry
+        item { Spacer(modifier = Modifier.height(16.dp)) }
+        
         item {
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                "Ingresa el número de teléfono",
-                fontWeight = FontWeight.SemiBold,
-                fontSize = 15.sp,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            OutlinedTextField(
-                value = manualPhone,
-                onValueChange = {
-                    if (it.length <= 10 && it.all { c -> c.isDigit() }) {
-                        manualPhone = it
-                        manualError = null
-                    }
-                },
-                label = { Text("Ej: 0987654321") },
-                leadingIcon = { Icon(Icons.Default.Phone, contentDescription = null) },
-                trailingIcon = {
-                    when {
-                        uiState.isCheckingRecipient && manualPhone.length == 10 -> {
-                            CircularProgressIndicator(
-                                modifier = Modifier.padding(12.dp).size(20.dp),
-                                strokeWidth = 2.dp
-                            )
-                        }
-                        manualPhone.length == 10 && manualPhone.startsWith("0") -> {
-                            IconButton(onClick = {
-                                manualError = null
-                                onCheckRecipient(manualPhone)
-                            }) {
-                                Icon(
-                                    Icons.AutoMirrored.Filled.ArrowForward,
-                                    contentDescription = "Continuar",
-                                    tint = Color(0xFF2196F3)
-                                )
-                            }
-                        }
-                        manualPhone.isNotEmpty() -> {
-                            IconButton(onClick = { manualPhone = ""; manualError = null }) {
-                                Icon(Icons.Default.Close, contentDescription = "Limpiar", modifier = Modifier.size(18.dp))
-                            }
-                        }
-                    }
-                },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
+            Surface(
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp),
-                singleLine = true,
-                isError = manualError != null
-            )
-            if (manualError != null) {
-                Text(manualError!!, color = Color.Red, fontSize = 12.sp)
-            }
-
-            // Error from API check
-            if (uiState.recipientCheckError != null) {
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(uiState.recipientCheckError!!, color = Color.Red, fontSize = 12.sp)
-            }
-        }
-
-        // Divider
-        item {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
+                shape = RoundedCornerShape(24.dp),
+                color = MaterialTheme.colorScheme.surface,
+                tonalElevation = 2.dp
             ) {
-                HorizontalDivider(modifier = Modifier.weight(1f))
-                Text(
-                    "  o  ",
-                    color = Color.Gray,
-                    fontSize = 13.sp
-                )
-                HorizontalDivider(modifier = Modifier.weight(1f))
+                Column(modifier = Modifier.padding(20.dp)) {
+                    Text("Transferencia Manual", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.ExtraBold)
+                    Spacer(modifier = Modifier.height(16.dp))
+                    OutlinedTextField(
+                        value = manualPhone,
+                        onValueChange = { if (it.length <= 10 && it.all { c -> c.isDigit() }) manualPhone = it },
+                        label = { Text("Número de teléfono") },
+                        placeholder = { Text("0987654321") },
+                        leadingIcon = { Icon(Icons.Default.Phone, null, tint = MaterialTheme.colorScheme.primary) },
+                        trailingIcon = {
+                            if (uiState.isCheckingRecipient) CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+                            else if (manualPhone.length == 10) {
+                                IconButton(onClick = { onCheckRecipient(manualPhone) }) {
+                                    Icon(Icons.AutoMirrored.Filled.ArrowForward, null, tint = MaterialTheme.colorScheme.primary)
+                                }
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = MaterialTheme.colorScheme.primary),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone, imeAction = ImeAction.Go)
+                    )
+                    if (uiState.recipientCheckError != null) {
+                        Text(uiState.recipientCheckError!!, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(top = 8.dp))
+                    }
+                }
             }
         }
 
-        // Contact section header
         item {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    Icons.Default.Contacts,
-                    contentDescription = null,
-                    tint = Color(0xFF2196F3),
-                    modifier = Modifier.size(20.dp)
-                )
-                Spacer(modifier = Modifier.width(6.dp))
-                Text(
-                    "Selecciona un contacto de tu agenda",
-                    fontWeight = FontWeight.SemiBold,
-                    fontSize = 15.sp,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
+            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 8.dp)) {
+                Icon(Icons.Default.Contacts, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
+                Spacer(modifier = Modifier.width(12.dp))
+                Text("Contactos de tu agenda", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.ExtraBold)
             }
         }
 
         if (!hasPermission) {
             item {
-                Card(
+                Surface(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                    shape = RoundedCornerShape(20.dp),
+                    color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.2f),
+                    onClick = { permissionLauncher.launch(Manifest.permission.READ_CONTACTS) }
                 ) {
-                    Column(
-                        modifier = Modifier.padding(16.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Icon(
-                            Icons.Default.Contacts,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(40.dp)
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            "Permite el acceso a tus contactos para buscar destinatarios fácilmente",
-                            textAlign = TextAlign.Center,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            fontSize = 14.sp
-                        )
-                        Spacer(modifier = Modifier.height(12.dp))
-                        Button(
-                            onClick = { permissionLauncher.launch(Manifest.permission.READ_CONTACTS) },
-                            shape = RoundedCornerShape(10.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
-                        ) {
-                            Text("Permitir acceso a contactos")
-                        }
+                    Row(modifier = Modifier.padding(20.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.Lock, null, tint = MaterialTheme.colorScheme.primary)
+                        Spacer(modifier = Modifier.width(16.dp))
+                        Text("Permitir acceso a contactos", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
                     }
                 }
             }
         } else {
-            // Search field
             item {
                 OutlinedTextField(
                     value = searchQuery,
                     onValueChange = { searchQuery = it },
-                    label = { Text("Buscar por nombre o número") },
-                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
-                    trailingIcon = {
-                        if (searchQuery.isNotEmpty()) {
-                            IconButton(onClick = { searchQuery = "" }) {
-                                Icon(Icons.Default.Close, contentDescription = "Limpiar", modifier = Modifier.size(18.dp))
-                            }
-                        }
-                    },
+                    placeholder = { Text("Buscar contacto...") },
+                    leadingIcon = { Icon(Icons.Default.Search, null) },
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
+                    shape = RoundedCornerShape(16.dp),
                     singleLine = true
                 )
             }
 
-            // Contact count hint
-            if (contacts.isNotEmpty()) {
-                item {
-                    Text(
-                        text = if (searchQuery.isBlank()) "${contacts.size} contactos" else "${filteredContacts.size} resultados",
-                        fontSize = 12.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-
-            // Loading state (only while contacts haven't finished loading)
             if (!contactsLoaded) {
-                item {
-                    Box(modifier = Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator(modifier = Modifier.size(32.dp))
-                    }
-                }
-            } else if (contacts.isEmpty()) {
-                item {
-                    Box(modifier = Modifier.fillMaxWidth().padding(24.dp), contentAlignment = Alignment.Center) {
-                        Text("No se encontraron contactos en tu agenda", color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center)
-                    }
+                item { Box(modifier = Modifier.fillMaxWidth().padding(40.dp), contentAlignment = Alignment.Center) { CircularProgressIndicator() } }
+            } else {
+                items(filteredContacts) { contact ->
+                    ContactRow(contact = contact, onClick = { onCheckRecipient(contact.phone) })
                 }
             }
-
-            // No results
-            if (contacts.isNotEmpty() && filteredContacts.isEmpty()) {
-                item {
-                    Box(modifier = Modifier.fillMaxWidth().padding(24.dp), contentAlignment = Alignment.Center) {
-                        Text("Sin resultados para \"$searchQuery\"", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
-                }
-            }
-
-            // Contact items
-            items(filteredContacts) { contact ->
-                ContactRow(
-                    contact = contact,
-                    isChecking = uiState.isCheckingRecipient,
-                    onClick = { onCheckRecipient(contact.phone) }
-                )
-            }
-
-            item { Spacer(modifier = Modifier.height(24.dp)) }
         }
+        item { Spacer(modifier = Modifier.height(32.dp)) }
     }
 }
 
 @Composable
-private fun ContactRow(
-    contact: DeviceContact,
-    isChecking: Boolean,
-    onClick: () -> Unit
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(enabled = !isChecking) { onClick() }
-            .padding(vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically
+private fun ContactRow(contact: DeviceContact, onClick: () -> Unit) {
+    Surface(
+        modifier = Modifier.fillMaxWidth().clickable { onClick() },
+        color = Color.Transparent
     ) {
-        Box(
-            modifier = Modifier
-                .size(44.dp)
-                .clip(CircleShape)
-                .background(Color(0xFF2196F3).copy(alpha = 0.12f)),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                text = contact.name.firstOrNull()?.uppercase() ?: "?",
-                fontWeight = FontWeight.Bold,
-                color = Color(0xFF2196F3),
-                fontSize = 18.sp
-            )
-        }
-        Spacer(modifier = Modifier.width(12.dp))
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = contact.name,
-                fontWeight = FontWeight.Medium,
-                fontSize = 15.sp,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-            Text(
-                text = contact.phone,
-                fontSize = 13.sp,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-        Icon(
-            Icons.Default.Phone,
-            contentDescription = null,
-            tint = Color(0xFF94A3B8),
-            modifier = Modifier.size(18.dp)
-        )
-    }
-}
-
-@Composable
-private fun NotRegisteredScreen(
-    onBack: () -> Unit,
-    onShare: () -> Unit
-) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(32.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        Box(
-            modifier = Modifier
-                .size(100.dp)
-                .clip(CircleShape)
-                .background(Color(0xFFFFF3E0)),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                Icons.Default.Person,
-                contentDescription = null,
-                tint = Color(0xFFFF9800),
-                modifier = Modifier.size(56.dp)
-            )
-        }
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        Text(
-            text = "Tu contacto no tiene Easy Refer",
-            fontSize = 22.sp,
-            fontWeight = FontWeight.Bold,
-            textAlign = TextAlign.Center,
-            color = MaterialTheme.colorScheme.onSurface
-        )
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        Text(
-            text = "Para enviarle dinero, tu contacto necesita tener la app instalada y una cuenta activa.",
-            fontSize = 15.sp,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center,
-            lineHeight = 22.sp
-        )
-
-        Spacer(modifier = Modifier.height(40.dp))
-
-        Button(
-            onClick = onShare,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(56.dp),
-            shape = RoundedCornerShape(14.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2196F3))
-        ) {
-            Icon(Icons.Default.Share, contentDescription = null, modifier = Modifier.size(20.dp))
-            Spacer(modifier = Modifier.width(8.dp))
-            Text("Invitar a Easy Refer", fontWeight = FontWeight.Bold, fontSize = 16.sp)
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        OutlinedButton(
-            onClick = onBack,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(52.dp),
-            shape = RoundedCornerShape(14.dp)
-        ) {
-            Text("Buscar otro contacto", fontWeight = FontWeight.Medium)
+        Row(modifier = Modifier.padding(vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+            Surface(modifier = Modifier.size(44.dp), shape = CircleShape, color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)) {
+                Box(contentAlignment = Alignment.Center) {
+                    Text(contact.name.take(1).uppercase(), fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.primary)
+                }
+            }
+            Spacer(modifier = Modifier.width(16.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(contact.name, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium)
+                Text(contact.phone, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, tint = MaterialTheme.colorScheme.outline, modifier = Modifier.size(20.dp))
         }
     }
 }
-
-// ─── STEP 2: Amount Form ───────────────────────────────────────────────────
 
 @Composable
 private fun StepTwoAmountForm(
     uiState: WalletUiState,
     onContinue: (amount: String, desc: String) -> Unit
 ) {
-    var amount by remember { mutableStateOf("") }
     var desc by remember { mutableStateOf("") }
-    var errorMsg by remember { mutableStateOf<String?>(null) }
     val scrollState = rememberScrollState()
-    val isDark = isSystemInDarkTheme()
 
-    val bgColor = if (isDark) Color(0xFF0D1117) else Color(0xFFF8FAFF)
-    val textPrimary = if (isDark) Color(0xFFE6EDF3) else Color(0xFF1E293B)
-    val textHint = if (isDark) Color(0xFF484F58) else Color(0xFFCBD5E1)
-    val textSecondary = if (isDark) Color(0xFF8B949E) else Color(0xFF64748B)
-    val dividerColor = if (isDark) Color(0xFF21262D) else Color(0xFFEEF2F7)
-    val progressBg = if (isDark) Color(0xFF21262D) else Color(0xFFE2E8F0)
+    // ESTADO AVANZADO DE MONTO (Banking Style QA)
+    var amountTextFieldValue by remember { 
+        mutableStateOf(TextFieldValue(
+            text = if (uiState.amount == "0.00" || uiState.amount.isEmpty()) "0.00" else uiState.amount,
+            selection = TextRange(uiState.amount.length)
+        ))
+    }
 
-    val amountDouble = amount.toDoubleOrNull()
-    val exceedsBalance = amountDouble != null && amountDouble > uiState.availableBalance
-    val isAmountValid = amountDouble != null && amountDouble > 0 && !exceedsBalance
-    val progressRatio = if (amountDouble != null && uiState.availableBalance > 0)
-        (amountDouble / uiState.availableBalance).coerceIn(0.0, 1.0).toFloat() else 0f
+    val onAmountChanged = { newValue: TextFieldValue ->
+        val digits = newValue.text.filter { it.isDigit() }
+        val newText = if (digits.isEmpty() || digits.toLong() == 0L) "0.00"
+        else {
+            val value = digits.toLong() / 100.0
+            String.format(java.util.Locale.US, "%.2f", value)
+        }
+        amountTextFieldValue = TextFieldValue(text = newText, selection = TextRange(newText.length))
+    }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .imePadding()
-            .verticalScroll(scrollState)
-            .background(bgColor)
-    ) {
-        // ── Header destinatario ───────────────────────────────
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(Brush.verticalGradient(listOf(Color(0xFF1565C0), Color(0xFF2196F3))))
-                .padding(horizontal = 20.dp, vertical = 20.dp)
+    val amountDouble = amountTextFieldValue.text.toDoubleOrNull() ?: 0.0
+    val exceedsBalance = amountDouble > uiState.availableBalance
+    val canContinue = amountDouble > 0 && !exceedsBalance
+
+    Column(modifier = Modifier.fillMaxSize().padding(horizontal = 24.dp).verticalScroll(scrollState).imePadding()) {
+        Spacer(modifier = Modifier.height(16.dp))
+        
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(24.dp),
+            color = MaterialTheme.colorScheme.surface,
+            tonalElevation = 4.dp
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(
-                    modifier = Modifier
-                        .size(48.dp)
-                        .clip(CircleShape)
-                        .background(Color.White.copy(alpha = 0.18f)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(Icons.Default.Person, contentDescription = null, tint = Color.White, modifier = Modifier.size(26.dp))
+            Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                Surface(modifier = Modifier.size(48.dp), shape = CircleShape, color = MaterialTheme.colorScheme.primaryContainer) {
+                    Box(contentAlignment = Alignment.Center) { Icon(Icons.Default.Person, null, tint = MaterialTheme.colorScheme.primary) }
                 }
-                Spacer(modifier = Modifier.width(14.dp))
+                Spacer(modifier = Modifier.width(16.dp))
                 Column(modifier = Modifier.weight(1f)) {
-                    Text("Enviando a", fontSize = 11.sp, color = Color.White.copy(alpha = 0.7f))
-                    if (uiState.recipientName.isNotBlank()) {
-                        Text(uiState.recipientName, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color.White)
-                    }
-                    Text(uiState.recipientPhone, fontSize = 12.sp, color = Color.White.copy(alpha = 0.85f))
+                    Text("Enviar a", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
+                    Text(uiState.recipientName.ifBlank { uiState.recipientPhone }, fontWeight = FontWeight.ExtraBold, style = MaterialTheme.typography.bodyLarge)
                 }
                 Column(horizontalAlignment = Alignment.End) {
-                    Text("Disponible", fontSize = 10.sp, color = Color.White.copy(alpha = 0.65f))
-                    Text(
-                        "\$${String.format("%.2f", uiState.availableBalance)}",
-                        fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color.White
-                    )
+                    Text("Disponible", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text("$${String.format(java.util.Locale.US, "%.2f", uiState.availableBalance)}", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodySmall)
                 }
             }
         }
 
-        // ── Entrada de monto grande y centrada ────────────────
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 36.dp, bottom = 16.dp, start = 24.dp, end = 24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Text(
-                "¿Cuánto deseas enviar?",
-                fontSize = 14.sp,
-                color = textSecondary,
-                fontWeight = FontWeight.Medium
+        Spacer(modifier = Modifier.height(40.dp))
+
+        Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
+            Text("Monto a transferir", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            OutlinedTextField(
+                value = amountTextFieldValue,
+                onValueChange = onAmountChanged,
+                textStyle = MaterialTheme.typography.displayMedium.copy(textAlign = TextAlign.Center, fontWeight = FontWeight.Black, color = if (exceedsBalance) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary),
+                modifier = Modifier.fillMaxWidth(),
+                prefix = { Text("$", style = MaterialTheme.typography.displaySmall, fontWeight = FontWeight.Bold) },
+                colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = Color.Transparent, unfocusedBorderColor = Color.Transparent, cursorColor = MaterialTheme.colorScheme.primary),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
             )
-            Spacer(modifier = Modifier.height(24.dp))
-
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.Center,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(
-                    "$",
-                    fontSize = 34.sp,
-                    fontWeight = FontWeight.Light,
-                    color = if (amount.isEmpty()) textHint else Color(0xFF94A3B8)
-                )
-                Spacer(modifier = Modifier.width(6.dp))
-                BasicTextField(
-                    value = amount,
-                    onValueChange = {
-                        if (it.matches(Regex("^\\d{0,8}\\.?\\d{0,2}$"))) {
-                            amount = it
-                            errorMsg = null
-                        }
-                    },
-                    textStyle = TextStyle(
-                        fontSize = 54.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = when {
-                            exceedsBalance -> Color(0xFFEF4444)
-                            else -> textPrimary
-                        },
-                        textAlign = TextAlign.Start
-                    ),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    singleLine = true,
-                    decorationBox = { innerTextField ->
-                        Box {
-                            if (amount.isEmpty()) {
-                                Text(
-                                    "0.00",
-                                    fontSize = 54.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = textHint
-                                )
-                            }
-                            innerTextField()
-                        }
-                    }
-                )
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Barra de progreso del saldo
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(5.dp)
-                    .clip(RoundedCornerShape(3.dp))
-                    .background(progressBg)
-            ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth(progressRatio)
-                        .height(5.dp)
-                        .background(
-                            if (exceedsBalance) Color(0xFFEF4444) else Color(0xFF2196F3)
-                        )
-                )
-            }
-
-            Spacer(modifier = Modifier.height(10.dp))
-
-            when {
-                exceedsBalance -> Text(
-                    "Supera tu saldo disponible de \$${String.format("%.2f", uiState.availableBalance)}",
-                    color = Color(0xFFEF4444), fontSize = 12.sp, textAlign = TextAlign.Center
-                )
-                isAmountValid -> Text(
-                    "Monto valido",
-                    color = Color(0xFF10B981), fontSize = 12.sp
-                )
-                else -> Spacer(modifier = Modifier.height(16.dp))
+            Box(modifier = Modifier.width(200.dp).height(2.dp).background(if (exceedsBalance) MaterialTheme.colorScheme.error.copy(alpha = 0.3f) else MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)))
+            
+            if (exceedsBalance) {
+                Text("Saldo insuficiente", color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(top = 12.dp), fontWeight = FontWeight.Bold)
             }
         }
 
-        // ── Divisor ───────────────────────────────────────────
-        Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(dividerColor))
+        Spacer(modifier = Modifier.height(40.dp))
 
-        // ── Descripción ───────────────────────────────────────
-        Column(modifier = Modifier.padding(horizontal = 20.dp, vertical = 20.dp)) {
+        Surface(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(20.dp), color = MaterialTheme.colorScheme.surface, tonalElevation = 1.dp) {
             OutlinedTextField(
                 value = desc,
                 onValueChange = { desc = it },
-                label = { Text("Descripcion (opcional)") },
-                leadingIcon = {
-                    Icon(Icons.Default.Notes, contentDescription = null, tint = Color(0xFF94A3B8))
-                },
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp),
-                maxLines = 2
-            )
-        }
-
-        if (errorMsg != null) {
-            Text(
-                errorMsg!!,
-                color = Color(0xFFEF4444),
-                fontSize = 12.sp,
-                modifier = Modifier.padding(horizontal = 20.dp)
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-        }
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        // ── Botón continuar ───────────────────────────────────
-        Button(
-            onClick = {
-                when {
-                    amountDouble == null || amountDouble <= 0 -> errorMsg = "Ingresa un monto valido"
-                    amountDouble > uiState.availableBalance -> errorMsg = "Saldo insuficiente"
-                    else -> { errorMsg = null; onContinue(amount, desc) }
-                }
-            },
-            enabled = isAmountValid,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 20.dp)
-                .height(56.dp),
-            shape = RoundedCornerShape(14.dp),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = Color(0xFF2196F3),
-                disabledContainerColor = Color(0xFFE2E8F0)
-            )
-        ) {
-            Text(
-                "Continuar",
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Bold,
-                color = if (isAmountValid) Color.White else Color(0xFF94A3B8)
+                label = { Text("Concepto (Opcional)") },
+                leadingIcon = { Icon(Icons.AutoMirrored.Filled.Notes, null, tint = MaterialTheme.colorScheme.primary) },
+                modifier = Modifier.fillMaxWidth().padding(8.dp),
+                shape = RoundedCornerShape(16.dp),
+                colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = MaterialTheme.colorScheme.primary)
             )
         }
 
         Spacer(modifier = Modifier.height(32.dp))
+
+        Button(
+            onClick = { onContinue(amountTextFieldValue.text, desc) },
+            enabled = canContinue,
+            modifier = Modifier.fillMaxWidth().height(56.dp),
+            shape = RoundedCornerShape(DesignConstants.BUTTON_CORNER_RADIUS),
+            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+        ) {
+            Text("Revisar Transferencia", fontWeight = FontWeight.ExtraBold, style = MaterialTheme.typography.titleMedium)
+        }
+        Spacer(modifier = Modifier.height(32.dp))
     }
 }
-
-// ─── STEP 3: Biometric ────────────────────────────────────────────────────
 
 @Composable
 private fun StepThreeBiometric(
@@ -844,258 +444,65 @@ private fun StepThreeBiometric(
     onAuthenticate: () -> Unit,
     onClearError: () -> Unit
 ) {
-    val context = LocalContext.current
-    val isDark = isSystemInDarkTheme()
-    val bgColor = if (isDark) Color(0xFF0D1117) else Color(0xFFF8FAFF)
-    val cardBg = if (isDark) Color(0xFF161B22) else Color(0xFFF5F9FF)
-    val textPrimary = if (isDark) Color(0xFFE6EDF3) else Color(0xFF1E293B)
-    val textSecondary = if (isDark) Color(0xFF8B949E) else Color.Gray
-    val errorCardBg = if (isDark) Color(0xFF3D1515) else Color(0xFFFEE2E2)
-
-    val hasAnySecurity = remember { BiometricHelper.canAuthenticate(context) }
-    val hasBiometricSensor = remember { BiometricHelper.hasBiometrics(context) }
-
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(bgColor)
-            .padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        // Resumen de la transferencia (siempre visible)
-        Card(
+    Column(modifier = Modifier.fillMaxSize().padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+        Text("Confirmar Operación", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.ExtraBold)
+        Spacer(modifier = Modifier.height(32.dp))
+        
+        Surface(
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(20.dp),
-            colors = CardDefaults.cardColors(containerColor = cardBg),
-            elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+            shape = RoundedCornerShape(28.dp),
+            color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f),
+            tonalElevation = 4.dp
         ) {
-            Column(
-                modifier = Modifier.padding(20.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Text("Enviando a", color = textSecondary)
-                if (uiState.recipientName.isNotBlank()) {
-                    Text(
-                        uiState.recipientName,
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = textPrimary
-                    )
-                }
-                Text(
-                    uiState.recipientPhone,
-                    fontSize = if (uiState.recipientName.isNotBlank()) 14.sp else 28.sp,
-                    fontWeight = if (uiState.recipientName.isNotBlank()) FontWeight.Normal else FontWeight.Bold,
-                    color = textSecondary
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    "\$${String.format("%.2f", uiState.amount.toDoubleOrNull() ?: 0.0)}",
-                    fontSize = 36.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color(0xFF2196F3)
-                )
-                if (uiState.description.isNotEmpty()) {
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(uiState.description, color = Color.Gray)
+            Column(modifier = Modifier.padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                Text("VALOR A ENVIAR", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                Text("$${uiState.amount}", style = MaterialTheme.typography.displayMedium, fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.primary)
+                Spacer(modifier = Modifier.height(16.dp))
+                HorizontalDivider(color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f))
+                Spacer(modifier = Modifier.height(16.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Surface(modifier = Modifier.size(32.dp), shape = CircleShape, color = MaterialTheme.colorScheme.primary) {
+                        Box(contentAlignment = Alignment.Center) { Icon(Icons.Default.Person, null, tint = Color.White, modifier = Modifier.size(16.dp)) }
+                    }
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Text(uiState.recipientName.ifBlank { uiState.recipientPhone }, fontWeight = FontWeight.Bold)
                 }
             }
         }
 
         Spacer(modifier = Modifier.weight(1f))
 
-        if (!hasAnySecurity) {
-            // ── Sin ninguna seguridad configurada ─────────────────────────────
-            Box(
-                modifier = Modifier
-                    .size(96.dp)
-                    .clip(CircleShape)
-                    .background(Color(0xFFFEF3C7)),
-                contentAlignment = Alignment.Center
-            ) {
-                Text("🔒", fontSize = 48.sp)
-            }
-            Spacer(modifier = Modifier.height(16.dp))
-            Text(
-                text = "Seguridad requerida",
-                fontSize = 18.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = Color(0xFFD97706)
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = "Para realizar transferencias tu dispositivo\ndebe tener configurado un PIN, patrón,\ncontraseña o huella dactilar.",
-                fontSize = 14.sp,
-                color = textSecondary,
-                textAlign = TextAlign.Center
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = "Esto protege tu dinero en caso de pérdida\no robo del teléfono.",
-                fontSize = 13.sp,
-                color = textSecondary,
-                textAlign = TextAlign.Center
-            )
-            Spacer(modifier = Modifier.weight(1f))
-            Button(
-                onClick = {
-                    context.startActivity(Intent(Settings.ACTION_SECURITY_SETTINGS))
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(56.dp),
-                shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD97706))
-            ) {
-                Text("Configurar seguridad del dispositivo", fontWeight = FontWeight.Bold)
-            }
-        } else {
-            // ── Tiene seguridad: biometría o PIN/patrón ────────────────────────
-            Box(
-                modifier = Modifier
-                    .size(96.dp)
-                    .clip(CircleShape)
-                    .background(Color(0xFF2196F3).copy(alpha = 0.1f)),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Fingerprint,
-                    contentDescription = null,
-                    tint = Color(0xFF2196F3),
-                    modifier = Modifier.size(56.dp)
-                )
-            }
+        Icon(Icons.Default.Fingerprint, null, modifier = Modifier.size(80.dp), tint = MaterialTheme.colorScheme.primary)
+        Spacer(modifier = Modifier.height(16.dp))
+        Text("Autenticación Requerida", fontWeight = FontWeight.Bold)
+        Text("Confirma tu identidad para autorizar el envío", textAlign = TextAlign.Center, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
 
-            Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.weight(1f))
 
-            Text(
-                text = "Verifica tu identidad",
-                fontSize = 18.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = textPrimary
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = if (hasBiometricSensor)
-                    "Usa tu huella, rostro o PIN del dispositivo\npara confirmar la transferencia"
-                else
-                    "Usa el PIN, patrón o contraseña\nde tu dispositivo para confirmar",
-                fontSize = 14.sp,
-                color = textSecondary,
-                textAlign = TextAlign.Center
-            )
-
-            Spacer(modifier = Modifier.weight(1f))
-
-            AnimatedVisibility(visible = uiState.transferError != null) {
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 16.dp),
-                    colors = CardDefaults.cardColors(containerColor = errorCardBg)
-                ) {
-                    Row(
-                        modifier = Modifier.padding(12.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = uiState.transferError ?: "",
-                            color = Color(0xFFDC2626),
-                            modifier = Modifier.weight(1f)
-                        )
-                        IconButton(onClick = onClearError) {
-                            Icon(Icons.Default.Close, contentDescription = "Cerrar", tint = Color.Red)
-                        }
-                    }
+        AnimatedVisibility(visible = uiState.transferError != null) {
+            Surface(color = MaterialTheme.colorScheme.errorContainer, shape = RoundedCornerShape(12.dp), modifier = Modifier.padding(bottom = 16.dp)) {
+                Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Text(uiState.transferError ?: "", color = MaterialTheme.colorScheme.error, modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodySmall)
+                    IconButton(onClick = onClearError) { Icon(Icons.Default.Close, null, tint = MaterialTheme.colorScheme.error) }
                 }
             }
+        }
 
-            Button(
-                onClick = onAuthenticate,
-                enabled = !uiState.isTransferring,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(56.dp),
-                shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2196F3))
-            ) {
-                if (uiState.isTransferring) {
-                    CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
-                } else {
-                    Icon(Icons.Default.Fingerprint, contentDescription = null, modifier = Modifier.size(20.dp))
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        if (hasBiometricSensor) "Confirmar con biometría" else "Confirmar con PIN / patrón",
-                        fontWeight = FontWeight.Bold
-                    )
-                }
+        Button(
+            onClick = onAuthenticate,
+            enabled = !uiState.isTransferring,
+            modifier = Modifier.fillMaxWidth().height(60.dp),
+            shape = RoundedCornerShape(20.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+        ) {
+            if (uiState.isTransferring) CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
+            else {
+                Icon(Icons.Default.Security, null)
+                Spacer(modifier = Modifier.width(12.dp))
+                Text("Confirmar y Enviar", fontWeight = FontWeight.ExtraBold, style = MaterialTheme.typography.titleMedium)
             }
-        } // end else (hasAnySecurity)
-    }
-}
-
-// ─── STEP 4: Success ──────────────────────────────────────────────────────
-
-private fun formatReceiptDate(isoDate: String): String {
-    return try {
-        val sdf = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.getDefault())
-        val date = sdf.parse(isoDate) ?: return isoDate
-        SimpleDateFormat("dd MMM yyyy, HH:mm", Locale("es", "EC")).format(date)
-    } catch (e: Exception) { isoDate.take(16).replace("T", " ") }
-}
-
-private fun buildShareText(transfer: TransferResponse): String {
-    val date = formatReceiptDate(transfer.createdAt)
-    val amount = String.format("%.2f", transfer.amount)
-    val ref = transfer.id.toString().padStart(6, '0')
-    return """
-╔══════════════════════════╗
-║       ENFOQUE REFER      ║
-║    Comprobante de Pago   ║
-╚══════════════════════════╝
-
-  Referencia   #$ref
-  Fecha        $date
-  Estado       APROBADO
-
-  ──────────────────────────
-         MONTO ENVIADO
-           $ $amount
-  ──────────────────────────
-
-  BENEFICIARIO
-  Nombre     ${transfer.recipientName}
-  Telefono   ${transfer.recipientPhone}
-
-  ──────────────────────────
-  Documento valido como
-  constancia de transferencia
-  ──────────────────────────
-
-         Enfoque Refer
-    """.trimIndent()
-}
-
-@Composable
-private fun ReceiptRow(
-    label: String,
-    value: String,
-    valueColor: Color = Color(0xFF1E293B),
-    valueBold: Boolean = false,
-    textPrimary: Color = Color(0xFF1E293B)
-) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(label, color = Color(0xFF94A3B8), fontSize = 13.sp)
-        Text(
-            value,
-            fontWeight = if (valueBold) FontWeight.Bold else FontWeight.SemiBold,
-            fontSize = 13.sp,
-            color = if (valueColor == Color(0xFF1E293B)) textPrimary else valueColor
-        )
+        }
+        Spacer(modifier = Modifier.height(16.dp))
     }
 }
 
@@ -1106,168 +513,217 @@ private fun StepFourSuccess(
     onGoToWallet: () -> Unit
 ) {
     val context = LocalContext.current
-    val scrollState = rememberScrollState()
     val isDark = isSystemInDarkTheme()
+    val scrollState = rememberScrollState()
+    
+    // Formateadores
+    val amountFormat = java.text.DecimalFormat("$#,##0.00")
+    val dateFormat = SimpleDateFormat("dd MMM yyyy, HH:mm", Locale.forLanguageTag("es-EC"))
+    val now = dateFormat.format(java.util.Date())
 
-    val bgColor = MaterialTheme.colorScheme.background
-    val cardBg = MaterialTheme.colorScheme.surface
-    val textPrimary = MaterialTheme.colorScheme.onSurface
-    val textHint = MaterialTheme.colorScheme.outlineVariant
-    val dividerColor = MaterialTheme.colorScheme.outlineVariant
-
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxSize()
-            .verticalScroll(scrollState)
-            .background(bgColor),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        // ── Header gradiente ──────────────────────────────────
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(Brush.verticalGradient(listOf(Color(0xFF1565C0), Color(0xFF2196F3))))
-                .padding(top = 36.dp, bottom = 32.dp, start = 24.dp, end = 24.dp),
-            contentAlignment = Alignment.Center
-        ) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Box(
-                    modifier = Modifier
-                        .size(68.dp)
-                        .clip(CircleShape)
-                        .background(Color.White.copy(alpha = 0.18f)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(Icons.Default.CheckCircle, contentDescription = null, tint = Color.White, modifier = Modifier.size(42.dp))
-                }
-                Spacer(modifier = Modifier.height(14.dp))
-                Text("¡Transferencia exitosa!", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = Color.White)
-                Spacer(modifier = Modifier.height(6.dp))
-                Text(
-                    "\$${String.format("%.2f", transferResponse?.amount ?: 0.0)}",
-                    fontSize = 46.sp, fontWeight = FontWeight.Bold, color = Color.White
-                )
-                Text("enviados", fontSize = 13.sp, color = Color.White.copy(alpha = 0.75f))
-            }
-        }
-
-        // ── Comprobante ───────────────────────────────────────
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 20.dp)
-                .offset(y = (-16).dp),
-            shape = RoundedCornerShape(20.dp),
-            colors = CardDefaults.cardColors(containerColor = cardBg),
-            elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
-        ) {
-            Column(modifier = Modifier.padding(20.dp)) {
-
-                // Cabecera del comprobante
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text("Comprobante", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = textPrimary)
-                    Box(
-                        modifier = Modifier
-                            .background(Color(0xFFD1FAE5), RoundedCornerShape(20.dp))
-                            .padding(horizontal = 10.dp, vertical = 3.dp)
-                    ) {
-                        Text("Completado", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF059669))
+            .background(
+                brush = Brush.verticalGradient(
+                    colors = if (isDark) {
+                        listOf(DesignConstants.SurfaceDark, DesignConstants.BackgroundDark)
+                    } else {
+                        DesignConstants.GradientSuccess
                     }
-                }
-
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    "N° ${transferResponse?.id ?: "—"}",
-                    fontSize = 12.sp,
-                    color = textHint
                 )
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // Línea divisoria
-                Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(dividerColor))
-
-                Spacer(modifier = Modifier.height(14.dp))
-
-                ReceiptRow("Destinatario", transferResponse?.recipientName ?: "—", textPrimary = textPrimary)
-                Spacer(modifier = Modifier.height(10.dp))
-                ReceiptRow("Teléfono", transferResponse?.recipientPhone ?: "—", textPrimary = textPrimary)
-                Spacer(modifier = Modifier.height(10.dp))
-                ReceiptRow(
-                    "Fecha",
-                    if (transferResponse != null) formatReceiptDate(transferResponse.createdAt) else "—",
-                    textPrimary = textPrimary
-                )
-
-                Spacer(modifier = Modifier.height(14.dp))
-                Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(dividerColor))
-                Spacer(modifier = Modifier.height(14.dp))
-
-                // Monto destacado
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text("Monto transferido", color = Color(0xFF94A3B8), fontSize = 13.sp)
-                    Text(
-                        "\$${String.format("%.2f", transferResponse?.amount ?: 0.0)}",
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color(0xFF2196F3)
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(20.dp))
-
-                // Botón compartir comprobante (imagen)
-                val shareBg = if (isDark) Color(0xFF1C2D3F) else Color(0xFFE3F2FD)
-                Button(
-                    onClick = {
-                        if (transferResponse != null) {
-                            WalletReceiptImageBuilder.share(context, transferResponse)
-                        }
-                    },
-                    modifier = Modifier.fillMaxWidth().height(46.dp),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = shareBg)
-                ) {
-                    Icon(Icons.Default.Share, contentDescription = null, tint = Color(0xFF2196F3), modifier = Modifier.size(18.dp))
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("Compartir comprobante", color = Color(0xFF2196F3), fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
-                }
-            }
-        }
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        // ── Botones principales ───────────────────────────────
+            )
+    ) {
         Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 20.dp, vertical = 4.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
+                .fillMaxSize()
+                .verticalScroll(scrollState)
+                .padding(24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
         ) {
+            Spacer(modifier = Modifier.height(32.dp))
+            
+            // Icono de Éxito con Animación de Escala (Simulada por elevación y forma)
+            Surface(
+                modifier = Modifier.size(120.dp),
+                shape = CircleShape,
+                color = if (isDark) DesignConstants.SuccessColor.copy(alpha = 0.2f) else Color.White.copy(alpha = 0.25f),
+                border = androidx.compose.foundation.BorderStroke(4.dp, Color.White.copy(alpha = 0.5f))
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = Icons.Default.CheckCircle,
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.size(80.dp)
+                    )
+                }
+            }
+            
+            Spacer(modifier = Modifier.height(24.dp))
+            
+            Text(
+                text = "¡Envío Exitoso!",
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Black,
+                color = Color.White,
+                textAlign = TextAlign.Center
+            )
+            
+            Text(
+                text = "La transferencia se ha procesado correctamente",
+                style = MaterialTheme.typography.bodyMedium,
+                color = Color.White.copy(alpha = 0.9f),
+                textAlign = TextAlign.Center
+            )
+            
+            Spacer(modifier = Modifier.height(40.dp))
+            
+            // Card de Detalles (Comprobante) con Glassmorphism
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(DesignConstants.CARD_CORNER_RADIUS),
+                color = if (isDark) DesignConstants.SurfaceCardDark else Color.White,
+                tonalElevation = DesignConstants.CARD_ELEVATION,
+                shadowElevation = 8.dp
+            ) {
+                Column(
+                    modifier = Modifier.padding(24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = "COMPROBANTE DIGITAL",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = if (isDark) DesignConstants.TextSecondaryDark else DesignConstants.TextSecondary,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 1.2.sp
+                    )
+                    
+                    Spacer(modifier = Modifier.height(20.dp))
+                    
+                    Text(
+                        text = amountFormat.format(transferResponse?.amount ?: 0.0),
+                        style = MaterialTheme.typography.displaySmall,
+                        fontWeight = FontWeight.Black,
+                        color = if (isDark) DesignConstants.SuccessColor else DesignConstants.PrimaryDark
+                    )
+                    
+                    Spacer(modifier = Modifier.height(24.dp))
+                    
+                    // Detalles de la transacción
+                    DetailRow("Destinatario", transferResponse?.recipientName ?: "N/A", isDark)
+                    DetailRow("Referencia", transferResponse?.id?.toString()?.take(12)?.uppercase() ?: "---", isDark)
+                    DetailRow("Fecha", now, isDark)
+                    DetailRow("Estado", "Completado", isDark, isStatus = true)
+                    
+                    Spacer(modifier = Modifier.height(32.dp))
+                    
+                    Button(
+                        onClick = { if (transferResponse != null) WalletReceiptImageBuilder.share(context, transferResponse) },
+                        modifier = Modifier.fillMaxWidth().height(50.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = if (isDark) DesignConstants.PrimaryColor.copy(alpha = 0.15f) else Color(0xFFE3F2FD),
+                            contentColor = if (isDark) DesignConstants.PrimaryColor else Color(0xFF1565C0)
+                        ),
+                        shape = RoundedCornerShape(DesignConstants.BUTTON_CORNER_RADIUS)
+                    ) {
+                        Icon(Icons.Default.Share, null, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Text("Compartir Recibo", fontWeight = FontWeight.Bold)
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(48.dp))
+            
+            // Botones de Acción Final
             Button(
                 onClick = onGoToWallet,
-                modifier = Modifier.fillMaxWidth().height(52.dp),
-                shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2196F3))
+                modifier = Modifier.fillMaxWidth().height(56.dp),
+                shape = RoundedCornerShape(DesignConstants.BUTTON_CORNER_RADIUS),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color.White,
+                    contentColor = if (isDark) DesignConstants.BackgroundDark else DesignConstants.PrimaryDark
+                ),
+                elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp)
             ) {
-                Text("Ir a mi billetera", fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                Text("Finalizar", fontWeight = FontWeight.Black, style = MaterialTheme.typography.titleMedium)
             }
-            OutlinedButton(
+            
+            Spacer(modifier = Modifier.height(12.dp))
+            
+            TextButton(
                 onClick = onNewTransfer,
-                modifier = Modifier.fillMaxWidth().height(48.dp),
-                shape = RoundedCornerShape(12.dp)
+                modifier = Modifier.fillMaxWidth()
             ) {
-                Text("Nueva transferencia", fontSize = 14.sp)
+                Text(
+                    text = "Hacer otra transferencia",
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.bodyLarge
+                )
             }
+            
+            Spacer(modifier = Modifier.height(24.dp))
+        }
+    }
+}
+
+@Composable
+private fun DetailRow(label: String, value: String, isDark: Boolean, isStatus: Boolean = false) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodySmall,
+            color = if (isDark) DesignConstants.TextSecondaryDark else DesignConstants.TextSecondary
+        )
+        
+        if (isStatus) {
+            Surface(
+                color = DesignConstants.SuccessColor.copy(alpha = 0.1f),
+                shape = RoundedCornerShape(8.dp)
+            ) {
+                Text(
+                    text = value,
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = DesignConstants.SuccessColor
+                )
+            }
+        } else {
+            Text(
+                text = value,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Bold,
+                color = if (isDark) DesignConstants.TextPrimaryDark else DesignConstants.TextPrimary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
+    }
+}
+
+@Composable
+private fun NotRegisteredScreen(onBack: () -> Unit) {
+    Column(modifier = Modifier.fillMaxSize().padding(32.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+        Surface(modifier = Modifier.size(100.dp), shape = CircleShape, color = MaterialTheme.colorScheme.primaryContainer) {
+            Box(contentAlignment = Alignment.Center) { Icon(Icons.Default.PersonAdd, null, modifier = Modifier.size(56.dp), tint = MaterialTheme.colorScheme.primary) }
         }
         Spacer(modifier = Modifier.height(32.dp))
+        Text("Usuario no encontrado", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.ExtraBold)
+        Text("Este número no está registrado en Enfoque Refer. ¡Invítalo a unirse y gana comisiones!", textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Spacer(modifier = Modifier.height(40.dp))
+        Button(onClick = { /* Share App */ }, modifier = Modifier.fillMaxWidth().height(56.dp), shape = RoundedCornerShape(16.dp)) {
+            Text("Invitar Amigo", fontWeight = FontWeight.Bold)
+        }
+        TextButton(onClick = onBack) { Text("Probar con otro número") }
     }
 }

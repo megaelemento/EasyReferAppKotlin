@@ -1,49 +1,33 @@
 package com.christelldev.easyreferplus.ui.screens.wallet
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.aspectRatio
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Backspace
+import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material.icons.filled.Security
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.christelldev.easyreferplus.ui.theme.DesignConstants
 import com.christelldev.easyreferplus.ui.viewmodel.WalletViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -55,288 +39,200 @@ fun SetPinScreen(
     onSuccess: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val isDark = isSystemInDarkTheme()
 
-    // Estado local para manejar los pasos del wizard
     var currentStep by remember { mutableIntStateOf(1) }
-    var tempPin1 by remember { mutableStateOf("") } // Para crear PIN o cambiar PIN (nuevo)
-    var tempPin2 by remember { mutableStateOf("") } // Para confirmar
-    var currentPinInput by remember { mutableStateOf("") } // Input actual siendo escrito
+    var tempPin1 by remember { mutableStateOf("") }
+    var tempPin2 by remember { mutableStateOf("") }
+    var currentPinInput by remember { mutableStateOf("") }
     var localError by remember { mutableStateOf<String?>(null) }
 
-    // Limpiar errores al cambiar de paso
     LaunchedEffect(currentStep) {
         viewModel.clearError()
         localError = null
     }
 
-    // Manejar éxito
     LaunchedEffect(uiState.successMessage) {
-        if (uiState.successMessage?.contains("PIN") == true) {
-            onSuccess()
-        }
+        if (uiState.successMessage?.contains("PIN") == true) onSuccess()
     }
 
-    val title = if (isChangingPin) "Cambiar PIN" else "Configurar PIN"
-    val primaryColor = MaterialTheme.colorScheme.primary
-
     Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text(title) },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Volver"
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = primaryColor,
-                    titleContentColor = MaterialTheme.colorScheme.onPrimary,
-                    navigationIconContentColor = MaterialTheme.colorScheme.onPrimary
-                )
-            )
-        }
+        containerColor = MaterialTheme.colorScheme.background
     ) { paddingValues ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .padding(24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.SpaceBetween
-        ) {
-            // Lógica de Contenido según Modo y Paso
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                modifier = Modifier.weight(1f, fill = false)
-            ) {
-                // Mostrar error del ViewModel si existe
-                uiState.pinError?.let { error ->
-                    Text(
-                        text = error,
-                        color = MaterialTheme.colorScheme.error,
-                        style = MaterialTheme.typography.bodySmall,
-                        modifier = Modifier.padding(bottom = 8.dp)
-                    )
-                }
+        Box(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
+            // Gradiente superior sutil
+            Box(
+                modifier = Modifier.fillMaxWidth().height(200.dp)
+                    .background(Brush.verticalGradient(listOf(MaterialTheme.colorScheme.primary.copy(alpha = 0.8f), Color.Transparent)))
+            )
 
-                // Mostrar error local
-                localError?.let { error ->
-                    Text(
-                        text = error,
-                        color = MaterialTheme.colorScheme.error,
-                        style = MaterialTheme.typography.bodySmall,
-                        modifier = Modifier.padding(bottom = 8.dp)
-                    )
-                }
-
-                if (!isChangingPin) {
-                    // --- MODO CREACIÓN DE PIN ---
-                    if (currentStep == 1) {
-                        IconSetup()
-                        Text("Crea tu PIN de seguridad", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+            Column(modifier = Modifier.fillMaxSize()) {
+                // Cabecera Premium
+                TopAppBar(
+                    title = {
                         Text(
-                            "Tu PIN de 6 dígitos protege tus transferencias. No uses tu contraseña de acceso.",
+                            text = if (isChangingPin) "Cambiar PIN" else "Seguridad PIN",
+                            fontWeight = FontWeight.ExtraBold,
+                            color = if (isDark) MaterialTheme.colorScheme.onBackground else Color.White
+                        )
+                    },
+                    navigationIcon = {
+                        IconButton(onClick = onBack) {
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = if (isDark) MaterialTheme.colorScheme.onBackground else Color.White)
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
+                )
+
+                Column(
+                    modifier = Modifier.fillMaxSize().padding(24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Spacer(modifier = Modifier.height(16.dp))
+                        
+                        // Icono Seguridad de Élite
+                        Surface(
+                            modifier = Modifier.size(90.dp),
+                            shape = CircleShape,
+                            color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f),
+                            tonalElevation = 4.dp
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(Icons.Default.Security, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(44.dp))
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(32.dp))
+
+                        // Títulos Dinámicos Premium
+                        val stepTitle = when {
+                            !isChangingPin && currentStep == 1 -> "Crea tu PIN"
+                            !isChangingPin && currentStep == 2 -> "Confirma tu PIN"
+                            isChangingPin && currentStep == 1 -> "Verifica tu Identidad"
+                            isChangingPin && currentStep == 2 -> "Nuevo PIN"
+                            else -> "Confirmar Nuevo PIN"
+                        }
+                        
+                        val stepSubtitle = when {
+                            !isChangingPin && currentStep == 1 -> "Tu PIN de 6 dígitos protege tus transferencias en Enfoque Refer."
+                            !isChangingPin && currentStep == 2 -> "Vuelve a ingresar el código para asegurar que sea correcto."
+                            isChangingPin && currentStep == 1 -> "Ingresa tu PIN actual para continuar."
+                            isChangingPin && currentStep == 2 -> "Elige un código de 6 dígitos que sea fácil de recordar para ti."
+                            else -> "Repite el nuevo PIN para finalizar el cambio."
+                        }
+
+                        Text(text = stepTitle, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.onSurface)
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Text(
+                            text = stepSubtitle,
                             style = MaterialTheme.typography.bodyMedium,
                             textAlign = TextAlign.Center,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(horizontal = 16.dp)
+                            modifier = Modifier.padding(horizontal = 16.dp),
+                            lineHeight = 20.sp
                         )
-                        Spacer(modifier = Modifier.height(24.dp))
-                        Text("Ingresa tu nuevo PIN", style = MaterialTheme.typography.labelLarge)
-                    } else {
-                        IconSetup()
-                        Text("Confirma tu PIN", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-                        Spacer(modifier = Modifier.height(24.dp))
-                        Text("Vuelve a ingresar tu PIN", style = MaterialTheme.typography.labelLarge)
-                    }
-                } else {
-                    // --- MODO CAMBIO DE PIN ---
-                    when (currentStep) {
-                        1 -> {
-                            Text("Verificación de seguridad", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Text("Ingresa tu PIN actual", style = MaterialTheme.typography.labelLarge)
-                        }
-                        2 -> {
-                            Text("Nuevo PIN", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Text("Ingresa tu nuevo PIN", style = MaterialTheme.typography.labelLarge)
-                        }
-                        3 -> {
-                            Text("Confirmar nuevo PIN", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Text("Vuelve a ingresar tu nuevo PIN", style = MaterialTheme.typography.labelLarge)
-                        }
-                    }
-                }
 
-                Spacer(modifier = Modifier.height(32.dp))
-                PinInputDisplay(pin = currentPinInput)
-            }
-
-            // Teclado Numérico
-            PinKeyboard(
-                onDigit = { digit ->
-                    if (currentPinInput.length < 6) {
-                        currentPinInput += digit
-                        localError = null
-
-                        // Si se completaron 6 dígitos
-                        if (currentPinInput.length == 6) {
-                            // Pequeño delay para que se vea el último círculo lleno
-                            // O simplemente procesar inmediatamente
-                            when {
-                                // CREAR PIN
-                                !isChangingPin && currentStep == 1 -> {
-                                    tempPin1 = currentPinInput
-                                    currentPinInput = ""
-                                    currentStep = 2
-                                }
-                                !isChangingPin && currentStep == 2 -> {
-                                    tempPin2 = currentPinInput
-                                    if (tempPin1 == tempPin2) {
-                                        viewModel.setPin(tempPin1)
-                                    } else {
-                                        localError = "Los PINs no coinciden. Intenta de nuevo."
-                                        currentStep = 1
-                                        tempPin1 = ""
-                                        tempPin2 = ""
-                                        currentPinInput = ""
-                                    }
-                                }
-                                // CAMBIAR PIN
-                                isChangingPin && currentStep == 1 -> {
-                                    // Validar contra viewModel? No tenemos función validarPIN especifica, 
-                                    // asumimos que el botón de confirmar llama a changePin que validará internamente o nos confiamos.
-                                    // Para este UI, guardamos el PIN actual y pedimos el nuevo.
-                                    tempPin1 = currentPinInput // Current PIN
-                                    currentPinInput = ""
-                                    currentStep = 2
-                                }
-                                isChangingPin && currentStep == 2 -> {
-                                    tempPin2 = currentPinInput // New PIN
-                                    currentPinInput = ""
-                                    currentStep = 3
-                                }
-                                isChangingPin && currentStep == 3 -> {
-                                    val confirmPin = currentPinInput
-                                    if (tempPin2 == confirmPin) {
-                                        viewModel.changePin(tempPin1, tempPin2)
-                                    } else {
-                                        localError = "La confirmación no coincide."
-                                        currentStep = 2
-                                        tempPin2 = ""
-                                        currentPinInput = ""
-                                    }
+                        Spacer(modifier = Modifier.height(48.dp))
+                        
+                        // Indicadores de PIN Premium
+                        PinInputDisplayPremium(pin = currentPinInput)
+                        
+                        // Errores con Estilo
+                        val error = uiState.pinError ?: localError
+                        AnimatedVisibility(visible = error != null, enter = fadeIn(), exit = fadeOut()) {
+                            Surface(
+                                modifier = Modifier.padding(top = 24.dp),
+                                color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.7f),
+                                shape = RoundedCornerShape(12.dp)
+                            ) {
+                                Row(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(Icons.Default.Error, null, tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(14.dp))
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(text = error ?: "", color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold)
                                 }
                             }
                         }
                     }
-                },
-                onDelete = {
-                    if (currentPinInput.isNotEmpty()) {
-                        currentPinInput = currentPinInput.dropLast(1)
-                    }
-                }
-            )
-        }
-    }
-}
 
-@Composable
-private fun IconSetup() {
-    Box(
-        modifier = Modifier
-            .size(80.dp)
-            .clip(CircleShape)
-            .background(MaterialTheme.colorScheme.primaryContainer),
-        contentAlignment = Alignment.Center
-    ) {
-        Icon(
-            imageVector = Icons.Default.Lock,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.size(40.dp)
-        )
-    }
-    Spacer(modifier = Modifier.height(24.dp))
-}
-
-@Composable
-fun PinInputDisplay(pin: String, maxLength: Int = 6) {
-    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-        repeat(maxLength) { index ->
-            Box(
-                modifier = Modifier
-                    .size(16.dp)
-                    .clip(CircleShape)
-                    .background(
-                        if (index < pin.length) MaterialTheme.colorScheme.primary
-                        else MaterialTheme.colorScheme.outlineVariant
+                    // Teclado Premium
+                    PinKeyboardPremium(
+                        onDigit = { digit ->
+                            if (currentPinInput.length < 6) {
+                                currentPinInput += digit
+                                localError = null
+                                if (currentPinInput.length == 6) {
+                                    when {
+                                        !isChangingPin && currentStep == 1 -> {
+                                            tempPin1 = currentPinInput; currentPinInput = ""; currentStep = 2
+                                        }
+                                        !isChangingPin && currentStep == 2 -> {
+                                            if (tempPin1 == currentPinInput) viewModel.setPin(tempPin1)
+                                            else { localError = "Los PINs no coinciden"; currentStep = 1; tempPin1 = ""; currentPinInput = "" }
+                                        }
+                                        isChangingPin && currentStep == 1 -> {
+                                            tempPin1 = currentPinInput; currentPinInput = ""; currentStep = 2
+                                        }
+                                        isChangingPin && currentStep == 2 -> {
+                                            tempPin2 = currentPinInput; currentPinInput = ""; currentStep = 3
+                                        }
+                                        isChangingPin && currentStep == 3 -> {
+                                            if (tempPin2 == currentPinInput) viewModel.changePin(tempPin1, tempPin2)
+                                            else { localError = "La confirmación no coincide"; currentStep = 2; tempPin2 = ""; currentPinInput = "" }
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        onDelete = { if (currentPinInput.isNotEmpty()) currentPinInput = currentPinInput.dropLast(1) }
                     )
-            )
+                }
+            }
         }
     }
 }
 
 @Composable
-fun PinKeyboard(
-    onDigit: (String) -> Unit,
-    onDelete: () -> Unit
-) {
-    val rows = listOf(
-        listOf("1", "2", "3"),
-        listOf("4", "5", "6"),
-        listOf("7", "8", "9"),
-        listOf("", "0", "DEL")
-    )
-    Column(
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier.fillMaxWidth()
-    ) {
+fun PinInputDisplayPremium(pin: String, maxLength: Int = 6) {
+    Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+        repeat(maxLength) { index ->
+            val isFilled = index < pin.length
+            Surface(
+                modifier = Modifier.size(20.dp),
+                shape = CircleShape,
+                color = if (isFilled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
+                tonalElevation = if (isFilled) 4.dp else 0.dp,
+                border = if (isFilled) null else androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
+            ) {}
+        }
+    }
+}
+
+@Composable
+fun PinKeyboardPremium(onDigit: (String) -> Unit, onDelete: () -> Unit) {
+    val rows = listOf(listOf("1", "2", "3"), listOf("4", "5", "6"), listOf("7", "8", "9"), listOf("", "0", "DEL"))
+    Column(verticalArrangement = Arrangement.spacedBy(16.dp), modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)) {
         rows.forEach { row ->
-            Row(
-                horizontalArrangement = Arrangement.SpaceEvenly,
-                modifier = Modifier.fillMaxWidth()
-            ) {
+            Row(horizontalArrangement = Arrangement.SpaceEvenly, modifier = Modifier.fillMaxWidth()) {
                 row.forEach { key ->
                     if (key.isEmpty()) {
-                        Spacer(modifier = Modifier.size(64.dp))
-                    } else if (key == "DEL") {
-                        Box(
-                            modifier = Modifier
-                                .size(64.dp)
-                                .clip(CircleShape)
-                                .background(MaterialTheme.colorScheme.surfaceVariant)
-                                .clickable { onDelete() },
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Filled.Backspace,
-                                contentDescription = "Borrar",
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.size(24.dp)
-                            )
-                        }
+                        Spacer(modifier = Modifier.size(72.dp))
                     } else {
-                        Box(
-                            modifier = Modifier
-                                .size(64.dp)
-                                .clip(CircleShape)
-                                .background(MaterialTheme.colorScheme.surfaceVariant)
-                                .clickable { onDigit(key) },
-                            contentAlignment = Alignment.Center
+                        Surface(
+                            modifier = Modifier.size(72.dp).clickable { if (key == "DEL") onDelete() else onDigit(key) },
+                            shape = CircleShape,
+                            color = MaterialTheme.colorScheme.surface,
+                            tonalElevation = 2.dp,
+                            shadowElevation = 1.dp
                         ) {
-                            Text(
-                                text = key,
-                                style = MaterialTheme.typography.titleLarge,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
+                            Box(contentAlignment = Alignment.Center) {
+                                if (key == "DEL") {
+                                    Icon(Icons.AutoMirrored.Filled.Backspace, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(24.dp))
+                                } else {
+                                    Text(text = key, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.onSurface)
+                                }
+                            }
                         }
                     }
                 }

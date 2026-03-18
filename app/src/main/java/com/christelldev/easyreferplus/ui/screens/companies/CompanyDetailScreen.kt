@@ -17,10 +17,14 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material3.Surface
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Business
 import androidx.compose.material.icons.filled.Call
@@ -59,8 +63,11 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.layout.statusBarsPadding
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.christelldev.easyreferplus.R
@@ -89,6 +96,7 @@ fun CompanyDetailScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
+    val isDark = androidx.compose.foundation.isSystemInDarkTheme()
 
     // Load company details
     androidx.compose.runtime.LaunchedEffect(companyId) {
@@ -96,80 +104,27 @@ fun CompanyDetailScreen(
     }
 
     Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        stringResource(R.string.company_details),
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.surface
-                    )
-                },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Volver",
-                            tint = MaterialTheme.colorScheme.onSurface
-                        )
-                    }
-                },
-                actions = {
-                    IconButton(onClick = {
-                        uiState.company?.let { company ->
-                            val shareIntent = Intent().apply {
-                                action = Intent.ACTION_SEND
-                                putExtra(Intent.EXTRA_TEXT, "Mira esta empresa: ${company.companyName}")
-                                type = "text/plain"
-                            }
-                            context.startActivity(Intent.createChooser(shareIntent, "Compartir"))
-                        }
-                    }) {
-                        Icon(
-                            imageVector = Icons.Default.Share,
-                            contentDescription = stringResource(R.string.share_company),
-                            tint = MaterialTheme.colorScheme.onSurface
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color(0xFF03A9F4),
-                    titleContentColor = MaterialTheme.colorScheme.surface,
-                    navigationIconContentColor = MaterialTheme.colorScheme.surface,
-                    actionIconContentColor = Color.White
-                )
-            )
-        }
+        containerColor = if (isDark) DesignConstants.BackgroundDark else DesignConstants.BackgroundLight
     ) { paddingValues ->
-        if (uiState.isLoading) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues),
-                contentAlignment = Alignment.Center
-            ) {
-                CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
-            }
-        } else if (uiState.errorMessage != null) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = uiState.errorMessage ?: "Error",
-                    color = MaterialTheme.colorScheme.error
-                )
-            }
-        } else {
-            uiState.company?.let { company ->
-                CompanyDetailContent(
-                    company = company,
-                    modifier = Modifier.padding(paddingValues),
-                    onNavigateToProducts = onNavigateToProducts,
-                    onProductClick = onProductClick
-                )
+        Box(modifier = Modifier.fillMaxSize()) {
+            if (uiState.isLoading) {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator(color = DesignConstants.PrimaryColor)
+                }
+            } else if (uiState.errorMessage != null) {
+                Box(modifier = Modifier.fillMaxSize().padding(24.dp), contentAlignment = Alignment.Center) {
+                    Text(text = uiState.errorMessage ?: "Error", color = DesignConstants.ErrorColor, textAlign = TextAlign.Center)
+                }
+            } else {
+                uiState.company?.let { company ->
+                    CompanyDetailContent(
+                        company = company,
+                        isDark = isDark,
+                        onNavigateBack = onNavigateBack,
+                        onNavigateToProducts = onNavigateToProducts,
+                        onProductClick = onProductClick
+                    )
+                }
             }
         }
     }
@@ -178,293 +133,372 @@ fun CompanyDetailScreen(
 @Composable
 private fun CompanyDetailContent(
     company: UserCompanyResponse,
-    modifier: Modifier = Modifier,
+    isDark: Boolean,
+    onNavigateBack: () -> Unit,
     onNavigateToProducts: () -> Unit = {},
     onProductClick: (com.christelldev.easyreferplus.data.model.CompanyProduct) -> Unit = {}
 ) {
     val context = LocalContext.current
+    val scrollState = rememberScrollState()
 
-    LazyColumn(
-        modifier = modifier.fillMaxSize(),
-        contentPadding = PaddingValues(horizontal = CARD_MARGIN_HORIZONTAL, vertical = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        // Header with logo and name
-        item {
-            Card(
+    Box(modifier = Modifier.fillMaxSize()) {
+        // Fondo de Header con Gradiente
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(260.dp)
+                .background(
+                    brush = Brush.verticalGradient(
+                        colors = if (isDark) {
+                            listOf(DesignConstants.PrimaryDark.copy(alpha = 0.6f), Color.Transparent)
+                        } else {
+                            DesignConstants.GradientPrimary
+                        }
+                    )
+                )
+        )
+
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(scrollState)
+        ) {
+            // Espacio para que el contenido empiece debajo del TopBar simulado
+            Spacer(modifier = Modifier.height(60.dp))
+
+            // Logo y Nombre (Header Flotante)
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .shadow(CARD_ELEVATION, RoundedCornerShape(CARD_CORNER_RADIUS)),
-                shape = RoundedCornerShape(CARD_CORNER_RADIUS),
-                colors = CardDefaults.cardColors(containerColor = Color.Transparent)
+                    .padding(horizontal = 24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(brush = Brush.verticalGradient(GradientPrimary))
-                        .padding(24.dp)
+                Surface(
+                    modifier = Modifier.size(120.dp),
+                    shape = CircleShape,
+                    color = if (isDark) DesignConstants.SurfaceCardDark else Color.White,
+                    tonalElevation = 8.dp,
+                    shadowElevation = 12.dp,
+                    border = androidx.compose.foundation.BorderStroke(4.dp, Color.White.copy(alpha = 0.2f))
                 ) {
-                    Column(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        // Company Logo
-                        Box(
-                            modifier = Modifier
-                                .size(100.dp)
-                                .clip(CircleShape)
-                                .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.2f))
-                                .then(
-                                    Modifier.shadow(4.dp, CircleShape)
-                                ),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            if (company.logoUrl != null) {
-                                // Agregar timestamp para evitar caché de la imagen
-                                val logoUrlWithTimestamp = if (company.logoUrl.contains("?")) {
-                                    "${company.logoUrl}&t=${System.currentTimeMillis()}"
-                                } else {
-                                    "${company.logoUrl}?t=${System.currentTimeMillis()}"
-                                }
-                                AsyncImage(
-                                    model = ImageRequest.Builder(LocalContext.current)
-                                        .data(logoUrlWithTimestamp)
-                                        .crossfade(true)
-                                        .build(),
-                                    contentDescription = company.companyName,
-                                    modifier = Modifier.fillMaxSize(),
-                                    contentScale = ContentScale.Crop
-                                )
-                            } else {
-                                Icon(
-                                    imageVector = Icons.Default.Business,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(48.dp),
-                                    tint = MaterialTheme.colorScheme.onSurface
-                                )
-                            }
+                    Box(contentAlignment = Alignment.Center) {
+                        if (company.logoUrl != null) {
+                            val logoUrlWithTimestamp = "${company.logoUrl}${if (company.logoUrl.contains("?")) "&" else "?"}t=${System.currentTimeMillis()}"
+                            AsyncImage(
+                                model = ImageRequest.Builder(LocalContext.current)
+                                    .data(logoUrlWithTimestamp)
+                                    .crossfade(true)
+                                    .build(),
+                                contentDescription = company.companyName,
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = ContentScale.Crop
+                            )
+                        } else {
+                            Icon(
+                                imageVector = Icons.Default.Business,
+                                contentDescription = null,
+                                modifier = Modifier.size(60.dp),
+                                tint = DesignConstants.PrimaryColor
+                            )
                         }
+                    }
+                }
 
-                        Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(16.dp))
 
-                        Text(
-                            text = company.companyName,
-                            style = MaterialTheme.typography.headlineSmall,
-                            fontWeight = FontWeight.Bold,
-                            maxLines = 2,
-                            overflow = TextOverflow.Ellipsis,
-                            color = MaterialTheme.colorScheme.surface
-                        )
+                Text(
+                    text = company.companyName,
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Black,
+                    textAlign = TextAlign.Center,
+                    color = if (isDark) Color.White else Color.White // En el header siempre blanco por el gradiente
+                )
 
-                        // Full Location: Address + City + Province
-                        if (!company.address.isNullOrBlank() || !company.city.isNullOrBlank() || !company.province.isNullOrBlank()) {
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.Center
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.LocationOn,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(16.dp),
-                                    tint = MaterialTheme.colorScheme.surface.copy(alpha = 0.8f)
-                                )
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text(
-                                    text = buildString {
-                                        if (!company.address.isNullOrBlank()) append(company.address)
-                                        if (!company.city.isNullOrBlank()) {
-                                            if (isNotEmpty()) append(", ")
-                                            append(company.city)
-                                        }
-                                        if (!company.province.isNullOrBlank()) {
-                                            if (isNotEmpty()) append(", ")
-                                            append(company.province)
-                                        }
-                                    },
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
-                                    maxLines = 2,
-                                    overflow = TextOverflow.Ellipsis
-                                )
-                            }
+                if (!company.city.isNullOrBlank()) {
+                    Surface(
+                        modifier = Modifier.padding(top = 8.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        color = Color.Black.copy(alpha = 0.2f)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(Icons.Default.LocationOn, null, tint = Color.White, modifier = Modifier.size(14.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = "${company.city}${if (!company.province.isNullOrBlank()) ", ${company.province}" else ""}",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = Color.White,
+                                fontWeight = FontWeight.Bold
+                            )
                         }
                     }
                 }
             }
-        }
 
-        // Contact Buttons
-        item {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // Contenido Principal (Cards)
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = DesignConstants.CARD_MARGIN_HORIZONTAL),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                // WhatsApp Button
-                if (!company.whatsappNumber.isNullOrBlank()) {
-                    Button(
+                // Quick Actions (WhatsApp & Share)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    ActionCard(
+                        icon = Icons.Default.Phone,
+                        label = "WhatsApp",
+                        color = Color(0xFF25D366),
+                        isDark = isDark,
+                        modifier = Modifier.weight(1f),
                         onClick = {
                             val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://wa.me/${company.whatsappNumber}"))
                             context.startActivity(intent)
-                        },
+                        }
+                    )
+                    ActionCard(
+                        icon = Icons.Default.Share,
+                        label = "Compartir",
+                        color = DesignConstants.PrimaryColor,
+                        isDark = isDark,
                         modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Color(0xFF25D366)
-                        )
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Phone,
-                            contentDescription = null,
-                            modifier = Modifier.size(18.dp)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(stringResource(R.string.whatsapp))
-                    }
-                }
-
-                // Website Button
-                if (!company.website.isNullOrBlank()) {
-                    OutlinedButton(
                         onClick = {
-                            val url = company.website?.let {
-                                if (!it.startsWith("http")) "https://$it" else it
+                            val shareIntent = Intent().apply {
+                                action = Intent.ACTION_SEND
+                                putExtra(Intent.EXTRA_TEXT, "¡Mira esta empresa en Enfoque Refer!: ${company.companyName}")
+                                type = "text/plain"
                             }
-                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
-                            context.startActivity(intent)
-                        },
-                        modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(12.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Language,
-                            contentDescription = null,
-                            modifier = Modifier.size(18.dp)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(stringResource(R.string.website))
-                    }
+                            context.startActivity(Intent.createChooser(shareIntent, "Compartir"))
+                        }
+                    )
                 }
-            }
-        }
 
-        // Description
-        if (!company.companyDescription.isNullOrBlank()) {
-            item {
-                InfoCard(
-                    title = stringResource(R.string.company_info_description),
-                    content = company.companyDescription
-                )
-            }
-        }
+                // Descripción
+                if (!company.companyDescription.isNullOrBlank()) {
+                    ElegantInfoCard(
+                        title = "Acerca de la empresa",
+                        content = company.companyDescription,
+                        icon = Icons.Default.Business,
+                        isDark = isDark
+                    )
+                }
 
-        // Products List - Button to navigate to products
-        if (!company.products.isNullOrEmpty() || !company.productDescription.isNullOrBlank()) {
-            item {
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable { onNavigateToProducts() },
-                    shape = RoundedCornerShape(16.dp)
+                // Acceso a Productos (Elegant Style)
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(DesignConstants.CARD_CORNER_RADIUS),
+                    color = if (isDark) DesignConstants.SurfaceCardDark else Color.White,
+                    tonalElevation = 2.dp,
+                    shadowElevation = 4.dp,
+                    onClick = onNavigateToProducts
                 ) {
                     Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
+                        modifier = Modifier.padding(20.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = stringResource(R.string.products),
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold
-                            )
-                            if (!company.productDescription.isNullOrBlank()) {
-                                Spacer(modifier = Modifier.height(4.dp))
-                                Text(
-                                    text = company.productDescription,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
-                                    maxLines = 2
-                                )
-                            }
-                            if (!company.products.isNullOrEmpty()) {
-                                Spacer(modifier = Modifier.height(4.dp))
-                                Text(
-                                    text = "${company.products!!.size} productos disponibles",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = AppBlue
-                                )
+                        Surface(
+                            modifier = Modifier.size(48.dp),
+                            shape = CircleShape,
+                            color = DesignConstants.PrimaryColor.copy(alpha = 0.1f)
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(Icons.Default.ShoppingCart, null, tint = DesignConstants.PrimaryColor)
                             }
                         }
+                        Spacer(modifier = Modifier.width(16.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "Productos y Servicios",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = if (isDark) DesignConstants.TextPrimaryDark else DesignConstants.TextPrimary
+                            )
+                            Text(
+                                text = "Explora nuestro catálogo completo",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = if (isDark) DesignConstants.TextSecondaryDark else DesignConstants.TextSecondary
+                            )
+                        }
                         Icon(
-                            imageVector = Icons.Default.ShoppingCart,
-                            contentDescription = "Ver productos",
-                            tint = AppBlue,
-                            modifier = Modifier.size(32.dp)
+                            imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                            contentDescription = null,
+                            tint = DesignConstants.TextSecondary,
+                            modifier = Modifier.size(20.dp)
                         )
                     }
                 }
+
+                // Información de Contacto Detallada
+                ElegantInfoCard(
+                    title = "Contacto y Redes",
+                    isDark = isDark,
+                    content = "" // No usamos content directo aquí
+                ) {
+                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        if (!company.address.isNullOrBlank()) {
+                            ContactItem(Icons.Default.LocationOn, "Dirección", company.address ?: "", isDark)
+                        }
+                        if (!company.website.isNullOrBlank()) {
+                            ContactItem(Icons.Default.Language, "Sitio Web", company.website ?: "", isDark)
+                        }
+                        if (!company.facebookUrl.isNullOrBlank()) {
+                            ContactItem(Icons.Default.Language, "Facebook", company.facebookUrl ?: "", isDark)
+                        }
+                        if (!company.instagramUrl.isNullOrBlank()) {
+                            ContactItem(Icons.Default.Language, "Instagram", company.instagramUrl ?: "", isDark)
+                        }
+                    }
+                }
             }
+            Spacer(modifier = Modifier.height(40.dp))
         }
 
-        // Contact Information
-        item {
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp)
+        // Custom Top Bar (Floating)
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .statusBarsPadding()
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Surface(
+                modifier = Modifier.size(40.dp),
+                shape = CircleShape,
+                color = Color.Black.copy(alpha = 0.3f),
+                onClick = onNavigateBack
             ) {
-                Column(
-                    modifier = Modifier.padding(16.dp)
-                ) {
-                    Text(
-                        text = stringResource(R.string.contact),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
-                    )
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    // WhatsApp
-                    if (!company.whatsappNumber.isNullOrBlank()) {
-                        ContactRow(
-                            icon = Icons.Default.Phone,
-                            label = stringResource(R.string.whatsapp),
-                            value = company.whatsappNumber
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                    }
-
-                    // Website
-                    if (!company.website.isNullOrBlank()) {
-                        ContactRow(
-                            icon = Icons.Default.Language,
-                            label = stringResource(R.string.website),
-                            value = company.website
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                    }
-
-                    // Facebook
-                    if (!company.facebookUrl.isNullOrBlank()) {
-                        ContactRow(
-                            icon = Icons.Default.Language,
-                            label = stringResource(R.string.facebook),
-                            value = company.facebookUrl
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                    }
-
-                    // Instagram
-                    if (!company.instagramUrl.isNullOrBlank()) {
-                        ContactRow(
-                            icon = Icons.Default.Language,
-                            label = stringResource(R.string.instagram),
-                            value = company.instagramUrl
-                        )
-                    }
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = Color.White, modifier = Modifier.size(20.dp))
                 }
             }
+            
+            Text(
+                text = "Detalles",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = Color.White
+            )
+
+            Box(modifier = Modifier.size(40.dp)) // Placeholder para balance
+        }
+    }
+}
+
+@Composable
+private fun ActionCard(
+    icon: ImageVector,
+    label: String,
+    color: Color,
+    isDark: Boolean,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit
+) {
+    Surface(
+        modifier = modifier.height(60.dp),
+        shape = RoundedCornerShape(16.dp),
+        color = if (isDark) DesignConstants.SurfaceCardDark else Color.White,
+        tonalElevation = 2.dp,
+        shadowElevation = 2.dp,
+        onClick = onClick
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center
+        ) {
+            Icon(icon, null, tint = color, modifier = Modifier.size(20.dp))
+            Spacer(modifier = Modifier.width(12.dp))
+            Text(
+                text = label,
+                fontWeight = FontWeight.Bold,
+                style = MaterialTheme.typography.bodyMedium,
+                color = if (isDark) DesignConstants.TextPrimaryDark else DesignConstants.TextPrimary
+            )
+        }
+    }
+}
+
+@Composable
+private fun ElegantInfoCard(
+    title: String,
+    content: String,
+    icon: ImageVector? = null,
+    isDark: Boolean,
+    customContent: @Composable (() -> Unit)? = null
+) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(DesignConstants.CARD_CORNER_RADIUS),
+        color = if (isDark) DesignConstants.SurfaceCardDark else Color.White,
+        tonalElevation = 2.dp,
+        shadowElevation = 4.dp
+    ) {
+        Column(modifier = Modifier.padding(20.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                if (icon != null) {
+                    Icon(icon, null, tint = DesignConstants.PrimaryColor, modifier = Modifier.size(20.dp))
+                    Spacer(modifier = Modifier.width(12.dp))
+                }
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = if (isDark) DesignConstants.TextPrimaryDark else DesignConstants.TextPrimary
+                )
+            }
+            
+            if (content.isNotBlank()) {
+                Spacer(modifier = Modifier.height(12.dp))
+                Text(
+                    text = content,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = if (isDark) DesignConstants.TextSecondaryDark else DesignConstants.TextSecondary,
+                    lineHeight = 20.sp
+                )
+            }
+            
+            if (customContent != null) {
+                Spacer(modifier = Modifier.height(16.dp))
+                customContent()
+            }
+        }
+    }
+}
+
+@Composable
+private fun ContactItem(icon: ImageVector, label: String, value: String, isDark: Boolean) {
+    Row(verticalAlignment = Alignment.Top) {
+        Surface(
+            modifier = Modifier.size(32.dp),
+            shape = CircleShape,
+            color = DesignConstants.PrimaryColor.copy(alpha = 0.1f)
+        ) {
+            Box(contentAlignment = Alignment.Center) {
+                Icon(icon, null, tint = DesignConstants.PrimaryColor, modifier = Modifier.size(16.dp))
+            }
+        }
+        Spacer(modifier = Modifier.width(16.dp))
+        Column {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelSmall,
+                color = if (isDark) DesignConstants.TextSecondaryDark else DesignConstants.TextSecondary,
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                text = value,
+                style = MaterialTheme.typography.bodyMedium,
+                color = if (isDark) DesignConstants.TextPrimaryDark else DesignConstants.TextPrimary,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
+            )
         }
     }
 }

@@ -1,6 +1,7 @@
 package com.christelldev.easyreferplus.ui.screens.history
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -15,97 +16,428 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.christelldev.easyreferplus.data.model.CommissionDetail
 import com.christelldev.easyreferplus.data.model.TransactionReceipt
-import com.christelldev.easyreferplus.ui.theme.AppBlue
+import com.christelldev.easyreferplus.ui.theme.DesignConstants
 import java.text.SimpleDateFormat
 import java.util.*
 
-// Constants for consistent styling - Following HomeScreen design
-private val CARD_CORNER_RADIUS = 20.dp
-private val CARD_ELEVATION = 8.dp
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun TransactionDetailScreen(
+    transactionId: String,
+    viewModel: com.christelldev.easyreferplus.ui.viewmodel.TransactionDetailViewModel,
+    onBack: () -> Unit
+) {
+    val uiState by viewModel.uiState.collectAsState()
+    val isDark = isSystemInDarkTheme()
 
-// ====== AUXILIARY FUNCTIONS ======
+    LaunchedEffect(transactionId) {
+        viewModel.loadTransactionDetail(transactionId)
+    }
+
+    Scaffold(
+        containerColor = if (isDark) DesignConstants.BackgroundDark else DesignConstants.BackgroundLight
+    ) { paddingValues ->
+        Box(modifier = Modifier.fillMaxSize()) {
+            if (uiState.isLoading) {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator(color = DesignConstants.PrimaryColor)
+                }
+            } else if (uiState.errorMessage != null) {
+                Box(modifier = Modifier.fillMaxSize().padding(24.dp), contentAlignment = Alignment.Center) {
+                    ErrorContent(
+                        message = uiState.errorMessage!!,
+                        isDark = isDark,
+                        onRetry = { viewModel.loadTransactionDetail(transactionId) }
+                    )
+                }
+            } else {
+                uiState.receipt?.let { receipt ->
+                    TransactionDetailContent(
+                        receipt = receipt,
+                        isDark = isDark,
+                        onBack = onBack
+                    )
+                }
+            }
+        }
+    }
+}
 
 @Composable
-private fun DetailCard(
-    title: String,
-    content: @Composable ColumnScope.() -> Unit
+private fun TransactionDetailContent(
+    receipt: TransactionReceipt,
+    isDark: Boolean,
+    onBack: () -> Unit
 ) {
-    // Following HomeScreen design
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .shadow(elevation = CARD_ELEVATION, shape = RoundedCornerShape(CARD_CORNER_RADIUS)),
-        shape = RoundedCornerShape(CARD_CORNER_RADIUS),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-    ) {
-        Column(
+    val isSale = receipt.type == "sale"
+    val scrollState = rememberScrollState()
+    
+    Box(modifier = Modifier.fillMaxSize()) {
+        // Fondo de Header con Gradiente Dinámico
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(20.dp)
+                .height(240.dp)
+                .background(
+                    brush = Brush.verticalGradient(
+                        colors = if (isDark) {
+                            if (isSale) listOf(DesignConstants.SuccessColor.copy(alpha = 0.4f), Color.Transparent)
+                            else listOf(DesignConstants.PrimaryDark.copy(alpha = 0.6f), Color.Transparent)
+                        } else {
+                            if (isSale) DesignConstants.GradientSuccess else DesignConstants.GradientPrimary
+                        }
+                    )
+                )
+        )
+
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(scrollState)
         ) {
+            // Espacio para TopBar Flotante
+            Spacer(modifier = Modifier.height(60.dp))
+
+            // Monto Principal (Header Flotante)
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Surface(
+                    modifier = Modifier.size(90.dp),
+                    shape = CircleShape,
+                    color = if (isDark) DesignConstants.SurfaceCardDark else Color.White,
+                    tonalElevation = 8.dp,
+                    shadowElevation = 12.dp,
+                    border = androidx.compose.foundation.BorderStroke(2.dp, Color.White.copy(alpha = 0.2f))
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            imageVector = if (isSale) Icons.Default.Store else Icons.Default.ShoppingCart,
+                            contentDescription = null,
+                            modifier = Modifier.size(48.dp),
+                            tint = if (isSale) DesignConstants.SuccessColor else DesignConstants.PrimaryColor
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Text(
+                    text = if (isSale) "Venta Realizada" else "Detalle de Compra",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White
+                )
+
+                Text(
+                    text = "${receipt.currency} ${String.format(Locale.US, "%.2f", receipt.amount)}",
+                    style = MaterialTheme.typography.displayMedium,
+                    fontWeight = FontWeight.Black,
+                    color = Color.White
+                )
+            }
+
+            Spacer(modifier = Modifier.height(32.dp))
+
+            // Contenido en Cards
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = DesignConstants.CARD_MARGIN_HORIZONTAL),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                // Info de Empresa
+                ElegantDetailCard(title = "Comercio", isDark = isDark) {
+                    DetailRow("Nombre", receipt.companyName ?: "N/A", isDark)
+                    receipt.companyAddress?.let { DetailRow("Dirección", it, isDark) }
+                    receipt.companyPhone?.let { DetailRow("Teléfono", it, isDark) }
+                }
+
+                // Info de Transacción
+                ElegantDetailCard(title = "Transacción", isDark = isDark) {
+                    DetailRow("ID", maskTransactionId(receipt.transactionId), isDark)
+                    DetailRow("Fecha", formatDate(receipt.transactionDate), isDark)
+                    receipt.referralCodeUsed?.let { DetailRow("Cupón Referido", it, isDark) }
+                    receipt.description?.let { DetailRow("Concepto", it, isDark) }
+                }
+
+                // Info de Comprador (Ventas)
+                if (isSale) {
+                    ElegantDetailCard(title = "Datos del Cliente", isDark = isDark) {
+                        DetailRow("Nombre", receipt.buyerName ?: "N/A", isDark)
+                        receipt.buyerPhone?.let { DetailRow("Teléfono", it, isDark) }
+                    }
+                }
+
+                // Desglose de Comisiones
+                receipt.commissionInfo?.let { commissionInfo ->
+                    ElegantCommissionCard(
+                        commissionInfo = commissionInfo,
+                        currency = receipt.currency,
+                        isDark = isDark
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(40.dp))
+            }
+        }
+
+        // Top Bar Flotante (Glass Style)
+        ElegantTopBar(onBack = onBack)
+    }
+}
+
+@Composable
+private fun ElegantTopBar(onBack: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .statusBarsPadding()
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Surface(
+            modifier = Modifier.size(40.dp),
+            shape = CircleShape,
+            color = Color.Black.copy(alpha = 0.3f),
+            onClick = onBack
+        ) {
+            Box(contentAlignment = Alignment.Center) {
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = Color.White, modifier = Modifier.size(20.dp))
+            }
+        }
+        
+        Text(
+            text = "Recibo Digital",
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Black,
+            color = Color.White
+        )
+
+        Box(modifier = Modifier.size(40.dp)) // Balance
+    }
+}
+
+@Composable
+private fun ElegantDetailCard(
+    title: String,
+    isDark: Boolean,
+    content: @Composable ColumnScope.() -> Unit
+) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(DesignConstants.CARD_CORNER_RADIUS),
+        color = if (isDark) DesignConstants.SurfaceCardDark else Color.White,
+        tonalElevation = 2.dp,
+        shadowElevation = 4.dp
+    ) {
+        Column(modifier = Modifier.padding(20.dp)) {
             Text(
                 text = title,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(bottom = 16.dp)
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Black,
+                color = if (isDark) DesignConstants.TextPrimaryDark else DesignConstants.TextPrimary
             )
+            Spacer(modifier = Modifier.height(16.dp))
             content()
         }
     }
 }
 
 @Composable
-private fun DetailRow(label: String, value: String) {
+private fun DetailRow(label: String, value: String, isDark: Boolean) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 2.dp),
+            .padding(vertical = 4.dp),
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
         Text(
             text = label,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            style = MaterialTheme.typography.bodySmall,
+            color = if (isDark) DesignConstants.TextSecondaryDark else DesignConstants.TextSecondary,
+            fontWeight = FontWeight.Medium
         )
         Text(
             text = value,
-            style = MaterialTheme.typography.bodyMedium,
-            fontWeight = FontWeight.Medium
+            style = MaterialTheme.typography.bodySmall,
+            fontWeight = FontWeight.Bold,
+            color = if (isDark) DesignConstants.TextPrimaryDark else DesignConstants.TextPrimary,
+            textAlign = TextAlign.End,
+            modifier = Modifier.weight(1f).padding(start = 16.dp)
         )
     }
 }
 
 @Composable
-private fun ErrorContent(
-    message: String,
-    onRetry: () -> Unit,
-    modifier: Modifier = Modifier
+private fun ElegantCommissionCard(
+    commissionInfo: com.christelldev.easyreferplus.data.model.CommissionInfo,
+    currency: String,
+    isDark: Boolean
 ) {
-    Column(
-        modifier = modifier.padding(32.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(DesignConstants.CARD_CORNER_RADIUS),
+        color = if (isDark) DesignConstants.SurfaceCardDark else Color.White,
+        tonalElevation = 2.dp,
+        shadowElevation = 6.dp
     ) {
-        Icon(
-            imageVector = Icons.Default.Error,
-            contentDescription = null,
-            modifier = Modifier.size(64.dp),
-            tint = MaterialTheme.colorScheme.error
-        )
+        Column(modifier = Modifier.padding(20.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Surface(
+                    modifier = Modifier.size(36.dp),
+                    shape = CircleShape,
+                    color = DesignConstants.SuccessColor.copy(alpha = 0.1f)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(Icons.Default.Percent, null, tint = DesignConstants.SuccessColor, modifier = Modifier.size(18.dp))
+                    }
+                }
+                Spacer(modifier = Modifier.width(12.dp))
+                Text(
+                    text = "Desglose de Comisiones",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Black,
+                    color = if (isDark) DesignConstants.TextPrimaryDark else DesignConstants.TextPrimary
+                )
+            }
+
+            Spacer(modifier = Modifier.height(20.dp))
+
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp),
+                color = DesignConstants.PrimaryColor.copy(alpha = 0.05f)
+            ) {
+                Row(
+                    modifier = Modifier.padding(16.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Total Repartido",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = if (isDark) DesignConstants.TextSecondaryDark else DesignConstants.TextSecondary
+                    )
+                    Text(
+                        text = "$currency ${String.format(Locale.US, "%.2f", commissionInfo.totalCommissionAmount ?: 0.0)}",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Black,
+                        color = DesignConstants.SuccessColor
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(20.dp))
+
+            val details = commissionInfo.commissionDetails
+            if (!details.isNullOrEmpty()) {
+                details.forEachIndexed { index, detail ->
+                    ElegantLevelItem(level = index + 1, detail = detail, currency = currency, isDark = isDark)
+                    if (index < details.size - 1) {
+                        HorizontalDivider(
+                            modifier = Modifier.padding(vertical = 12.dp),
+                            color = if (isDark) Color.White.copy(alpha = 0.05f) else Color.Black.copy(alpha = 0.05f)
+                        )
+                    }
+                }
+            } else {
+                Text(
+                    text = "Esta transacción no generó comisiones de red.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = DesignConstants.TextSecondary,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun ElegantLevelItem(
+    level: Int,
+    detail: CommissionDetail,
+    currency: String,
+    isDark: Boolean
+) {
+    val levelColor = when (level) {
+        1 -> Color(0xFF10B981)
+        2 -> Color(0xFF03A9F4)
+        else -> Color(0xFF8B5CF6)
+    }
+
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Surface(
+            modifier = Modifier.size(32.dp),
+            shape = CircleShape,
+            color = levelColor.copy(alpha = 0.15f)
+        ) {
+            Box(contentAlignment = Alignment.Center) {
+                Text(text = "$level", color = levelColor, fontWeight = FontWeight.Black, style = MaterialTheme.typography.labelSmall)
+            }
+        }
+        
+        Spacer(modifier = Modifier.width(12.dp))
+        
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = "Nivel $level",
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.Bold,
+                color = if (isDark) DesignConstants.TextPrimaryDark else DesignConstants.TextPrimary
+            )
+            Text(
+                text = detail.userReferralCode ?: "Directo",
+                style = MaterialTheme.typography.labelSmall,
+                color = if (isDark) DesignConstants.TextSecondaryDark else DesignConstants.TextSecondary
+            )
+        }
+
+        Column(horizontalAlignment = Alignment.End) {
+            Text(
+                text = "$currency ${String.format(Locale.US, "%.2f", detail.netCommission ?: 0.0)}",
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Black,
+                color = levelColor
+            )
+            Text(
+                text = "${detail.percentageOfDistribution ?: 0.0}% dist.",
+                style = MaterialTheme.typography.labelSmall,
+                color = if (isDark) DesignConstants.TextSecondaryDark.copy(alpha = 0.6f) else DesignConstants.TextSecondary.copy(alpha = 0.6f)
+            )
+        }
+    }
+}
+
+@Composable
+private fun ErrorContent(message: String, isDark: Boolean, onRetry: () -> Unit) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Icon(Icons.Default.ErrorOutline, null, modifier = Modifier.size(64.dp), tint = DesignConstants.ErrorColor)
         Spacer(modifier = Modifier.height(16.dp))
-        Text(
-            text = message,
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        Spacer(modifier = Modifier.height(16.dp))
+        Text(text = message, color = if (isDark) DesignConstants.TextSecondaryDark else DesignConstants.TextSecondary, textAlign = TextAlign.Center)
+        Spacer(modifier = Modifier.height(24.dp))
         Button(
             onClick = onRetry,
+            colors = ButtonDefaults.buttonColors(containerColor = DesignConstants.PrimaryColor),
             shape = RoundedCornerShape(12.dp)
         ) {
             Text("Reintentar")
@@ -117,480 +449,14 @@ private fun formatDate(dateString: String?): String {
     if (dateString == null) return "N/A"
     return try {
         val inputFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.getDefault())
-        val outputFormat = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault())
+        val outputFormat = SimpleDateFormat("dd MMM yyyy, HH:mm", Locale.forLanguageTag("es-EC"))
         val date = inputFormat.parse(dateString)
-        outputFormat.format(date ?: return dateString)
+        date?.let { outputFormat.format(it) } ?: dateString
     } catch (e: Exception) {
         dateString
     }
 }
 
 private fun maskTransactionId(transactionId: String): String {
-    // Mostrar solo los últimos 5 dígitos por seguridad
-    return if (transactionId.length > 5) {
-        "****${transactionId.takeLast(5)}"
-    } else {
-        transactionId
-    }
-}
-
-private fun getStatusText(status: String): String {
-    return when (status) {
-        "paid" -> "Pagado"
-        "pending" -> "Pendiente"
-        "scheduled" -> "Programado"
-        "on_hold" -> "En espera"
-        "cancelled" -> "Cancelado"
-        else -> status
-    }
-}
-
-@Composable
-private fun CommissionLevelCard(
-    level: Int,
-    detail: CommissionDetail,
-    currency: String
-) {
-    val levelColors = listOf(
-        Color(0xFF4CAF50), // Verde para nivel 1
-        Color(0xFF2196F3), // Azul para nivel 2
-        Color(0xFF9C27B0)  // Púrpura para nivel 3
-    )
-    val levelGradientColors = listOf(
-        listOf(Color(0xFF10B981), Color(0xFF34D399)), // Verde para nivel 1
-        listOf(Color(0xFF03A9F4), Color(0xFF2196F3)), // Azul para nivel 2
-        listOf(Color(0xFF8B5CF6), Color(0xFFA78BFA))  // Púrpura para nivel 3
-    )
-    val levelColor = levelColors.getOrElse(level - 1) { MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f) }
-    val levelGradient = levelGradientColors.getOrElse(level - 1) { listOf(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f), MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)) }
-
-    // Following HomeScreen design
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .shadow(4.dp, RoundedCornerShape(16.dp)),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = Color.Transparent
-        )
-    ) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(
-                    brush = Brush.verticalGradient(
-                        colors = listOf(levelColor.copy(alpha = 0.08f), Color.White)
-                    )
-                )
-                .padding(16.dp)
-        ) {
-            Column(
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Box(
-                            modifier = Modifier
-                                .size(28.dp)
-                                .clip(CircleShape)
-                                .background(levelColor),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = "$level",
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.surface,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = "Nivel $level",
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.SemiBold,
-                            color = levelColor
-                        )
-                    }
-                    Text(
-                        text = "$currency ${String.format("%.2f", detail.netCommission ?: 0.0)}",
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = levelColor
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                // Mostrar código de beneficiario
-                detail.userReferralCode?.let {
-                    DetailRow("Código de Beneficiario", it)
-                }
-
-                // Porcentajes
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Column {
-                        Text(
-                            text = "% de distribución",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Text(
-                            text = "${detail.percentageOfDistribution ?: 0.0}%",
-                            style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = FontWeight.Medium
-                        )
-                    }
-                    Column(horizontalAlignment = Alignment.End) {
-                        Text(
-                            text = "% de la venta",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Text(
-                            text = "${detail.percentageOfSale ?: 0.0}%",
-                            style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = FontWeight.Medium
-                        )
-                    }
-                }
-
-                // Estado del pago
-                detail.paymentStatus?.let { status ->
-                    Spacer(modifier = Modifier.height(4.dp))
-                    val statusColor = when (status) {
-                        "paid" -> Color(0xFF4CAF50)
-                        "pending", "scheduled" -> Color(0xFFFF9800)
-                        else -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                    }
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            imageVector = when (status) {
-                                "paid" -> Icons.Default.CheckCircle
-                                else -> Icons.Default.Schedule
-                            },
-                            contentDescription = null,
-                            modifier = Modifier.size(16.dp),
-                            tint = statusColor
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(
-                            text = "Estado: ${getStatusText(status)}",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = statusColor
-                        )
-                    }
-                }
-
-                // Nota
-                detail.note?.let {
-                    Text(
-                        text = it,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(top = 4.dp)
-                    )
-                }
-            }
-        }
-    }
-}
-
-// ====== MAIN SCREEN FUNCTIONS ======
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun TransactionDetailScreen(
-    transactionId: String,
-    viewModel: com.christelldev.easyreferplus.ui.viewmodel.TransactionDetailViewModel,
-    onBack: () -> Unit
-) {
-    val uiState by viewModel.uiState.collectAsState()
-
-    LaunchedEffect(transactionId) {
-        viewModel.loadTransactionDetail(transactionId)
-    }
-
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        text = "Detalle de Transacción",
-                        color = MaterialTheme.colorScheme.surface,
-                        fontWeight = FontWeight.Bold
-                    )
-                },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Volver",
-                            tint = MaterialTheme.colorScheme.onSurface
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primary
-                )
-            )
-        }
-    ) { paddingValues ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-        ) {
-            when {
-                uiState.isLoading -> {
-                    CircularProgressIndicator(
-                        modifier = Modifier.align(Alignment.Center)
-                    )
-                }
-                uiState.errorMessage != null -> {
-                    ErrorContent(
-                        message = uiState.errorMessage!!,
-                        onRetry = { viewModel.loadTransactionDetail(transactionId) },
-                        modifier = Modifier.align(Alignment.Center)
-                    )
-                }
-                uiState.receipt != null -> {
-                    TransactionDetailContent(
-                        receipt = uiState.receipt!!
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun TransactionDetailContent(receipt: TransactionReceipt) {
-    val isSale = receipt.type == "sale"
-    val primaryColor = if (isSale) Color(0xFF4CAF50) else AppBlue
-    val scrollState = rememberScrollState()
-
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(scrollState)
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        // Header con monto - Following HomeScreen design
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .shadow(elevation = CARD_ELEVATION, shape = RoundedCornerShape(CARD_CORNER_RADIUS)),
-            shape = RoundedCornerShape(CARD_CORNER_RADIUS),
-            colors = CardDefaults.cardColors(containerColor = primaryColor)
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(24.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(64.dp)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.2f)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = if (isSale) Icons.Default.Store else Icons.Default.ShoppingCart,
-                        contentDescription = null,
-                        modifier = Modifier.size(32.dp),
-                        tint = MaterialTheme.colorScheme.onSurface
-                    )
-                }
-                Spacer(modifier = Modifier.height(12.dp))
-                Text(
-                    text = if (isSale) "Venta" else "Compra",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f)
-                )
-                Text(
-                    text = "${receipt.currency} ${String.format("%.2f", receipt.amount)}",
-                    style = MaterialTheme.typography.headlineLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.surface
-                )
-            }
-        }
-
-        // Información de la empresa
-        DetailCard(title = "Empresa") {
-            DetailRow("Nombre", receipt.companyName ?: "N/A")
-            receipt.companyAddress?.let { DetailRow("Dirección", it) }
-            receipt.companyPhone?.let { DetailRow("Teléfono", it) }
-        }
-
-        // Información de la transacción
-        DetailCard(title = "Detalles de la Transacción") {
-            DetailRow("ID", maskTransactionId(receipt.transactionId))
-            DetailRow("Fecha", formatDate(receipt.transactionDate))
-            receipt.referralCodeUsed?.let { DetailRow("Código de referido usado", it) }
-            receipt.description?.let { DetailRow("Descripción", it) }
-        }
-
-        // Información del comprador (solo para ventas)
-        if (isSale) {
-            DetailCard(title = "Comprador") {
-                DetailRow("Nombre", receipt.buyerName ?: "N/A")
-                receipt.buyerDocument?.let { DetailRow("Documento", it) }
-                receipt.buyerPhone?.let { DetailRow("Teléfono", it) }
-                receipt.buyerEmail?.let { DetailRow("Email", it) }
-            }
-        }
-
-        // Información de Comisiones
-        receipt.commissionInfo?.let { commissionInfo ->
-            CommissionDetailsCard(
-                commissionInfo = commissionInfo,
-                totalAmount = receipt.amount,
-                currency = receipt.currency
-            )
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-    }
-}
-
-@Composable
-private fun CommissionDetailsCard(
-    commissionInfo: com.christelldev.easyreferplus.data.model.CommissionInfo,
-    totalAmount: Double,
-    currency: String
-) {
-    // Following HomeScreen design
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .shadow(elevation = CARD_ELEVATION, shape = RoundedCornerShape(CARD_CORNER_RADIUS)),
-        shape = RoundedCornerShape(CARD_CORNER_RADIUS),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(40.dp)
-                        .clip(CircleShape)
-                        .background(
-                            brush = Brush.linearGradient(
-                                colors = listOf(Color(0xFF10B981), Color(0xFF34D399))
-                            )
-                        ),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Percent,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.surface,
-                        modifier = Modifier.size(20.dp)
-                    )
-                }
-                Spacer(modifier = Modifier.width(12.dp))
-                Text(
-                    text = "Desglose de Comisiones",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
-            }
-
-            HorizontalDivider()
-
-            // Comisión total
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(
-                        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f),
-                        RoundedCornerShape(8.dp)
-                    )
-                    .padding(12.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "Total Comisión",
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.SemiBold
-                )
-                Text(
-                    text = "$currency ${String.format("%.2f", commissionInfo.totalCommissionAmount ?: 0.0)}",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = Color(0xFF4CAF50)
-                )
-            }
-
-            // Porcentaje de la empresa
-            DetailRow(
-                "Porcentaje empresa",
-                "${commissionInfo.companyCommissionPercentage ?: 0.0}%"
-            )
-
-            // Detalles por nivel
-            val details = commissionInfo.commissionDetails
-            if (!details.isNullOrEmpty()) {
-                Text(
-                    text = "Distribución por Nivel",
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.SemiBold,
-                    modifier = Modifier.padding(top = 8.dp)
-                )
-
-                details.forEachIndexed { index, detail ->
-                    CommissionLevelCard(
-                        level = index + 1,
-                        detail = detail,
-                        currency = currency
-                    )
-                }
-            } else {
-                // Si no hay detalles, mostrar explicación
-                Text(
-                    text = "Esta transacción no generó comisiones de referido porque no se usó un código de referido o el vendedor no tiene referidos en la cadena.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(top = 8.dp)
-                )
-            }
-
-            // Explicación de cómo se calcula
-            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-
-            Text(
-                text = "¿Cómo se calcula la comisión?",
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.SemiBold
-            )
-            Text(
-                text = "La empresa define un porcentaje de comisión sobre el monto de la venta. " +
-                        "Ese monto se distribuye entre los referidos del comprador: " +
-                        "Nivel 1 (directo), Nivel 2 (referido del referido) y Nivel 3. " +
-                        "El resto va a la plataforma.",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-    }
+    return if (transactionId.length > 8) "****${transactionId.takeLast(8)}" else transactionId
 }

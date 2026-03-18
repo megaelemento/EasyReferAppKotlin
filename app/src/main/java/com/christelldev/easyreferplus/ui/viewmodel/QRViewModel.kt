@@ -124,9 +124,11 @@ class QRViewModel(
     }
 
     fun setCompanies(companies: List<UserCompany>) {
+        val autoSelected = if (companies.size == 1) companies.first().id else _uiState.value.selectedCompanyId
         _uiState.value = _uiState.value.copy(
             companies = companies,
-            isLoadingCompanies = false
+            isLoadingCompanies = false,
+            selectedCompanyId = autoSelected
         )
     }
 
@@ -188,8 +190,8 @@ class QRViewModel(
 
             when (val result = repository.generateQR(authorization, request)) {
                 is QRResult.GenerateSuccess -> {
-                    // Generar QR localmente usando ZXing — en IO para no bloquear el hilo principal
-                    val qrBitmap = result.qrPayload?.let { payload ->
+                    // Generar QR localmente usando ZXing — usar qrData (URL escaneable) si existe
+                    val qrBitmap = (result.qrData ?: result.qrPayload)?.let { payload ->
                         withContext(Dispatchers.Default) { generateQRBitmap(payload) }
                     }
 
@@ -242,10 +244,10 @@ class QRViewModel(
         )
     }
 
-    fun setScannedQRData(qrCode: String, qrSecret: String) {
+    fun setScannedQRData(qrCode: String, qrSecret: String?) {
         _uiState.value = _uiState.value.copy(
             qrCodeInput = qrCode,
-            qrSecretInput = qrSecret
+            qrSecretInput = qrSecret ?: ""
         )
     }
 

@@ -20,7 +20,7 @@ object WalletReceiptImageBuilder {
 
     fun share(context: Context, transfer: TransferResponse) {
         val senderName = context
-            .getSharedPreferences("EasyReferPrefs", Context.MODE_PRIVATE)
+            .getSharedPreferences("EnfoqueReferPrefs", Context.MODE_PRIVATE)
             .getString("user_nombres", null) ?: ""
         val bmp = buildBitmap(context, transfer, senderName)
         val file = File(context.cacheDir, "comprobante_${transfer.id}.png")

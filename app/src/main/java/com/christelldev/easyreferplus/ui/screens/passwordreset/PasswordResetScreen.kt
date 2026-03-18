@@ -1,8 +1,11 @@
 package com.christelldev.easyreferplus.ui.screens.passwordreset
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -17,13 +20,13 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.Lock
@@ -32,8 +35,6 @@ import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -41,9 +42,10 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
-import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -53,19 +55,17 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.christelldev.easyreferplus.R
 import com.christelldev.easyreferplus.ui.theme.DesignConstants
@@ -83,35 +83,43 @@ fun PasswordResetScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(
-                brush = Brush.verticalGradient(
-                    colors = listOf(
-                        MaterialTheme.colorScheme.primary,
-                        MaterialTheme.colorScheme.primaryContainer,
-                        MaterialTheme.colorScheme.surface
-                    )
-                )
-            )
+            .background(MaterialTheme.colorScheme.background)
             .statusBarsPadding()
     ) {
+        // Fondo con gradiente sutil superior (Consistente con Login/Register)
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(300.dp)
+                .background(
+                    brush = Brush.verticalGradient(
+                        colors = listOf(
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.8f),
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                            Color.Transparent
+                        )
+                    )
+                )
+        )
+
         Column(
             modifier = Modifier.fillMaxSize()
         ) {
-            // TopAppBar personalizado
+            // TopAppBar Moderno y Elegante
             TopAppBar(
                 title = {
                     Text(
                         text = stringResource(R.string.reset_password),
-                        color = MaterialTheme.colorScheme.surface,
-                        fontWeight = FontWeight.Bold
+                        color = if (isSystemInDarkTheme()) MaterialTheme.colorScheme.onBackground else Color.White,
+                        fontWeight = FontWeight.ExtraBold
                     )
                 },
                 navigationIcon = {
                     IconButton(onClick = onBackToLogin) {
                         Icon(
-                            Icons.Default.ArrowBack,
-                            contentDescription = stringResource(R.string.back),
-                            tint = MaterialTheme.colorScheme.onPrimary
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = null,
+                            tint = if (isSystemInDarkTheme()) MaterialTheme.colorScheme.onBackground else Color.White
                         )
                     }
                 },
@@ -120,15 +128,17 @@ fun PasswordResetScreen(
                 )
             )
 
-            // Contenido principal
+            // Contenido principal con Scroll y padding consistente
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(DesignConstants.CARD_MARGIN_HORIZONTAL)
+                    .padding(24.dp)
                     .verticalScroll(rememberScrollState())
                     .imePadding(),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
+                Spacer(modifier = Modifier.height(16.dp))
+
                 when (uiState.currentStep) {
                     PasswordResetStep.PHONE -> PhoneStep(
                         phone = uiState.phone,
@@ -138,6 +148,7 @@ fun PasswordResetScreen(
                         onSubmit = viewModel::requestPasswordReset
                     )
                     PasswordResetStep.CODE -> CodeStep(
+                        phone = uiState.phone,
                         code1 = uiState.code1,
                         code2 = uiState.code2,
                         code3 = uiState.code3,
@@ -169,25 +180,27 @@ fun PasswordResetScreen(
                     )
                 }
 
-                // Mensajes de error y éxito
-                Spacer(modifier = Modifier.height(16.dp))
+                // Mensajes de error y éxito modernos
+                Spacer(modifier = Modifier.height(24.dp))
 
                 uiState.errorMessage?.let { error ->
-                    ErrorCard(message = error)
+                    StatusCard(message = error, isError = true)
                 }
 
                 uiState.successMessage?.let { success ->
-                    SuccessCard(message = success)
+                    StatusCard(message = success, isError = false)
                 }
+                
+                Spacer(modifier = Modifier.height(32.dp))
             }
         }
 
         if (uiState.isLoading) {
             Box(
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.3f)),
                 contentAlignment = Alignment.Center
             ) {
-                CircularProgressIndicator(color = MaterialTheme.colorScheme.surface)
+                CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
             }
         }
     }
@@ -201,12 +214,12 @@ fun PhoneStep(
     onPhoneChange: (String) -> Unit,
     onSubmit: () -> Unit
 ) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .shadow(elevation = DesignConstants.CARD_ELEVATION, shape = RoundedCornerShape(DesignConstants.CARD_CORNER_RADIUS)),
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(DesignConstants.CARD_CORNER_RADIUS),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f))
+        color = MaterialTheme.colorScheme.surface,
+        tonalElevation = 2.dp,
+        shadowElevation = 8.dp
     ) {
         Column(
             modifier = Modifier
@@ -215,13 +228,23 @@ fun PhoneStep(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
-                text = stringResource(R.string.reset_password_subtitle),
-                style = MaterialTheme.typography.titleMedium,
-                textAlign = TextAlign.Center,
-                color = DesignConstants.TextPrimary
+                text = "Recuperar Acceso",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.ExtraBold,
+                color = MaterialTheme.colorScheme.onSurface
             )
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(12.dp))
+
+            Text(
+                text = stringResource(R.string.reset_password_subtitle),
+                style = MaterialTheme.typography.bodyMedium,
+                textAlign = TextAlign.Center,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                fontWeight = FontWeight.Medium
+            )
+
+            Spacer(modifier = Modifier.height(32.dp))
 
             PhoneTextField(
                 value = phone,
@@ -233,7 +256,7 @@ fun PhoneStep(
                 modifier = Modifier.fillMaxWidth()
             )
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(32.dp))
 
             Button(
                 onClick = onSubmit,
@@ -242,10 +265,16 @@ fun PhoneStep(
                     .height(56.dp),
                 enabled = !isLoading && phone.length == 10,
                 shape = RoundedCornerShape(DesignConstants.BUTTON_CORNER_RADIUS),
-                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
-                elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp, pressedElevation = 2.dp)
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary
+                )
             ) {
-                Text(stringResource(R.string.send_code), fontWeight = FontWeight.Bold)
+                Text(
+                    text = stringResource(R.string.send_code),
+                    fontWeight = FontWeight.ExtraBold,
+                    style = MaterialTheme.typography.titleMedium
+                )
             }
         }
     }
@@ -270,8 +299,8 @@ fun PhoneTextField(
             leadingIcon = {
                 Icon(
                     imageVector = Icons.Default.Phone,
-                    contentDescription = stringResource(R.string.content_description_phone),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary
                 )
             },
             isError = isError,
@@ -284,35 +313,34 @@ fun PhoneTextField(
             keyboardActions = KeyboardActions(onDone = { onDone() }),
             colors = OutlinedTextFieldDefaults.colors(
                 focusedBorderColor = MaterialTheme.colorScheme.primary,
-                unfocusedBorderColor = MaterialTheme.colorScheme.outline,
-                errorBorderColor = MaterialTheme.colorScheme.error,
-                focusedTextColor = MaterialTheme.colorScheme.onSurface,
-                unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
                 focusedLabelColor = MaterialTheme.colorScheme.primary,
-                unfocusedLabelColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                cursorColor = MaterialTheme.colorScheme.primary,
+                focusedContainerColor = MaterialTheme.colorScheme.surface,
+                unfocusedContainerColor = MaterialTheme.colorScheme.surface
             ),
-            shape = RoundedCornerShape(12.dp),
+            shape = RoundedCornerShape(16.dp),
             enabled = enabled
         )
 
-        AnimatedVisibility(visible = isError && errorMessage != null) {
+        AnimatedVisibility(visible = isError && errorMessage != null, enter = fadeIn(), exit = fadeOut()) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(start = 16.dp, top = 4.dp),
+                    .padding(start = 12.dp, top = 6.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Icon(
                     imageVector = Icons.Default.Error,
-                    contentDescription = stringResource(R.string.content_description_error),
+                    contentDescription = null,
                     tint = MaterialTheme.colorScheme.error,
-                    modifier = Modifier.size(16.dp)
+                    modifier = Modifier.size(14.dp)
                 )
-                Spacer(modifier = Modifier.width(4.dp))
+                Spacer(modifier = Modifier.width(6.dp))
                 Text(
                     text = errorMessage ?: "",
                     color = MaterialTheme.colorScheme.error,
-                    style = MaterialTheme.typography.bodySmall
+                    style = MaterialTheme.typography.bodySmall,
+                    fontWeight = FontWeight.Bold
                 )
             }
         }
@@ -321,6 +349,7 @@ fun PhoneTextField(
 
 @Composable
 fun CodeStep(
+    phone: String,
     code1: String,
     code2: String,
     code3: String,
@@ -338,31 +367,28 @@ fun CodeStep(
     val focus3 = remember { FocusRequester() }
     val focus4 = remember { FocusRequester() }
 
-    // Estado local para el contador
     var countdownSeconds by remember(waitSeconds) { mutableStateOf(waitSeconds ?: 0) }
 
-    // Contador regresivo
     LaunchedEffect(waitSeconds) {
         if (waitSeconds != null && waitSeconds > 0) {
             countdownSeconds = waitSeconds
             while (countdownSeconds > 0) {
                 kotlinx.coroutines.delay(1000)
-                countdownSeconds = countdownSeconds - 1
+                countdownSeconds -= 1
             }
         }
     }
 
-    // Solicitar focus al primer campo al iniciar
     LaunchedEffect(Unit) {
         focus1.requestFocus()
     }
 
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .shadow(elevation = DesignConstants.CARD_ELEVATION, shape = RoundedCornerShape(DesignConstants.CARD_CORNER_RADIUS)),
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(DesignConstants.CARD_CORNER_RADIUS),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f))
+        color = MaterialTheme.colorScheme.surface,
+        tonalElevation = 2.dp,
+        shadowElevation = 8.dp
     ) {
         Column(
             modifier = Modifier
@@ -371,29 +397,29 @@ fun CodeStep(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
-                text = stringResource(R.string.enter_code),
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                textAlign = TextAlign.Center,
-                color = DesignConstants.TextPrimary
+                text = "Validar Código",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.ExtraBold,
+                color = MaterialTheme.colorScheme.onSurface
             )
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
             Text(
-                text = stringResource(R.string.code_sent_message),
+                text = "Ingresa el código enviado a\n+593${phone.removePrefix("0")}",
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
-                textAlign = TextAlign.Center
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                textAlign = TextAlign.Center,
+                fontWeight = FontWeight.Medium
             )
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(32.dp))
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceEvenly
             ) {
-                OtpDigit(
+                OtpDigitField(
                     value = code1,
                     onValueChange = {
                         onCodeChange(1, it)
@@ -402,40 +428,37 @@ fun CodeStep(
                     focusRequester = focus1,
                     modifier = Modifier.weight(1f)
                 )
-                Spacer(modifier = Modifier.width(8.dp))
-                OtpDigit(
+                Spacer(modifier = Modifier.width(12.dp))
+                OtpDigitField(
                     value = code2,
                     onValueChange = {
                         onCodeChange(2, it)
                         if (it.isNotEmpty()) focus3.requestFocus()
+                        else focus1.requestFocus()
                     },
                     focusRequester = focus2,
                     modifier = Modifier.weight(1f)
                 )
-                Spacer(modifier = Modifier.width(8.dp))
-                OtpDigit(
+                Spacer(modifier = Modifier.width(12.dp))
+                OtpDigitField(
                     value = code3,
                     onValueChange = {
                         onCodeChange(3, it)
                         if (it.isNotEmpty()) focus4.requestFocus()
+                        else focus2.requestFocus()
                     },
                     focusRequester = focus3,
                     modifier = Modifier.weight(1f)
                 )
-                Spacer(modifier = Modifier.width(8.dp))
-                OtpDigit(
+                Spacer(modifier = Modifier.width(12.dp))
+                OtpDigitField(
                     value = code4,
                     onValueChange = {
                         onCodeChange(4, it)
-                        // Si se completaron los 4 dígitos, verificar automáticamente
-                        if (it.isNotEmpty()) {
-                            // Construir el código completo con el nuevo valor
-                            val currentCode = "$code1$code2$code3"
-                            val newValue = if (it.length == 1) it else it.last().toString()
-                            val fullCode = "$currentCode$newValue"
-                            if (fullCode.length == 4) {
-                                onVerifyCode()
-                            }
+                        if (it.isEmpty()) focus3.requestFocus()
+                        else {
+                            val fullCode = "$code1$code2$code3$it"
+                            if (fullCode.length == 4) onVerifyCode()
                         }
                     },
                     focusRequester = focus4,
@@ -443,64 +466,56 @@ fun CodeStep(
                 )
             }
 
-            if (codeError != null) {
+            AnimatedVisibility(visible = codeError != null, enter = fadeIn(), exit = fadeOut()) {
                 Spacer(modifier = Modifier.height(8.dp))
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(start = 16.dp),
+                    modifier = Modifier.fillMaxWidth().padding(start = 12.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Error,
-                        contentDescription = stringResource(R.string.content_description_error),
-                        tint = DesignConstants.ErrorColor,
-                        modifier = Modifier.size(16.dp)
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(
-                        text = codeError,
-                        color = DesignConstants.ErrorColor,
-                        style = MaterialTheme.typography.bodySmall
-                    )
+                    Icon(Icons.Default.Error, null, tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(14.dp))
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(codeError ?: "", color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold)
                 }
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(32.dp))
 
-            // Mostrar botón o contador
             if (isResendEnabled || countdownSeconds <= 0) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.Center
-                ) {
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
                     Text(
                         text = stringResource(R.string.didnt_receive_code),
                         style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                     )
-                    Spacer(modifier = Modifier.width(4.dp))
+                    Spacer(modifier = Modifier.width(6.dp))
                     Text(
                         text = stringResource(R.string.resend_code),
                         style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = DesignConstants.PrimaryColor,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.clickable(enabled = isResendEnabled) { onResend() }
                     )
                 }
             } else {
-                Text(
-                    text = stringResource(R.string.resend_wait, countdownSeconds),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                )
+                Surface(
+                    color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Text(
+                        text = "Reenviar en $countdownSeconds s",
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
             }
         }
     }
 }
 
 @Composable
-fun OtpDigit(
+fun OtpDigitField(
     value: String,
     onValueChange: (String) -> Unit,
     focusRequester: FocusRequester,
@@ -513,20 +528,21 @@ fun OtpDigit(
                 onValueChange(newValue)
             }
         },
-        modifier = modifier
-            .height(72.dp)
-            .focusRequester(focusRequester),
-        textStyle = MaterialTheme.typography.displaySmall.copy(textAlign = TextAlign.Center),
+        modifier = modifier.height(68.dp).focusRequester(focusRequester),
+        textStyle = MaterialTheme.typography.headlineMedium.copy(
+            textAlign = TextAlign.Center,
+            fontWeight = FontWeight.ExtraBold
+        ),
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
         singleLine = true,
         colors = OutlinedTextFieldDefaults.colors(
             focusedBorderColor = MaterialTheme.colorScheme.primary,
-            unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+            unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
             errorBorderColor = MaterialTheme.colorScheme.error,
-            focusedTextColor = MaterialTheme.colorScheme.onSurface,
-            unfocusedTextColor = MaterialTheme.colorScheme.onSurface
+            focusedContainerColor = MaterialTheme.colorScheme.surface,
+            unfocusedContainerColor = MaterialTheme.colorScheme.surface
         ),
-        shape = RoundedCornerShape(12.dp)
+        shape = RoundedCornerShape(16.dp)
     )
 }
 
@@ -545,12 +561,12 @@ fun NewPasswordStep(
     onToggleConfirmPasswordVisibility: () -> Unit,
     onSubmit: () -> Unit
 ) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .shadow(elevation = DesignConstants.CARD_ELEVATION, shape = RoundedCornerShape(DesignConstants.CARD_CORNER_RADIUS)),
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(DesignConstants.CARD_CORNER_RADIUS),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f))
+        color = MaterialTheme.colorScheme.surface,
+        tonalElevation = 2.dp,
+        shadowElevation = 8.dp
     ) {
         Column(
             modifier = Modifier
@@ -559,45 +575,42 @@ fun NewPasswordStep(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
-                text = stringResource(R.string.new_password),
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                textAlign = TextAlign.Center,
-                color = DesignConstants.TextPrimary
+                text = "Nueva Contraseña",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.ExtraBold,
+                color = MaterialTheme.colorScheme.onSurface
             )
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
             Text(
                 text = stringResource(R.string.enter_new_password),
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
-                textAlign = TextAlign.Center
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                textAlign = TextAlign.Center,
+                fontWeight = FontWeight.Medium
             )
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(32.dp))
 
-            PasswordTextField(
+            ResetPasswordField(
                 value = newPassword,
                 onValueChange = onNewPasswordChange,
                 label = stringResource(R.string.new_password),
-                placeholder = stringResource(R.string.password_placeholder),
                 isError = newPasswordError != null,
                 errorMessage = newPasswordError,
                 passwordVisible = passwordVisible,
                 onToggleVisibility = onTogglePasswordVisibility,
-                onDone = onSubmit,
                 enabled = !isLoading,
                 modifier = Modifier.fillMaxWidth()
             )
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            PasswordTextField(
+            ResetPasswordField(
                 value = confirmPassword,
                 onValueChange = onConfirmPasswordChange,
                 label = stringResource(R.string.confirm_password_label),
-                placeholder = stringResource(R.string.confirm_password_placeholder),
                 isError = confirmPasswordError != null,
                 errorMessage = confirmPasswordError,
                 passwordVisible = confirmPasswordVisible,
@@ -607,62 +620,77 @@ fun NewPasswordStep(
                 modifier = Modifier.fillMaxWidth()
             )
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(24.dp))
 
-            // Requisitos de contraseña
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(
-                    containerColor = DesignConstants.WarningColor.copy(alpha = 0.1f)
-                ),
-                shape = RoundedCornerShape(12.dp)
+            Surface(
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+                shape = RoundedCornerShape(16.dp)
             ) {
-                Column(modifier = Modifier.padding(12.dp)) {
-                    Text(
-                        text = stringResource(R.string.password_requirements),
-                        style = MaterialTheme.typography.labelMedium,
-                        color = DesignConstants.WarningColor
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(stringResource(R.string.password_min_8), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
-                    Text(stringResource(R.string.password_uppercase), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
-                    Text(stringResource(R.string.password_lowercase), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
-                    Text(stringResource(R.string.password_number), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.Lock, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = stringResource(R.string.password_requirements),
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
+                    RequirementItem(stringResource(R.string.password_min_8))
+                    RequirementItem(stringResource(R.string.password_uppercase))
+                    RequirementItem(stringResource(R.string.password_lowercase))
+                    RequirementItem(stringResource(R.string.password_number))
                 }
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(32.dp))
 
             Button(
                 onClick = onSubmit,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(56.dp),
-                enabled = !isLoading &&
-                        newPassword.isNotEmpty() &&
-                        confirmPassword.isNotEmpty() &&
-                        newPassword == confirmPassword,
+                enabled = !isLoading && newPassword.isNotEmpty() && newPassword == confirmPassword,
                 shape = RoundedCornerShape(DesignConstants.BUTTON_CORNER_RADIUS),
-                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
-                elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp, pressedElevation = 2.dp)
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary
+                )
             ) {
-                Text(stringResource(R.string.change_password), fontWeight = FontWeight.Bold)
+                Text(
+                    text = stringResource(R.string.change_password),
+                    fontWeight = FontWeight.ExtraBold,
+                    style = MaterialTheme.typography.titleMedium
+                )
             }
         }
     }
 }
 
 @Composable
-fun PasswordTextField(
+fun RequirementItem(text: String) {
+    Row(
+        modifier = Modifier.padding(vertical = 2.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(modifier = Modifier.size(6.dp).background(MaterialTheme.colorScheme.primary, CircleShape))
+        Spacer(modifier = Modifier.width(10.dp))
+        Text(text, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f))
+    }
+}
+
+@Composable
+fun ResetPasswordField(
     value: String,
     onValueChange: (String) -> Unit,
     label: String,
-    placeholder: String,
     isError: Boolean,
     errorMessage: String?,
     passwordVisible: Boolean,
     onToggleVisibility: () -> Unit,
-    onDone: () -> Unit,
+    onDone: (() -> Unit)? = null,
     enabled: Boolean,
     modifier: Modifier = Modifier
 ) {
@@ -671,19 +699,13 @@ fun PasswordTextField(
             value = value,
             onValueChange = onValueChange,
             label = { Text(label) },
-            placeholder = { Text(placeholder) },
-            leadingIcon = {
-                Icon(
-                    imageVector = Icons.Default.Lock,
-                    contentDescription = label,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            },
+            leadingIcon = { Icon(Icons.Default.Lock, null, tint = MaterialTheme.colorScheme.primary) },
             trailingIcon = {
                 IconButton(onClick = onToggleVisibility) {
                     Icon(
                         imageVector = if (passwordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
-                        contentDescription = if (passwordVisible) stringResource(R.string.hide_password) else stringResource(R.string.show_password)
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary
                     )
                 }
             },
@@ -691,173 +713,105 @@ fun PasswordTextField(
             isError = isError,
             modifier = Modifier.fillMaxWidth(),
             singleLine = true,
-            keyboardOptions = KeyboardOptions(
-                keyboardType = KeyboardType.Password,
-                imeAction = ImeAction.Done
-            ),
-            keyboardActions = KeyboardActions(onDone = { onDone() }),
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = if (onDone != null) ImeAction.Done else ImeAction.Next),
+            keyboardActions = KeyboardActions(onDone = { onDone?.invoke() }),
             colors = OutlinedTextFieldDefaults.colors(
                 focusedBorderColor = MaterialTheme.colorScheme.primary,
-                unfocusedBorderColor = MaterialTheme.colorScheme.outline,
-                errorBorderColor = MaterialTheme.colorScheme.error,
-                focusedTextColor = MaterialTheme.colorScheme.onSurface,
-                unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
                 focusedLabelColor = MaterialTheme.colorScheme.primary,
-                unfocusedLabelColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                cursorColor = MaterialTheme.colorScheme.primary,
+                focusedContainerColor = MaterialTheme.colorScheme.surface,
+                unfocusedContainerColor = MaterialTheme.colorScheme.surface
             ),
-            shape = RoundedCornerShape(12.dp),
+            shape = RoundedCornerShape(16.dp),
             enabled = enabled
         )
-
-        AnimatedVisibility(visible = isError && errorMessage != null) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(start = 16.dp, top = 4.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Error,
-                    contentDescription = stringResource(R.string.content_description_error),
-                    tint = MaterialTheme.colorScheme.error,
-                    modifier = Modifier.size(16.dp)
-                )
-                Spacer(modifier = Modifier.width(4.dp))
-                Text(
-                    text = errorMessage ?: "",
-                    color = MaterialTheme.colorScheme.error,
-                    style = MaterialTheme.typography.bodySmall
-                )
+        AnimatedVisibility(visible = isError && errorMessage != null, enter = fadeIn(), exit = fadeOut()) {
+            Row(modifier = Modifier.fillMaxWidth().padding(start = 12.dp, top = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Default.Error, null, tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(14.dp))
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(errorMessage ?: "", color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold)
             }
         }
     }
 }
 
 @Composable
-fun CompleteStep(
-    onBackToLogin: () -> Unit
-) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .shadow(elevation = DesignConstants.CARD_ELEVATION, shape = RoundedCornerShape(DesignConstants.CARD_CORNER_RADIUS)),
+fun CompleteStep(onBackToLogin: () -> Unit) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(DesignConstants.CARD_CORNER_RADIUS),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f))
+        color = MaterialTheme.colorScheme.surface,
+        tonalElevation = 2.dp,
+        shadowElevation = 8.dp
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(32.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
+            modifier = Modifier.fillMaxWidth().padding(32.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Box(
-                modifier = Modifier
-                    .size(80.dp)
-                    .background(
-                        brush = Brush.linearGradient(DesignConstants.GradientSuccess),
-                        shape = RoundedCornerShape(40.dp)
-                    ),
-                contentAlignment = Alignment.Center
+            Surface(
+                modifier = Modifier.size(100.dp),
+                color = MaterialTheme.colorScheme.primaryContainer,
+                shape = CircleShape
             ) {
-                Icon(
-                    imageVector = Icons.Default.CheckCircle,
-                    contentDescription = stringResource(R.string.success),
-                    tint = MaterialTheme.colorScheme.surface,
-                    modifier = Modifier.size(48.dp)
-                )
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(Icons.Default.CheckCircle, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(64.dp))
+                }
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(32.dp))
 
             Text(
                 text = stringResource(R.string.password_changed),
                 style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Bold,
+                fontWeight = FontWeight.ExtraBold,
                 textAlign = TextAlign.Center,
-                color = DesignConstants.TextPrimary
+                color = MaterialTheme.colorScheme.onSurface
             )
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
             Text(
                 text = stringResource(R.string.password_changed_message),
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
-                textAlign = TextAlign.Center
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                textAlign = TextAlign.Center,
+                fontWeight = FontWeight.Medium
             )
 
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(40.dp))
 
             Button(
                 onClick = onBackToLogin,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(56.dp),
+                modifier = Modifier.fillMaxWidth().height(56.dp),
                 shape = RoundedCornerShape(DesignConstants.BUTTON_CORNER_RADIUS),
-                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
-                elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp, pressedElevation = 2.dp)
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
             ) {
-                Text(
-                    text = stringResource(R.string.login_link),
-                    fontWeight = FontWeight.Bold
-                )
+                Text(text = stringResource(R.string.login_link), fontWeight = FontWeight.ExtraBold, style = MaterialTheme.typography.titleMedium)
             }
         }
     }
 }
 
 @Composable
-fun ErrorCard(message: String) {
-    Card(
+fun StatusCard(message: String, isError: Boolean) {
+    Surface(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.errorContainer
-        )
+        shape = RoundedCornerShape(16.dp),
+        color = if (isError) MaterialTheme.colorScheme.errorContainer else MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f),
+        tonalElevation = 2.dp
     ) {
-        Row(
-            modifier = Modifier.padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
+        Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
             Icon(
-                imageVector = Icons.Default.Error,
-                contentDescription = stringResource(R.string.content_description_error),
-                tint = MaterialTheme.colorScheme.error,
-                modifier = Modifier.size(20.dp)
+                imageVector = if (isError) Icons.Default.Error else Icons.Default.CheckCircle,
+                contentDescription = null,
+                tint = if (isError) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
             )
-            Spacer(modifier = Modifier.width(8.dp))
+            Spacer(modifier = Modifier.width(12.dp))
             Text(
                 text = message,
-                color = MaterialTheme.colorScheme.onErrorContainer,
-                style = MaterialTheme.typography.bodyMedium
-            )
-        }
-    }
-}
-
-@Composable
-fun SuccessCard(message: String) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.primaryContainer
-        )
-    ) {
-        Row(
-            modifier = Modifier.padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                imageVector = Icons.Default.CheckCircle,
-                contentDescription = stringResource(R.string.success),
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(20.dp)
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(
-                text = message,
-                color = MaterialTheme.colorScheme.onPrimaryContainer,
-                style = MaterialTheme.typography.bodyMedium
+                color = if (isError) MaterialTheme.colorScheme.onErrorContainer else MaterialTheme.colorScheme.onPrimaryContainer,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Bold
             )
         }
     }

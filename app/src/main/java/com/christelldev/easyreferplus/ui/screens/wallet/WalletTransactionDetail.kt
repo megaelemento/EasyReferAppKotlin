@@ -182,7 +182,7 @@ private fun DetailRow(
 private fun formatDetailDate(iso: String): String = try {
     val input = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.getDefault()).parse(iso)
         ?: return iso
-    val date = SimpleDateFormat("d 'de' MMMM 'de' yyyy", Locale("es", "EC")).format(input)
+    val date = SimpleDateFormat("d 'de' MMMM 'de' yyyy", Locale.forLanguageTag("es-EC")).format(input)
     val time = SimpleDateFormat("HH:mm", Locale.getDefault()).format(input)
     "$date · $time"
 } catch (_: Exception) { iso.take(16) }

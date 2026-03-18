@@ -1,14 +1,19 @@
 package com.christelldev.easyreferplus.ui.screens.payments
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.Notes
+import androidx.compose.material.icons.automirrored.filled.ReceiptLong
+import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -18,23 +23,21 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.christelldev.easyreferplus.R
 import com.christelldev.easyreferplus.data.model.CompanyPayment
-import com.christelldev.easyreferplus.ui.theme.AppBlue
+import com.christelldev.easyreferplus.ui.theme.DesignConstants
 import java.text.SimpleDateFormat
 import java.util.*
-
-// Constantes de diseño elegante
-private val CARD_CORNER_RADIUS = 20.dp
-private val CARD_ELEVATION = 8.dp
-private val CARD_MARGIN_HORIZONTAL = 16.dp
-private val GradientPrimary = listOf(Color(0xFF03A9F4), Color(0xFF2196F3))
-private val GradientSuccess = listOf(Color(0xFF10B981), Color(0xFF34D399))
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -51,406 +54,267 @@ fun CompanyPaymentsScreen(
     onBack: () -> Unit,
     onClearMessages: () -> Unit
 ) {
-    val primaryColor = MaterialTheme.colorScheme.primary
+    val isDark = isSystemInDarkTheme()
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    LaunchedEffect(errorMessage) {
+        errorMessage?.let {
+            snackbarHostState.showSnackbar(it)
+            onClearMessages()
+        }
+    }
 
     // Form state
     var documentNumber by remember { mutableStateOf("") }
     var bankName by remember { mutableStateOf("") }
-    var amount by remember { mutableStateOf("") }
     var notes by remember { mutableStateOf("") }
+
+    // ESTADO AVANZADO DE MONTO (Banking Style)
+    var amountTextFieldValue by remember { 
+        mutableStateOf(TextFieldValue(text = "0.00", selection = TextRange(4)))
+    }
+
+    val onAmountChanged = { newValue: TextFieldValue ->
+        val digits = newValue.text.filter { it.isDigit() }
+        val newText = if (digits.isEmpty() || digits.toLong() == 0L) "0.00"
+        else {
+            val value = digits.toLong() / 100.0
+            String.format(Locale.US, "%.2f", value)
+        }
+        amountTextFieldValue = TextFieldValue(text = newText, selection = TextRange(newText.length))
+    }
 
     // Show success dialog
     var showSuccessDialog by remember { mutableStateOf(false) }
-    var successAmount by remember { mutableStateOf(0.0) }
-
-    // Show messages
-    LaunchedEffect(errorMessage) {
-        errorMessage?.let {
-            onClearMessages()
-        }
-    }
+    var lastSuccessAmount by remember { mutableStateOf(0.0) }
 
     LaunchedEffect(successMessage) {
         successMessage?.let {
             onClearMessages()
-            // Show success dialog
-            successAmount = amount.toDoubleOrNull() ?: 0.0
+            lastSuccessAmount = amountTextFieldValue.text.toDoubleOrNull() ?: 0.0
             showSuccessDialog = true
-            // Clear form on success
             documentNumber = ""
             bankName = ""
-            amount = ""
+            amountTextFieldValue = TextFieldValue(text = "0.00", selection = TextRange(4))
             notes = ""
         }
     }
 
-    // Success Dialog
+    // Success Dialog (Elegant Style)
     if (showSuccessDialog) {
         AlertDialog(
             onDismissRequest = { showSuccessDialog = false },
             icon = {
-                Box(
-                    modifier = Modifier
-                        .size(64.dp)
-                        .clip(CircleShape)
-                        .background(Color(0xFF4CAF50).copy(alpha = 0.1f)),
-                    contentAlignment = Alignment.Center
+                Surface(
+                    modifier = Modifier.size(80.dp),
+                    shape = CircleShape,
+                    color = DesignConstants.SuccessColor.copy(alpha = 0.1f)
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.CheckCircle,
-                        contentDescription = null,
-                        tint = Color(0xFF4CAF50),
-                        modifier = Modifier.size(40.dp)
-                    )
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(Icons.Default.CheckCircle, null, tint = DesignConstants.SuccessColor, modifier = Modifier.size(48.dp))
+                    }
                 }
             },
             title = {
-                Text(
-                    text = "Pago Registrado",
-                    fontWeight = FontWeight.Bold,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.fillMaxWidth()
-                )
+                Text("¡Pago Reportado!", fontWeight = FontWeight.Black, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
             },
             text = {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(
-                        text = "Tu pago ha sido registrado exitosamente.",
-                        textAlign = TextAlign.Center,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Spacer(modifier = Modifier.height(12.dp))
-                    Surface(
-                        shape = RoundedCornerShape(12.dp),
-                        color = Color(0xFF4CAF50).copy(alpha = 0.1f)
-                    ) {
-                        Text(
-                            text = "$${String.format("%.2f", successAmount)}",
-                            fontWeight = FontWeight.Bold,
-                            color = Color(0xFF4CAF50),
-                            modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp),
-                            style = MaterialTheme.typography.titleLarge
-                        )
-                    }
+                Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
+                    Text("Se ha registrado tu pago por", textAlign = TextAlign.Center, style = MaterialTheme.typography.bodyMedium)
+                    Text("$${String.format(Locale.US, "%.2f", lastSuccessAmount)}", fontWeight = FontWeight.Black, color = DesignConstants.SuccessColor, style = MaterialTheme.typography.headlineMedium)
                     Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = "Esperando verificación del administrador",
-                        textAlign = TextAlign.Center,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        style = MaterialTheme.typography.bodySmall
-                    )
+                    Text("Pendiente de verificación administrativa.", textAlign = TextAlign.Center, style = MaterialTheme.typography.bodySmall)
                 }
             },
             confirmButton = {
                 Button(
                     onClick = { showSuccessDialog = false },
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFF4CAF50)
-                    ),
-                    shape = RoundedCornerShape(12.dp)
+                    modifier = Modifier.fillMaxWidth().height(50.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = DesignConstants.SuccessColor),
+                    shape = RoundedCornerShape(DesignConstants.BUTTON_CORNER_RADIUS)
                 ) {
-                    Text("Aceptar")
+                    Text("Entendido", fontWeight = FontWeight.Bold)
                 }
             },
-            containerColor = MaterialTheme.colorScheme.surface,
-            shape = RoundedCornerShape(24.dp)
+            containerColor = if (isDark) DesignConstants.SurfaceCardDark else Color.White,
+            shape = RoundedCornerShape(DesignConstants.CARD_CORNER_RADIUS)
         )
     }
 
     Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        text = "Pagos de Comisiones",
-                        color = MaterialTheme.colorScheme.surface,
-                        fontWeight = FontWeight.Bold
-                    )
-                },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = stringResource(R.string.back),
-                            tint = MaterialTheme.colorScheme.onSurface
-                        )
-                    }
-                },
-                actions = {
-                    IconButton(onClick = onRefresh) {
-                        Icon(
-                            imageVector = Icons.Default.Refresh,
-                            contentDescription = "Actualizar",
-                            tint = MaterialTheme.colorScheme.onSurface
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = primaryColor
-                )
-            )
-        }
+        containerColor = if (isDark) DesignConstants.BackgroundDark else DesignConstants.BackgroundLight,
+        snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { paddingValues ->
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            // Card de Comisiones Pendientes
-            item {
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .shadow(elevation = CARD_ELEVATION, shape = RoundedCornerShape(CARD_CORNER_RADIUS)),
-                    shape = RoundedCornerShape(CARD_CORNER_RADIUS),
-                    colors = CardDefaults.cardColors(containerColor = Color.Transparent)
+        Box(modifier = Modifier.fillMaxSize()) {
+            // Header con Gradiente
+            Box(
+                modifier = Modifier.fillMaxWidth().height(240.dp)
+                    .background(brush = Brush.verticalGradient(
+                        colors = if (isDark) listOf(DesignConstants.PrimaryDark.copy(alpha = 0.6f), Color.Transparent)
+                        else DesignConstants.GradientPrimary
+                    ))
+            )
+
+            Column(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
+                Spacer(modifier = Modifier.height(60.dp))
+
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(horizontal = DesignConstants.CARD_MARGIN_HORIZONTAL, vertical = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .background(brush = Brush.horizontalGradient(colors = GradientPrimary))
-                            .padding(24.dp)
-                    ) {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth(),
-                            horizontalAlignment = Alignment.CenterHorizontally
+                    // Resumen de Empresa y Deuda
+                    item {
+                        Surface(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(DesignConstants.CARD_CORNER_RADIUS),
+                            color = if (isDark) DesignConstants.SurfaceCardDark else Color.White,
+                            tonalElevation = 8.dp,
+                            shadowElevation = 12.dp
                         ) {
-                            Text(
-                                text = "Comisiones Pendientes",
-                                style = MaterialTheme.typography.titleMedium,
-                                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f)
-                            )
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Text(
-                                text = "$${String.format("%.2f", pendingAmount)}",
-                                style = MaterialTheme.typography.headlineLarge,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.surface
-                            )
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Text(
-                                text = companyName,
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.8f)
-                            )
-                        }
-                    }
-                }
-            }
-
-            // Card de Registrar Pago
-            item {
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .shadow(elevation = CARD_ELEVATION, shape = RoundedCornerShape(CARD_CORNER_RADIUS)),
-                    shape = RoundedCornerShape(CARD_CORNER_RADIUS),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(20.dp)
-                    ) {
-                        Text(
-                            text = "Registrar Transferencia",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = "Registra el pago de tus comisiones por transferencia bancaria",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-
-                        Spacer(modifier = Modifier.height(16.dp))
-
-                        // Número de Documento
-                        OutlinedTextField(
-                            value = documentNumber,
-                            onValueChange = { documentNumber = it },
-                            label = { Text("Número de Documento / Transferencia") },
-                            leadingIcon = {
-                                Icon(Icons.Default.Description, contentDescription = null)
-                            },
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(12.dp),
-                            singleLine = true
-                        )
-
-                        Spacer(modifier = Modifier.height(12.dp))
-
-                        // Banco
-                        OutlinedTextField(
-                            value = bankName,
-                            onValueChange = { bankName = it },
-                            label = { Text("Nombre del Banco") },
-                            leadingIcon = {
-                                Icon(Icons.Default.AccountBalance, contentDescription = null)
-                            },
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(12.dp),
-                            singleLine = true
-                        )
-
-                        Spacer(modifier = Modifier.height(12.dp))
-
-                        // Monto
-                        OutlinedTextField(
-                            value = amount,
-                            onValueChange = { amount = it },
-                            label = { Text("Monto ($)") },
-                            leadingIcon = {
-                                Icon(Icons.Default.AttachMoney, contentDescription = null)
-                            },
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(12.dp),
-                            singleLine = true,
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
-                        )
-
-                        Spacer(modifier = Modifier.height(12.dp))
-
-                        // Notas
-                        OutlinedTextField(
-                            value = notes,
-                            onValueChange = { notes = it },
-                            label = { Text("Notas (opcional)") },
-                            leadingIcon = {
-                                Icon(Icons.Default.Notes, contentDescription = null)
-                            },
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(12.dp),
-                            maxLines = 3
-                        )
-
-                        Spacer(modifier = Modifier.height(20.dp))
-
-                        // Botón Registrar
-                        Button(
-                            onClick = {
-                                val amountValue = amount.toDoubleOrNull() ?: 0.0
-                                if (documentNumber.isNotBlank() && bankName.isNotBlank() && amountValue > 0) {
-                                    onRegisterPayment(
-                                        documentNumber,
-                                        bankName,
-                                        amountValue,
-                                        notes.ifBlank { null }
-                                    )
+                            Row(modifier = Modifier.padding(24.dp), verticalAlignment = Alignment.CenterVertically) {
+                                Surface(modifier = Modifier.size(56.dp), shape = CircleShape, color = DesignConstants.PrimaryColor.copy(alpha = 0.1f)) {
+                                    Box(contentAlignment = Alignment.Center) { Icon(Icons.Default.Business, null, tint = DesignConstants.PrimaryColor) }
                                 }
-                            },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(56.dp),
-                            shape = RoundedCornerShape(12.dp),
-                            enabled = !isRegistering && documentNumber.isNotBlank() &&
-                                    bankName.isNotBlank() && amount.toDoubleOrNull() != null &&
-                                    (amount.toDoubleOrNull() ?: 0.0) > 0
-                        ) {
-                            if (isRegistering) {
-                                CircularProgressIndicator(
-                                    modifier = Modifier.size(24.dp),
-                                    color = MaterialTheme.colorScheme.surface,
-                                    strokeWidth = 2.dp
-                                )
-                            } else {
-                                Icon(
-                                    imageVector = Icons.Default.Send,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(20.dp)
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text(
-                                    text = "Registrar Pago",
-                                    style = MaterialTheme.typography.titleSmall,
-                                    fontWeight = FontWeight.Bold
-                                )
+                                Spacer(modifier = Modifier.width(16.dp))
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(companyName, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                    Text("Deuda de Comisiones", style = MaterialTheme.typography.labelSmall, color = DesignConstants.TextSecondary)
+                                }
+                                Column(horizontalAlignment = Alignment.End) {
+                                    Text("$${String.format(Locale.US, "%.2f", pendingAmount)}", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Black, color = DesignConstants.ErrorColor)
+                                }
                             }
                         }
                     }
-                }
-            }
 
-            // Card de Historial de Pagos
-            item {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(CARD_CORNER_RADIUS),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(20.dp)
-                    ) {
-                        Text(
-                            text = "Historial de Pagos",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = "Todos los pagos registrados",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+                    // Formulario Estilo Bancario
+                    item {
+                        ElegantSectionHeader("Reportar Pago Realizado", isDark)
                     }
-                }
-            }
 
-            // Lista de pagos
-            if (isLoading) {
-                item {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(32.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        CircularProgressIndicator()
-                    }
-                }
-            } else if (payments.isEmpty()) {
-                item {
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(CARD_CORNER_RADIUS),
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-                        )
-                    ) {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(32.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Receipt,
-                                contentDescription = null,
-                                modifier = Modifier.size(48.dp),
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            Spacer(modifier = Modifier.height(12.dp))
-                            Text(
-                                text = "No hay pagos registrados",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                textAlign = TextAlign.Center
-                            )
+                    if (pendingAmount <= 0.0) {
+                        item {
+                            Surface(
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(DesignConstants.CARD_CORNER_RADIUS),
+                                color = if (isDark) DesignConstants.SurfaceCardDark else Color.White,
+                                tonalElevation = 4.dp
+                            ) {
+                                Column(modifier = Modifier.padding(32.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                                    Icon(Icons.Default.CheckCircle, null, modifier = Modifier.size(48.dp), tint = DesignConstants.SuccessColor)
+                                    Spacer(modifier = Modifier.height(16.dp))
+                                    Text("Sin comisiones pendientes", fontWeight = FontWeight.Black, style = MaterialTheme.typography.titleMedium, textAlign = TextAlign.Center)
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    Text("Esta empresa no tiene deuda de comisiones por el momento.", style = MaterialTheme.typography.bodySmall, color = DesignConstants.TextSecondary, textAlign = TextAlign.Center)
+                                }
+                            }
+                        }
+                    } else {
+                        item {
+                            Surface(
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(DesignConstants.CARD_CORNER_RADIUS),
+                                color = if (isDark) DesignConstants.SurfaceCardDark else Color.White,
+                                tonalElevation = 4.dp
+                            ) {
+                                Column(modifier = Modifier.padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                                    // Campo de Monto Protagonista
+                                    Text("Monto Transferido", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, color = DesignConstants.TextSecondary)
+                                    OutlinedTextField(
+                                        value = amountTextFieldValue,
+                                        onValueChange = onAmountChanged,
+                                        textStyle = MaterialTheme.typography.displayMedium.copy(textAlign = TextAlign.Center, fontWeight = FontWeight.Black, color = DesignConstants.PrimaryColor),
+                                        modifier = Modifier.fillMaxWidth(),
+                                        prefix = { Text("$", style = MaterialTheme.typography.displaySmall, fontWeight = FontWeight.Bold, color = DesignConstants.PrimaryColor) },
+                                        colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = Color.Transparent, unfocusedBorderColor = Color.Transparent, cursorColor = DesignConstants.PrimaryColor),
+                                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                                    )
+                                    Box(modifier = Modifier.width(180.dp).height(2.dp).background(DesignConstants.PrimaryColor.copy(alpha = 0.2f)))
+
+                                    val finalAmount = amountTextFieldValue.text.toDoubleOrNull() ?: 0.0
+                                    if (finalAmount > pendingAmount) {
+                                        Spacer(modifier = Modifier.height(8.dp))
+                                        Text(
+                                            "El monto no puede superar $${String.format(Locale.US, "%.2f", pendingAmount)}",
+                                            color = DesignConstants.ErrorColor,
+                                            style = MaterialTheme.typography.labelSmall,
+                                            textAlign = TextAlign.Center
+                                        )
+                                    }
+
+                                    Spacer(modifier = Modifier.height(32.dp))
+
+                                    // Otros campos
+                                    ElegantTextField(value = documentNumber, onValueChange = { documentNumber = it }, label = "Nº de Comprobante", icon = Icons.Default.Description, isDark = isDark)
+                                    Spacer(modifier = Modifier.height(16.dp))
+                                    ElegantTextField(value = bankName, onValueChange = { bankName = it }, label = "Banco / Método de Pago", icon = Icons.Default.AccountBalance, isDark = isDark)
+                                    Spacer(modifier = Modifier.height(16.dp))
+                                    ElegantTextField(value = notes, onValueChange = { notes = it }, label = "Notas adicionales", icon = Icons.AutoMirrored.Filled.Notes, isDark = isDark)
+
+                                    Spacer(modifier = Modifier.height(32.dp))
+
+                                    val canSubmit = !isRegistering && documentNumber.isNotBlank() && bankName.isNotBlank() && finalAmount > 0 && finalAmount <= pendingAmount
+
+                                    Button(
+                                        onClick = { onRegisterPayment(documentNumber, bankName, finalAmount, notes.ifBlank { null }) },
+                                        modifier = Modifier.fillMaxWidth().height(56.dp),
+                                        shape = RoundedCornerShape(DesignConstants.BUTTON_CORNER_RADIUS),
+                                        colors = ButtonDefaults.buttonColors(containerColor = DesignConstants.PrimaryColor),
+                                        enabled = canSubmit
+                                    ) {
+                                        if (isRegistering) CircularProgressIndicator(modifier = Modifier.size(24.dp), color = Color.White, strokeWidth = 2.dp)
+                                        else {
+                                            Icon(Icons.AutoMirrored.Filled.Send, null, modifier = Modifier.size(18.dp))
+                                            Spacer(modifier = Modifier.width(12.dp))
+                                            Text("ENVIAR REPORTE", fontWeight = FontWeight.Black, style = MaterialTheme.typography.titleMedium)
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
+
+                    // Historial
+                    item { ElegantSectionHeader("Historial Reciente", isDark) }
+
+                    if (isLoading) {
+                        item { Box(modifier = Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) { CircularProgressIndicator(color = DesignConstants.PrimaryColor) } }
+                    } else if (payments.isEmpty()) {
+                        item {
+                            Surface(
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(DesignConstants.CARD_CORNER_RADIUS),
+                                color = if (isDark) DesignConstants.SurfaceCardDark.copy(alpha = 0.5f) else Color.White.copy(alpha = 0.5f)
+                            ) {
+                                Column(modifier = Modifier.padding(40.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                                    Icon(Icons.AutoMirrored.Filled.ReceiptLong, null, modifier = Modifier.size(48.dp), tint = DesignConstants.TextSecondary.copy(alpha = 0.5f))
+                                    Spacer(modifier = Modifier.height(16.dp))
+                                    Text("Sin pagos registrados", color = DesignConstants.TextSecondary)
+                                }
+                            }
+                        }
+                    } else {
+                        items(payments) { payment ->
+                            ElegantPaymentItem(payment = payment, isDark = isDark)
+                        }
+                    }
+                    item { Spacer(modifier = Modifier.height(80.dp)) }
                 }
-            } else {
-                items(payments) { payment ->
-                    PaymentItem(payment = payment)
+            }
+
+            // Top Bar Flotante (Glass Style)
+            Row(
+                modifier = Modifier.fillMaxWidth().statusBarsPadding().padding(horizontal = 16.dp, vertical = 8.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Surface(modifier = Modifier.size(40.dp), shape = CircleShape, color = Color.Black.copy(alpha = 0.3f), onClick = onBack) {
+                    Box(contentAlignment = Alignment.Center) { Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = Color.White, modifier = Modifier.size(20.dp)) }
+                }
+                Text("Pago de Comisiones", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Black, color = Color.White)
+                Surface(modifier = Modifier.size(40.dp), shape = CircleShape, color = Color.Black.copy(alpha = 0.3f), onClick = onRefresh) {
+                    Box(contentAlignment = Alignment.Center) { Icon(Icons.Default.Refresh, null, tint = Color.White, modifier = Modifier.size(20.dp)) }
                 }
             }
         }
@@ -458,99 +322,73 @@ fun CompanyPaymentsScreen(
 }
 
 @Composable
-private fun PaymentItem(payment: CompanyPayment) {
-    val statusColor = when (payment.status) {
-        "verified" -> Color(0xFF4CAF50)
-        "rejected" -> Color(0xFFF44336)
-        else -> Color(0xFFFF9800)
-    }
+private fun ElegantSectionHeader(title: String, isDark: Boolean) {
+    Text(
+        text = title,
+        style = MaterialTheme.typography.titleSmall,
+        fontWeight = FontWeight.Black,
+        color = if (isDark) Color.White else DesignConstants.TextPrimary,
+        modifier = Modifier.padding(top = 8.dp, bottom = 4.dp)
+    )
+}
 
-    val statusIcon = when (payment.status) {
-        "verified" -> Icons.Default.CheckCircle
-        "rejected" -> Icons.Default.Cancel
-        else -> Icons.Default.Pending
-    }
-
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .shadow(elevation = 2.dp, shape = RoundedCornerShape(16.dp)),
+@Composable
+private fun ElegantTextField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    label: String,
+    icon: ImageVector,
+    isDark: Boolean
+) {
+    OutlinedTextField(
+        value = value,
+        onValueChange = onValueChange,
+        label = { Text(label) },
+        leadingIcon = { Icon(icon, null, tint = DesignConstants.PrimaryColor, modifier = Modifier.size(20.dp)) },
+        modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+        singleLine = true,
+        colors = OutlinedTextFieldDefaults.colors(
+            focusedBorderColor = DesignConstants.PrimaryColor,
+            unfocusedBorderColor = if (isDark) Color.White.copy(alpha = 0.1f) else Color.Black.copy(alpha = 0.1f),
+            focusedLabelColor = DesignConstants.PrimaryColor
+        )
+    )
+}
+
+@Composable
+private fun ElegantPaymentItem(payment: CompanyPayment, isDark: Boolean) {
+    val statusColor = when (payment.status) {
+        "verified" -> DesignConstants.SuccessColor
+        "rejected" -> DesignConstants.ErrorColor
+        else -> DesignConstants.WarningColor
+    }
+
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        color = if (isDark) DesignConstants.SurfaceCardDark else Color.White,
+        tonalElevation = 2.dp,
+        shadowElevation = 2.dp
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            // Icono de estado
-            Box(
-                modifier = Modifier
-                    .size(48.dp)
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(statusColor.copy(alpha = 0.15f)),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = statusIcon,
-                    contentDescription = null,
-                    tint = statusColor,
-                    modifier = Modifier.size(24.dp)
-                )
+        Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+            Surface(modifier = Modifier.size(48.dp), shape = RoundedCornerShape(14.dp), color = statusColor.copy(alpha = 0.1f)) {
+                Box(contentAlignment = Alignment.Center) { Icon(if (payment.status == "verified") Icons.Default.CheckCircle else Icons.Default.AccessTime, null, tint = statusColor, modifier = Modifier.size(24.dp)) }
             }
-
-            Spacer(modifier = Modifier.width(12.dp))
-
-            // Información del pago
+            Spacer(modifier = Modifier.width(16.dp))
             Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = "$${String.format("%.2f", payment.amount)}",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = "${payment.bankName} - Doc: ${payment.documentNumber}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Spacer(modifier = Modifier.height(2.dp))
-                Text(
-                    text = payment.createdAt?.let { parseDate(it) } ?: "Sin fecha",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
-                )
+                Text("$${String.format(Locale.US, "%.2f", payment.amount)}", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Black, color = if (isDark) DesignConstants.TextPrimaryDark else DesignConstants.TextPrimary)
+                Text("${payment.bankName} • ${payment.documentNumber}", style = MaterialTheme.typography.bodySmall, color = DesignConstants.TextSecondary, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
-
-            // Badge de estado
-            Surface(
-                shape = RoundedCornerShape(8.dp),
-                color = statusColor.copy(alpha = 0.1f)
-            ) {
+            Surface(shape = RoundedCornerShape(8.dp), color = statusColor.copy(alpha = 0.15f)) {
                 Text(
-                    text = when (payment.status) {
-                        "verified" -> "Verificado"
-                        "rejected" -> "Rechazado"
-                        else -> "Pendiente"
-                    },
-                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                    text = when (payment.status) { "verified" -> "Verificado"; "rejected" -> "Rechazado"; else -> "Pendiente" },
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                     style = MaterialTheme.typography.labelSmall,
-                    fontWeight = FontWeight.Bold,
+                    fontWeight = FontWeight.Black,
                     color = statusColor
                 )
             }
         }
-    }
-}
-
-private fun parseDate(dateString: String): String {
-    return try {
-        val inputFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.getDefault())
-        val outputFormat = SimpleDateFormat("dd MMM yyyy, HH:mm", Locale("es", "ES"))
-        val date = inputFormat.parse(dateString)
-        date?.let { outputFormat.format(it) } ?: dateString
-    } catch (e: Exception) {
-        dateString
     }
 }

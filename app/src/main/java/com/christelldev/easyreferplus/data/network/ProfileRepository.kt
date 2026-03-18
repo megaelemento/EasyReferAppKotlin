@@ -10,6 +10,10 @@ import com.christelldev.easyreferplus.data.model.VerifyPhoneRequest
 import com.christelldev.easyreferplus.data.model.VerifyPhoneResponse
 import com.christelldev.easyreferplus.data.network.RegisterApiService
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.MultipartBody
+import okhttp3.RequestBody.Companion.asRequestBody
+import okhttp3.RequestBody.Companion.toRequestBody
+import java.io.File
 
 sealed class ProfileResult {
     data class Success(val profile: UserProfile) : ProfileResult()
@@ -232,9 +236,8 @@ class ProfileRepository(
     suspend fun uploadSelfie(authorization: String, imagePath: String): SelfieResult {
         return try {
             val file = java.io.File(imagePath)
-            val requestFile = okhttp3.RequestBody.create(
-                "image/*".toMediaTypeOrNull(),
-                file
+            val requestFile = file.asRequestBody(
+                "image/*".toMediaTypeOrNull()
             )
             val body = okhttp3.MultipartBody.Part.createFormData("selfie", file.name, requestFile)
 

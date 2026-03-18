@@ -3,55 +3,28 @@ package com.christelldev.easyreferplus.ui.screens.referrals
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
+import android.content.Intent
 import android.widget.Toast
-import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
-import androidx.compose.foundation.combinedClickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.imePadding
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBars
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
@@ -59,18 +32,10 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.christelldev.easyreferplus.R
-import com.christelldev.easyreferplus.ui.theme.AppBlue
+import com.christelldev.easyreferplus.ui.theme.DesignConstants
 import com.christelldev.easyreferplus.ui.viewmodel.ReferralViewModel
-
-// Constantes de diseño elegante
-private val CARD_CORNER_RADIUS = 20.dp
-private val CARD_ELEVATION = 8.dp
-private val CARD_MARGIN_HORIZONTAL = 16.dp
-private val GradientPrimary = listOf(Color(0xFF03A9F4), Color(0xFF2196F3))
-private val GradientSuccess = listOf(Color(0xFF10B981), Color(0xFF34D399))
-private val GradientOrange = listOf(Color(0xFFF59E0B), Color(0xFFFBBF24))
-private val GradientPurple = listOf(Color(0xFF8B5CF6), Color(0xFFA78BFA))
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -81,477 +46,342 @@ fun ReferralScreen(
     val context = LocalContext.current
     val uiState by viewModel.uiState.collectAsState()
     val scrollState = rememberScrollState()
+    val snackbarHostState = remember { SnackbarHostState() }
 
-    // Inicializar WebSocket y conectar (en orden garantizado)
     LaunchedEffect(Unit) {
         viewModel.initWebSocketManager(context)
         viewModel.connectWebSocket()
     }
 
-    // Desconectar al salir de la pantalla
     DisposableEffect(Unit) {
-        onDispose {
-            viewModel.disconnectWebSocket()
-        }
+        onDispose { viewModel.disconnectWebSocket() }
     }
 
     fun copyToClipboard(text: String) {
         val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-        val clip = ClipData.newPlainText("Referral Code", text)
-        clipboard.setPrimaryClip(clip)
-        Toast.makeText(context, context.getString(R.string.code_copied), Toast.LENGTH_SHORT).show()
+        clipboard.setPrimaryClip(ClipData.newPlainText("Code", text))
+        Toast.makeText(context, "Código copiado", Toast.LENGTH_SHORT).show()
     }
 
-    val snackbarHostState = androidx.compose.runtime.remember { androidx.compose.material3.SnackbarHostState() }
-
-    // Mostrar errores
-    LaunchedEffect(uiState.errorMessage) {
-        uiState.errorMessage?.let { error ->
-            snackbarHostState.showSnackbar(error)
-            viewModel.clearError()
+    fun shareCode(text: String) {
+        val intent = Intent(Intent.ACTION_SEND).apply {
+            type = "text/plain"
+            putExtra(Intent.EXTRA_TEXT, "Únete a mi red en EasyRefer+ con el código: $text")
         }
+        context.startActivity(Intent.createChooser(intent, "Compartir código"))
     }
 
     Scaffold(
-        snackbarHost = { androidx.compose.material3.SnackbarHost(snackbarHostState) },
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        text = stringResource(R.string.my_referrals_title),
-                        color = MaterialTheme.colorScheme.surface,
-                        fontWeight = FontWeight.Bold
-                    )
-                },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(
-                            imageVector = Icons.Default.ArrowBack,
-                            contentDescription = stringResource(R.string.back),
-                            tint = MaterialTheme.colorScheme.onSurface
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = AppBlue
-                ),
-                modifier = Modifier.windowInsetsPadding(WindowInsets.statusBars)
-            )
-        }
+        snackbarHost = { SnackbarHost(snackbarHostState) },
+        containerColor = MaterialTheme.colorScheme.background
     ) { paddingValues ->
-        if (uiState.isLoading) {
+        Box(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
+            // Gradiente superior sutil
             Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues),
-                contentAlignment = Alignment.Center
-            ) {
-                CircularProgressIndicator(color = AppBlue)
-            }
-        } else {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues)
-                    .verticalScroll(scrollState)
-                    .imePadding()
-                    .padding(16.dp)
-            ) {
-                // Tu código de referido
-                YourReferralCodeCard(
-                    code = uiState.userReferralCode,
-                    onCopy = { copyToClipboard(uiState.userReferralCode) }
+                modifier = Modifier.fillMaxWidth().height(200.dp)
+                    .background(Brush.verticalGradient(listOf(MaterialTheme.colorScheme.primary.copy(alpha = 0.8f), Color.Transparent)))
+            )
+
+            Column(modifier = Modifier.fillMaxSize()) {
+                // Cabecera Premium
+                TopAppBar(
+                    title = {
+                        Text(
+                            text = stringResource(R.string.my_referrals_title),
+                            fontWeight = FontWeight.ExtraBold,
+                            color = if (isSystemInDarkTheme()) MaterialTheme.colorScheme.onBackground else Color.White
+                        )
+                    },
+                    navigationIcon = {
+                        IconButton(onClick = onBack) {
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = if (isSystemInDarkTheme()) MaterialTheme.colorScheme.onBackground else Color.White)
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
                 )
 
-                Spacer(modifier = Modifier.height(20.dp))
-
-                // Estadísticas
-                StatsSection(
-                    level1Count = uiState.level1Count,
-                    level2Count = uiState.level2Count,
-                    level3Count = uiState.level3Count,
-                    totalCount = uiState.totalCount
-                )
-
-                Spacer(modifier = Modifier.height(20.dp))
-
-                // Buscar referido
-                SearchReferralSection(
-                    searchCode = uiState.searchCode,
-                    isSearching = uiState.isSearching,
-                    searchResult = uiState.searchResult,
-                    onSearchCodeChange = viewModel::updateSearchCode,
-                    onSearch = viewModel::searchReferral,
-                    onClearResult = viewModel::clearSearchResult
-                )
-
-                Spacer(modifier = Modifier.height(20.dp))
-
-                // Árbol de referidos por nivel
-                if (uiState.totalCount > 0) {
-                    ReferralTreeSection(
-                        level1Codes = uiState.level1Codes,
-                        level2Codes = uiState.level2Codes,
-                        level3Codes = uiState.level3Codes,
-                        onCopyCode = { copyToClipboard(it) }
-                    )
-                } else {
-                    EmptyReferralsMessage()
-                }
-            }
-        }
-    }
-}
-
-@OptIn(ExperimentalFoundationApi::class)
-@Composable
-fun YourReferralCodeCard(
-    code: String,
-    onCopy: () -> Unit
-) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = CARD_MARGIN_HORIZONTAL)
-            .shadow(elevation = CARD_ELEVATION, shape = RoundedCornerShape(CARD_CORNER_RADIUS)),
-        shape = RoundedCornerShape(CARD_CORNER_RADIUS),
-        colors = CardDefaults.cardColors(containerColor = Color.Transparent)
-    ) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(brush = Brush.horizontalGradient(colors = GradientPrimary))
-                .combinedClickable(
-                    onClick = { },
-                    onLongClick = { onCopy() }
-                )
-                .padding(24.dp)
-        ) {
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Text(
-                    text = stringResource(R.string.your_code),
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f)
-                )
-                Spacer(modifier = Modifier.height(12.dp))
-                Row(
-                    verticalAlignment = Alignment.CenterVertically
+                Column(
+                    modifier = Modifier.fillMaxSize().padding(horizontal = 24.dp).verticalScroll(scrollState).imePadding()
                 ) {
-                    Text(
-                        text = code,
-                        style = MaterialTheme.typography.headlineMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.surface
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    // Tarjeta de Código Central
+                    YourReferralCodeCard(
+                        code = uiState.userReferralCode,
+                        onCopy = { copyToClipboard(uiState.userReferralCode) },
+                        onShare = { shareCode(uiState.userReferralCode) }
                     )
+
+                    Spacer(modifier = Modifier.height(24.dp))
+
+                    // Dashboard de Estadísticas
+                    StatsDashboard(
+                        level1 = uiState.level1Count,
+                        level2 = uiState.level2Count,
+                        level3 = uiState.level3Count,
+                        total = uiState.totalCount
+                    )
+
+                    Spacer(modifier = Modifier.height(24.dp))
+
+                    // Buscador Integrado
+                    SearchSection(
+                        searchCode = uiState.searchCode,
+                        isSearching = uiState.isSearching,
+                        searchResult = uiState.searchResult,
+                        onSearchChange = viewModel::updateSearchCode,
+                        onSearch = viewModel::searchReferral
+                    )
+
+                    Spacer(modifier = Modifier.height(24.dp))
+
+                    // Árbol de Red Moderno
+                    if (uiState.totalCount > 0) {
+                        Text(
+                            text = "Estructura de Red",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.ExtraBold,
+                            modifier = Modifier.padding(bottom = 16.dp)
+                        )
+                        
+                        ReferralLevelList(
+                            title = "Nivel 1 (Directos)",
+                            codes = uiState.level1Codes,
+                            color = Color(0xFF10B981),
+                            onCopy = { copyToClipboard(it) }
+                        )
+                        Spacer(modifier = Modifier.height(12.dp))
+                        ReferralLevelList(
+                            title = "Nivel 2",
+                            codes = uiState.level2Codes,
+                            color = Color(0xFFF59E0B),
+                            onCopy = { copyToClipboard(it) }
+                        )
+                        Spacer(modifier = Modifier.height(12.dp))
+                        ReferralLevelList(
+                            title = "Nivel 3",
+                            codes = uiState.level3Codes,
+                            color = Color(0xFF8B5CF6),
+                            onCopy = { copyToClipboard(it) }
+                        )
+                    } else {
+                        EmptyReferralState()
+                    }
+                    
+                    Spacer(modifier = Modifier.height(32.dp))
                 }
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = stringResource(R.string.copy_code),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.7f)
-                )
             }
         }
     }
 }
 
 @Composable
-fun StatsSection(
-    level1Count: Int,
-    level2Count: Int,
-    level3Count: Int,
-    totalCount: Int
-) {
-    Row(
+fun YourReferralCodeCard(code: String, onCopy: () -> Unit, onShare: () -> Unit) {
+    Surface(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
+        shape = RoundedCornerShape(24.dp),
+        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f),
+        tonalElevation = 2.dp
     ) {
-        StatItem(
-            count = level1Count,
-            label = stringResource(R.string.level_1),
-            modifier = Modifier.weight(1f)
-        )
-        StatItem(
-            count = level2Count,
-            label = stringResource(R.string.level_2),
-            modifier = Modifier.weight(1f)
-        )
-        StatItem(
-            count = level3Count,
-            label = stringResource(R.string.level_3),
-            modifier = Modifier.weight(1f)
-        )
-        StatItem(
-            count = totalCount,
-            label = stringResource(R.string.total_referrals),
-            modifier = Modifier.weight(1f)
-        )
-    }
-}
-
-@Composable
-fun StatItem(
-    count: Int,
-    label: String,
-    modifier: Modifier = Modifier
-) {
-    val gradient = when (label) {
-        stringResource(R.string.level_1) -> GradientSuccess
-        stringResource(R.string.level_2) -> GradientOrange
-        stringResource(R.string.level_3) -> GradientPurple
-        else -> GradientPrimary
-    }
-
-    Card(
-        modifier = modifier
-            .shadow(elevation = 2.dp, shape = RoundedCornerShape(16.dp)),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.Transparent)
-    ) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(brush = Brush.linearGradient(colors = gradient))
-                .padding(16.dp),
-            contentAlignment = Alignment.Center
-        ) {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally
+        Column(modifier = Modifier.padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+            Text("Tu Código de Invitación", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+            Spacer(modifier = Modifier.height(16.dp))
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
+                color = MaterialTheme.colorScheme.surface,
+                tonalElevation = 4.dp
             ) {
                 Text(
-                    text = count.toString(),
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.surface
+                    text = code.ifBlank { "---" },
+                    modifier = Modifier.padding(16.dp),
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.Black,
+                    color = MaterialTheme.colorScheme.primary,
+                    textAlign = TextAlign.Center,
+                    letterSpacing = 4.sp
                 )
-                Text(
-                    text = label,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.85f),
-                    textAlign = TextAlign.Center
-                )
+            }
+            Spacer(modifier = Modifier.height(20.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                Button(
+                    onClick = onCopy,
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f), contentColor = MaterialTheme.colorScheme.primary)
+                ) {
+                    Icon(Icons.Default.ContentCopy, null, modifier = Modifier.size(18.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Copiar", fontWeight = FontWeight.Bold)
+                }
+                Button(
+                    onClick = onShare,
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                ) {
+                    Icon(Icons.Default.Share, null, modifier = Modifier.size(18.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Compartir", fontWeight = FontWeight.Bold)
+                }
             }
         }
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SearchReferralSection(
+fun StatsDashboard(level1: Int, level2: Int, level3: Int, total: Int) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        color = MaterialTheme.colorScheme.surface,
+        tonalElevation = 2.dp,
+        shadowElevation = 4.dp
+    ) {
+        Column(modifier = Modifier.padding(20.dp)) {
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                Text("Resumen de Red", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold)
+                Surface(color = MaterialTheme.colorScheme.primary, shape = CircleShape) {
+                    Text("$total Total", modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp), color = Color.White, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+                }
+            }
+            Spacer(modifier = Modifier.height(20.dp))
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                StatCard("L1", level1, Color(0xFF10B981), Modifier.weight(1f))
+                StatCard("L2", level2, Color(0xFFF59E0B), Modifier.weight(1f))
+                StatCard("L3", level3, Color(0xFF8B5CF6), Modifier.weight(1f))
+            }
+        }
+    }
+}
+
+@Composable
+fun StatCard(label: String, value: Int, color: Color, modifier: Modifier = Modifier) {
+    Surface(
+        modifier = modifier.height(80.dp),
+        shape = RoundedCornerShape(16.dp),
+        color = color.copy(alpha = 0.1f),
+        border = androidx.compose.foundation.BorderStroke(1.dp, color.copy(alpha = 0.2f))
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+            Text(text = value.toString(), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Black, color = color)
+            Text(text = label, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = color.copy(alpha = 0.8f))
+        }
+    }
+}
+
+@Composable
+fun SearchSection(
     searchCode: String,
     isSearching: Boolean,
     searchResult: com.christelldev.easyreferplus.ui.viewmodel.SearchResult?,
-    onSearchCodeChange: (String) -> Unit,
-    onSearch: () -> Unit,
-    onClearResult: () -> Unit
+    onSearchChange: (String) -> Unit,
+    onSearch: () -> Unit
 ) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = CARD_MARGIN_HORIZONTAL)
-            .shadow(elevation = CARD_ELEVATION, shape = RoundedCornerShape(CARD_CORNER_RADIUS)),
-        shape = RoundedCornerShape(CARD_CORNER_RADIUS),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        color = MaterialTheme.colorScheme.surface,
+        tonalElevation = 1.dp
     ) {
-        Column(
-            modifier = Modifier.padding(20.dp)
-        ) {
-            Text(
-                text = stringResource(R.string.search_referral),
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = AppBlue
-            )
-            Spacer(modifier = Modifier.height(12.dp))
-
-            Row(
+        Column(modifier = Modifier.padding(16.dp)) {
+            OutlinedTextField(
+                value = searchCode,
+                onValueChange = onSearchChange,
+                placeholder = { Text("Buscar código en mi red...") },
                 modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                OutlinedTextField(
-                    value = searchCode,
-                    onValueChange = {
-                        onSearchCodeChange(it)
-                        onClearResult()
-                    },
-                    placeholder = { Text(stringResource(R.string.search_referral_hint)) },
-                    modifier = Modifier.weight(1f),
-                    singleLine = true,
-                    shape = RoundedCornerShape(12.dp),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = AppBlue,
-                        unfocusedBorderColor = MaterialTheme.colorScheme.outline
-                    )
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                IconButton(
-                    onClick = onSearch,
-                    enabled = !isSearching && searchCode.isNotBlank(),
-                    modifier = Modifier
-                        .size(56.dp)
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(AppBlue)
+                leadingIcon = { Icon(Icons.Default.Search, null, tint = MaterialTheme.colorScheme.primary) },
+                trailingIcon = {
+                    if (searchCode.isNotBlank()) {
+                        IconButton(onClick = onSearch) {
+                            if (isSearching) CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+                            else Icon(Icons.AutoMirrored.Filled.ArrowForward, null, tint = MaterialTheme.colorScheme.primary)
+                        }
+                    }
+                },
+                shape = RoundedCornerShape(16.dp),
+                colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = MaterialTheme.colorScheme.primary),
+                singleLine = true
+            )
+            
+            searchResult?.let { result ->
+                Spacer(modifier = Modifier.height(12.dp))
+                Surface(
+                    color = if (result.found) Color(0xFF10B981).copy(alpha = 0.1f) else MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.2f),
+                    shape = RoundedCornerShape(12.dp)
                 ) {
-                    if (isSearching) {
-                        CircularProgressIndicator(
-                            color = MaterialTheme.colorScheme.surface,
-                            modifier = Modifier.size(24.dp)
-                        )
-                    } else {
+                    Row(modifier = Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
                         Icon(
-                            imageVector = Icons.Default.Search,
-                            contentDescription = stringResource(R.string.search_button),
-                            tint = MaterialTheme.colorScheme.onSurface
+                            if (result.found) Icons.Default.CheckCircle else Icons.Default.Error, 
+                            null, 
+                            tint = if (result.found) Color(0xFF10B981) else MaterialTheme.colorScheme.error,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Text(
+                            if (result.found) "Código encontrado en Nivel ${result.level}" else "Código no encontrado en tu red",
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = if (result.found) Color(0xFF10B981) else MaterialTheme.colorScheme.error
                         )
                     }
                 }
             }
-
-            // Resultado de búsqueda
-            searchResult?.let { result ->
-                Spacer(modifier = Modifier.height(12.dp))
-                val (backgroundColor, textColor, message) = if (result.found) {
-                    Triple(
-                        Color(0xFFC8E6C9),
-                        Color(0xFF2E7D32),
-                        stringResource(R.string.code_found, result.level ?: 0)
-                    )
-                } else {
-                    Triple(
-                        Color(0xFFFFCDD2),
-                        Color(0xFFC62828),
-                        stringResource(R.string.code_not_found)
-                    )
-                }
-
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(backgroundColor)
-                        .padding(12.dp)
-                ) {
-                    Text(
-                        text = message,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = textColor,
-                        fontWeight = FontWeight.Medium
-                    )
-                }
-            }
         }
     }
 }
 
 @Composable
-fun ReferralTreeSection(
-    level1Codes: List<String>,
-    level2Codes: List<String>,
-    level3Codes: List<String>,
-    onCopyCode: (String) -> Unit
-) {
-    Column(modifier = Modifier.fillMaxWidth()) {
-        Text(
-            text = stringResource(R.string.referral_tree),
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold
-        )
-        Spacer(modifier = Modifier.height(12.dp))
-
-        if (level1Codes.isNotEmpty()) {
-            ReferralLevelCard(
-                level = stringResource(R.string.level_1),
-                codes = level1Codes,
-                onCopyCode = onCopyCode
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-        }
-
-        if (level2Codes.isNotEmpty()) {
-            ReferralLevelCard(
-                level = stringResource(R.string.level_2),
-                codes = level2Codes,
-                onCopyCode = onCopyCode
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-        }
-
-        if (level3Codes.isNotEmpty()) {
-            ReferralLevelCard(
-                level = stringResource(R.string.level_3),
-                codes = level3Codes,
-                onCopyCode = onCopyCode
-            )
-        }
-    }
-}
-
-@OptIn(ExperimentalFoundationApi::class)
-@Composable
-fun ReferralLevelCard(
-    level: String,
-    codes: List<String>,
-    onCopyCode: (String) -> Unit
-) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .shadow(elevation = 2.dp, shape = RoundedCornerShape(16.dp)),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+fun ReferralLevelList(title: String, codes: List<String>, color: Color, onCopy: (String) -> Unit) {
+    if (codes.isEmpty()) return
+    
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        color = MaterialTheme.colorScheme.surface,
+        tonalElevation = 2.dp
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Text(
-                text = "$level (${codes.size})",
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.Bold,
-                color = AppBlue
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            codes.forEach { code ->
-                Text(
-                    text = code,
-                    style = MaterialTheme.typography.bodyMedium,
-                    modifier = Modifier
-                        .padding(vertical = 4.dp)
-                        .combinedClickable(
-                            onClick = { },
-                            onLongClick = { onCopyCode(code) }
-                        )
-                )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(modifier = Modifier.size(8.dp).background(color, CircleShape))
+                Spacer(modifier = Modifier.width(12.dp))
+                Text(title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.ExtraBold)
+                Spacer(modifier = Modifier.weight(1f))
+                Text("${codes.size} usuarios", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            Spacer(modifier = Modifier.height(16.dp))
+            codes.forEachIndexed { index, code ->
+                Row(
+                    modifier = Modifier.fillMaxWidth().clickable { onCopy(code) }.padding(vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Surface(modifier = Modifier.size(36.dp), shape = CircleShape, color = color.copy(alpha = 0.1f)) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Text(code.take(1).uppercase(), fontWeight = FontWeight.Bold, color = color)
+                        }
+                    }
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Text(code, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+                    Spacer(modifier = Modifier.weight(1f))
+                    Icon(Icons.Default.ContentCopy, null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f))
+                }
+                if (index < codes.size - 1) HorizontalDivider(modifier = Modifier.padding(start = 48.dp), color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f))
             }
         }
     }
 }
 
 @Composable
-fun EmptyReferralsMessage() {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        shape = RoundedCornerShape(12.dp)
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(32.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Text(
-                text = stringResource(R.string.no_referrals),
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = stringResource(R.string.invite_friends_subtitle),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = TextAlign.Center
-            )
-        }
+fun EmptyReferralState() {
+    Column(modifier = Modifier.fillMaxWidth().padding(40.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+        Icon(Icons.Default.GroupAdd, null, modifier = Modifier.size(80.dp), tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f))
+        Spacer(modifier = Modifier.height(24.dp))
+        Text("Aún no tienes referidos", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.ExtraBold)
+        Text(
+            "¡Comparte tu código y empieza a construir tu red para ganar comisiones!",
+            textAlign = TextAlign.Center,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+        )
     }
 }

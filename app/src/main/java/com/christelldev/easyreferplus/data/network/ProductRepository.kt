@@ -14,6 +14,7 @@ import com.christelldev.easyreferplus.data.model.ImageUploadResponse
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
 import okhttp3.RequestBody.Companion.asRequestBody
+import okhttp3.RequestBody.Companion.toRequestBody
 import java.io.File
 
 // ==================== PRODUCT CATEGORIES ====================
@@ -221,9 +222,8 @@ class ProductRepository(
         return try {
             val requestBody = imageFile.asRequestBody("image/*".toMediaTypeOrNull())
             val imagePart = MultipartBody.Part.createFormData("image", imageFile.name, requestBody)
-            val isPrimaryPart = okhttp3.RequestBody.create(
-                "text/plain".toMediaTypeOrNull(),
-                isPrimary.toString()
+            val isPrimaryPart = isPrimary.toString().toRequestBody(
+                "text/plain".toMediaTypeOrNull()
             )
 
             val response = apiService.uploadProductImage(authorization, productId, imagePart, isPrimaryPart)

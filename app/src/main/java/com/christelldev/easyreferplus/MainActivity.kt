@@ -118,7 +118,7 @@ import com.christelldev.easyreferplus.ui.viewmodel.CompanyDetailViewModel
 import com.christelldev.easyreferplus.ui.viewmodel.ProductViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
-import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.christelldev.easyreferplus.ui.screens.auth.AppLockScreen
 import com.christelldev.easyreferplus.util.AppLockManager
 import com.christelldev.easyreferplus.util.BiometricHelper
@@ -964,8 +964,8 @@ fun MainNavigation(
                     is com.christelldev.easyreferplus.ui.viewmodel.ProductViewModel.CheckoutState.Success ->
                         com.christelldev.easyreferplus.ui.screens.cart.CheckoutState.Success(
                             message = state.message,
-                            orderId = state.orderId,
-                            qrCodes = state.qrCodes,
+                            orderId = state.orderId?.toIntOrNull() ?: 0,
+                            qrCodes = state.qrCodes?.map { it.qrDataUrl } ?: emptyList(),
                             totalItems = state.totalItems,
                             totalAmount = state.totalAmount,
                             companyCount = state.companyCount

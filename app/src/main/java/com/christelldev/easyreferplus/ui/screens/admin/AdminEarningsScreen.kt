@@ -26,17 +26,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
-import androidx.compose.material.icons.filled.AccountBalanceWallet
-import androidx.compose.material.icons.filled.AttachMoney
-import androidx.compose.material.icons.filled.ChevronRight
-import androidx.compose.material.icons.filled.DateRange
-import androidx.compose.material.icons.filled.FilterList
-import androidx.compose.material.icons.filled.MoneyOff
-import androidx.compose.material.icons.filled.Paid
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.TrendingUp
-import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material.icons.automirrored.filled.TrendingUp
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -281,7 +272,7 @@ private fun StatsSection(stats: com.christelldev.easyreferplus.data.model.AdminE
             StatCard(
                 title = stringResource(R.string.level_1_short),
                 value = stats.level1Commissions.toString(),
-                icon = Icons.Default.TrendingUp,
+                icon = Icons.AutoMirrored.Filled.TrendingUp,
                 color = Color(0xFFFFC107),
                 modifier = Modifier.weight(1f)
             )
@@ -295,14 +286,14 @@ private fun StatsSection(stats: com.christelldev.easyreferplus.data.model.AdminE
             StatCard(
                 title = stringResource(R.string.level_2_short),
                 value = stats.level2Commissions.toString(),
-                icon = Icons.Default.TrendingUp,
+                icon = Icons.AutoMirrored.Filled.TrendingUp,
                 color = Color(0xFFFF9800),
                 modifier = Modifier.weight(1f)
             )
             StatCard(
                 title = stringResource(R.string.level_3_short),
                 value = stats.level3Commissions.toString(),
-                icon = Icons.Default.TrendingUp,
+                icon = Icons.AutoMirrored.Filled.TrendingUp,
                 color = Color(0xFF9C27B0),
                 modifier = Modifier.weight(1f)
             )

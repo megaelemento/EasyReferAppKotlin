@@ -1,56 +1,17 @@
 package com.christelldev.easyreferplus.ui.screens.sessions
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBars
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Computer
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.DeleteSweep
-import androidx.compose.material.icons.filled.PhoneAndroid
-import androidx.compose.material.icons.filled.Phishing
-import androidx.compose.material.icons.filled.Security
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -58,24 +19,20 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.christelldev.easyreferplus.R
 import com.christelldev.easyreferplus.data.model.SessionInfo
-import com.christelldev.easyreferplus.ui.theme.AppBlue
+import com.christelldev.easyreferplus.ui.theme.DesignConstants
 import com.christelldev.easyreferplus.ui.viewmodel.SessionViewModel
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
-
-// Constantes de diseño elegante
-private val CARD_CORNER_RADIUS = 20.dp
-private val CARD_ELEVATION = 8.dp
-private val CARD_MARGIN_HORIZONTAL = 16.dp
-private val GradientPrimary = listOf(Color(0xFF03A9F4), Color(0xFF2196F3))
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -84,38 +41,33 @@ fun SessionManagementScreen(
     onBack: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val isDark = isSystemInDarkTheme()
     val snackbarHostState = remember { SnackbarHostState() }
     var showRevokeAllDialog by remember { mutableStateOf(false) }
     var sessionToRevoke by remember { mutableStateOf<SessionInfo?>(null) }
 
-    val primaryColor = MaterialTheme.colorScheme.primary
-    val backgroundColor = MaterialTheme.colorScheme.background
-
-    // Cargar sesiones cuando la pantalla esté lista
+    // Cargar sesiones
     LaunchedEffect(Unit) {
         viewModel.loadSessions()
     }
 
-    // Mostrar mensajes de error
-    LaunchedEffect(uiState.errorMessage) {
-        uiState.errorMessage?.let { error ->
-            snackbarHostState.showSnackbar(error)
+    // Handlers para mensajes
+    LaunchedEffect(uiState.errorMessage, uiState.successMessage) {
+        uiState.errorMessage?.let {
+            snackbarHostState.showSnackbar(it)
+            viewModel.clearMessages()
+        }
+        uiState.successMessage?.let {
+            snackbarHostState.showSnackbar(it)
             viewModel.clearMessages()
         }
     }
 
-    // Mostrar mensajes de éxito
-    LaunchedEffect(uiState.successMessage) {
-        uiState.successMessage?.let { message ->
-            snackbarHostState.showSnackbar(message)
-            viewModel.clearMessages()
-        }
-    }
-
-    // Diálogo para revocar una sesión
+    // Diálogos Estilizados
     sessionToRevoke?.let { session ->
-        RevokeSessionDialog(
+        ElegantRevokeDialog(
             deviceName = session.deviceInfo ?: "Dispositivo",
+            isDark = isDark,
             onConfirm = {
                 viewModel.invalidateSession(session.sessionId)
                 sessionToRevoke = null
@@ -124,10 +76,10 @@ fun SessionManagementScreen(
         )
     }
 
-    // Diálogo para revocar todas las sesiones
     if (showRevokeAllDialog) {
-        RevokeAllSessionsDialog(
+        ElegantRevokeAllDialog(
             sessionCount = uiState.sessions.size,
+            isDark = isDark,
             onConfirm = {
                 viewModel.logoutAllExceptCurrent()
                 showRevokeAllDialog = false
@@ -138,283 +90,298 @@ fun SessionManagementScreen(
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        text = stringResource(R.string.session_management),
-                        color = MaterialTheme.colorScheme.surface,
-                        fontWeight = FontWeight.Bold
-                    )
-                },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = stringResource(R.string.back),
-                            tint = MaterialTheme.colorScheme.onSurface
+        containerColor = if (isDark) DesignConstants.BackgroundDark else DesignConstants.BackgroundLight
+    ) { paddingValues ->
+        Box(modifier = Modifier.fillMaxSize()) {
+            // Header con Gradiente
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(240.dp)
+                    .background(
+                        brush = Brush.verticalGradient(
+                            colors = if (isDark) {
+                                listOf(DesignConstants.PrimaryDark.copy(alpha = 0.6f), Color.Transparent)
+                            } else {
+                                DesignConstants.GradientPrimary
+                            }
                         )
+                    )
+            )
+
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues)
+            ) {
+                // Espacio para TopBar Flotante
+                Spacer(modifier = Modifier.height(60.dp))
+
+                if (uiState.isLoading && uiState.sessions.isEmpty()) {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator(color = Color.White)
                     }
-                },
-                actions = {
-                    if (uiState.sessions.size > 1) {
-                        IconButton(onClick = { showRevokeAllDialog = true }) {
-                            Icon(
-                                imageVector = Icons.Default.DeleteSweep,
-                                contentDescription = stringResource(R.string.revoke_all_sessions),
-                                tint = MaterialTheme.colorScheme.onSurface
+                } else if (uiState.sessions.isEmpty()) {
+                    EmptySessionsState(isDark = isDark, onRetry = { viewModel.loadSessions() })
+                } else {
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(
+                            horizontal = DesignConstants.CARD_MARGIN_HORIZONTAL,
+                            vertical = 16.dp
+                        ),
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        // Header info flotante
+                        item {
+                            SessionHeaderCard(
+                                totalSessions = uiState.sessions.size,
+                                maxSessions = uiState.maxSessions,
+                                isDark = isDark
                             )
                         }
+
+                        item {
+                            Text(
+                                text = "Dispositivos Conectados",
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Black,
+                                color = if (isDark) Color.White else DesignConstants.TextPrimary,
+                                modifier = Modifier.padding(top = 8.dp, bottom = 4.dp)
+                            )
+                        }
+
+                        // Listado de sesiones
+                        items(uiState.sessions) { session ->
+                            ElegantSessionCard(
+                                session = session,
+                                isDark = isDark,
+                                onRevoke = { sessionToRevoke = session },
+                                isRevoking = uiState.isRevoking
+                            )
+                        }
+                        
+                        item { Spacer(modifier = Modifier.height(80.dp)) }
                     }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = primaryColor
-                ),
-                modifier = Modifier.windowInsetsPadding(WindowInsets.statusBars)
-            )
-        }
-    ) { paddingValues ->
-        if (uiState.isLoading) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues),
-                contentAlignment = Alignment.Center
-            ) {
-                CircularProgressIndicator(color = primaryColor)
-            }
-        } else if (uiState.errorMessage != null && uiState.sessions.isEmpty()) {
-            val errorMsg: String = uiState.errorMessage ?: ""
-            ErrorSessionsContent(
-                errorMessage = errorMsg,
-                onRetry = { viewModel.loadSessions() },
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues)
-            )
-        } else if (uiState.sessions.isEmpty()) {
-            EmptySessionsContent(
-                onRetry = { viewModel.loadSessions() },
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues)
-            )
-        } else {
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues)
-                    .background(backgroundColor),
-                contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                // Header info
-                item {
-                    SessionHeaderCard(
-                        totalSessions = uiState.sessions.size,
-                        maxSessions = uiState.maxSessions
-                    )
-                }
-
-                item { Spacer(modifier = Modifier.height(8.dp)) }
-
-                // Session list
-                items(uiState.sessions) { session ->
-                    SessionCard(
-                        session = session,
-                        isCurrentSession = session.isCurrent,
-                        onRevoke = { sessionToRevoke = session },
-                        isRevoking = uiState.isRevoking
-                    )
                 }
             }
+
+            // Top Bar Flotante (Glass Style)
+            ElegantSessionTopBar(
+                onBack = onBack,
+                onRevokeAll = { showRevokeAllDialog = true },
+                showRevokeAll = uiState.sessions.size > 1
+            )
         }
     }
 }
 
 @Composable
-private fun SessionHeaderCard(totalSessions: Int, maxSessions: Int) {
-    val primaryColor = MaterialTheme.colorScheme.primary
-
-    Card(
+private fun ElegantSessionTopBar(
+    onBack: () -> Unit,
+    onRevokeAll: () -> Unit,
+    showRevokeAll: Boolean
+) {
+    Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = CARD_MARGIN_HORIZONTAL)
-            .shadow(elevation = CARD_ELEVATION, shape = RoundedCornerShape(CARD_CORNER_RADIUS)),
-        shape = RoundedCornerShape(CARD_CORNER_RADIUS),
-        colors = CardDefaults.cardColors(containerColor = Color.Transparent)
+            .statusBarsPadding()
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(brush = Brush.horizontalGradient(colors = GradientPrimary))
-                .padding(24.dp)
+        Surface(
+            modifier = Modifier.size(40.dp),
+            shape = CircleShape,
+            color = Color.Black.copy(alpha = 0.3f),
+            onClick = onBack
         ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(20.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(56.dp)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.2f)),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Security,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.surface,
-                    modifier = Modifier.size(32.dp)
-                )
-            }
-            Spacer(modifier = Modifier.width(16.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = stringResource(R.string.active_sessions),
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.surface
-                )
-                Text(
-                    text = stringResource(R.string.sessions_description),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.8f)
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = "$totalSessions / $maxSessions ${stringResource(R.string.devices)}",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.surface
-                )
+            Box(contentAlignment = Alignment.Center) {
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = Color.White, modifier = Modifier.size(20.dp))
             }
         }
+        
+        Text(
+            text = "Gestión de Sesiones",
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Black,
+            color = Color.White
+        )
+
+        if (showRevokeAll) {
+            Surface(
+                modifier = Modifier.size(40.dp),
+                shape = CircleShape,
+                color = Color.Black.copy(alpha = 0.3f),
+                onClick = onRevokeAll
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(Icons.Default.DeleteSweep, null, tint = Color.White, modifier = Modifier.size(20.dp))
+                }
+            }
+        } else {
+            Box(modifier = Modifier.size(40.dp))
         }
     }
 }
 
 @Composable
-private fun SessionCard(
+private fun SessionHeaderCard(totalSessions: Int, maxSessions: Int, isDark: Boolean) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(DesignConstants.CARD_CORNER_RADIUS),
+        color = if (isDark) DesignConstants.SurfaceCardDark else Color.White,
+        tonalElevation = 8.dp,
+        shadowElevation = 12.dp
+    ) {
+        Row(
+            modifier = Modifier.padding(24.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Surface(
+                modifier = Modifier.size(64.dp),
+                shape = CircleShape,
+                color = DesignConstants.PrimaryColor.copy(alpha = 0.1f)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = Icons.Default.Security,
+                        contentDescription = null,
+                        tint = DesignConstants.PrimaryColor,
+                        modifier = Modifier.size(32.dp)
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.width(20.dp))
+            Column {
+                Text(
+                    text = "Sesiones Activas",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = if (isDark) DesignConstants.TextSecondaryDark else DesignConstants.TextSecondary,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 1.sp
+                )
+                Text(
+                    text = "$totalSessions / $maxSessions",
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.Black,
+                    color = if (isDark) Color.White else DesignConstants.TextPrimary
+                )
+                Text(
+                    text = "Dispositivos autorizados",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = if (isDark) DesignConstants.TextSecondaryDark else DesignConstants.TextSecondary
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun ElegantSessionCard(
     session: SessionInfo,
-    isCurrentSession: Boolean,
+    isDark: Boolean,
     onRevoke: () -> Unit,
     isRevoking: Boolean
 ) {
-    val surfaceColor = MaterialTheme.colorScheme.surface
-    val primaryColor = MaterialTheme.colorScheme.primary
-
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .shadow(elevation = 2.dp, shape = RoundedCornerShape(16.dp)),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+    val isCurrent = session.isCurrent
+    
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(DesignConstants.CARD_CORNER_RADIUS),
+        color = if (isDark) DesignConstants.SurfaceCardDark else Color.White,
+        tonalElevation = 2.dp,
+        shadowElevation = 4.dp
     ) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
+            modifier = Modifier.padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Device icon
-            Box(
-                modifier = Modifier
-                    .size(48.dp)
-                    .clip(CircleShape)
-                    .background(
-                        if (isCurrentSession) AppBlue.copy(alpha = 0.15f)
-                        else MaterialTheme.colorScheme.surfaceVariant
-                    ),
-                contentAlignment = Alignment.Center
+            // Icono de dispositivo
+            Surface(
+                modifier = Modifier.size(52.dp),
+                shape = CircleShape,
+                color = if (isCurrent) DesignConstants.PrimaryColor.copy(alpha = 0.1f) 
+                        else if (isDark) Color.White.copy(alpha = 0.05f) 
+                        else Color.Black.copy(alpha = 0.05f)
             ) {
-                Icon(
-                    imageVector = getDeviceIconFromString(session.deviceInfo),
-                    contentDescription = null,
-                    tint = if (isCurrentSession) AppBlue else MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(24.dp)
-                )
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = getDeviceIcon(session.deviceInfo),
+                        contentDescription = null,
+                        tint = if (isCurrent) DesignConstants.PrimaryColor 
+                               else if (isDark) DesignConstants.TextSecondaryDark 
+                               else DesignConstants.TextSecondary,
+                        modifier = Modifier.size(26.dp)
+                    )
+                }
             }
 
-            Spacer(modifier = Modifier.width(12.dp))
+            Spacer(modifier = Modifier.width(16.dp))
 
-            // Session info
+            // Info de sesión
             Column(modifier = Modifier.weight(1f)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
-                        text = session.deviceInfo?.ifBlank { "Dispositivo" } ?: "Dispositivo",
+                        text = session.deviceInfo?.ifBlank { "Dispositivo Desconocido" } ?: "Dispositivo",
                         style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = if (isDark) DesignConstants.TextPrimaryDark else DesignConstants.TextPrimary,
                         maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.weight(1f, fill = false)
+                        overflow = TextOverflow.Ellipsis
                     )
-                    if (isCurrentSession) {
+                    if (isCurrent) {
                         Spacer(modifier = Modifier.width(8.dp))
-                        CurrentSessionBadge()
+                        Surface(
+                            color = DesignConstants.SuccessColor.copy(alpha = 0.15f),
+                            shape = RoundedCornerShape(6.dp)
+                        ) {
+                            Text(
+                                text = "ESTA SESIÓN",
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Black,
+                                color = DesignConstants.SuccessColor,
+                                fontSize = 9.sp
+                            )
+                        }
                     }
                 }
 
-                Spacer(modifier = Modifier.height(4.dp))
-
-                // User Agent
-                session.userAgent?.let { ua ->
-                    if (ua.isNotBlank()) {
-                        Text(
-                            text = ua.take(50) + if (ua.length > 50) "..." else "",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = 1
-                        )
-                    }
-                }
-
-                // IP Address
-                session.ipAddress?.let { ip ->
-                    Spacer(modifier = Modifier.height(2.dp))
-                    Text(
-                        text = ip,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
-                    )
-                }
-
-                // Last active
-                val lastUsedDate = remember(session.lastUsed) {
-                    try {
-                        val sdf = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault())
-                        sdf.format(Date(session.lastUsed * 1000))
-                    } catch (e: Exception) {
-                        "Desconocido"
-                    }
-                }
-                Spacer(modifier = Modifier.height(2.dp))
                 Text(
-                    text = stringResource(R.string.last_active) + ": " + lastUsedDate,
+                    text = session.ipAddress ?: "IP no disponible",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = if (isDark) DesignConstants.TextSecondaryDark else DesignConstants.TextSecondary
+                )
+
+                val dateStr = remember(session.lastUsed) {
+                    try {
+                        val sdf = SimpleDateFormat("dd MMM, HH:mm", Locale.forLanguageTag("es-EC"))
+                        sdf.format(Date(session.lastUsed * 1000))
+                    } catch (e: Exception) { "Recientemente" }
+                }
+
+                Text(
+                    text = "Última actividad: $dateStr",
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                    color = if (isDark) DesignConstants.TextSecondaryDark.copy(alpha = 0.6f) 
+                            else DesignConstants.TextSecondary.copy(alpha = 0.6f)
                 )
             }
 
-            // Revoke button (only for other sessions)
-            if (!isCurrentSession) {
-                Spacer(modifier = Modifier.width(8.dp))
+            if (!isCurrent) {
                 IconButton(
                     onClick = onRevoke,
                     enabled = !isRevoking
                 ) {
                     if (isRevoking) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(20.dp),
-                            strokeWidth = 2.dp
-                        )
+                        CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
                     } else {
                         Icon(
                             imageVector = Icons.Default.Delete,
-                            contentDescription = stringResource(R.string.revoke_session),
-                            tint = MaterialTheme.colorScheme.error
+                            contentDescription = "Cerrar sesión",
+                            tint = DesignConstants.ErrorColor.copy(alpha = 0.7f),
+                            modifier = Modifier.size(22.dp)
                         )
                     }
                 }
@@ -424,173 +391,140 @@ private fun SessionCard(
 }
 
 @Composable
-private fun CurrentSessionBadge() {
-    Card(
-        colors = CardDefaults.cardColors(containerColor = AppBlue),
-        shape = RoundedCornerShape(8.dp)
+private fun EmptySessionsState(isDark: Boolean, onRetry: () -> Unit) {
+    Column(
+        modifier = Modifier.fillMaxSize().padding(32.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
     ) {
+        Surface(
+            modifier = Modifier.size(120.dp),
+            shape = CircleShape,
+            color = if (isDark) DesignConstants.SurfaceCardDark else Color.White,
+            tonalElevation = 4.dp
+        ) {
+            Box(contentAlignment = Alignment.Center) {
+                Icon(
+                    imageVector = Icons.Default.Security,
+                    contentDescription = null,
+                    modifier = Modifier.size(60.dp),
+                    tint = DesignConstants.PrimaryColor.copy(alpha = 0.3f)
+                )
+            }
+        }
+        Spacer(modifier = Modifier.height(24.dp))
         Text(
-            text = stringResource(R.string.current_session),
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.surface,
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+            text = "Sin sesiones activas",
+            style = MaterialTheme.typography.headlineSmall,
+            fontWeight = FontWeight.Black,
+            color = if (isDark) Color.White else DesignConstants.TextPrimary
         )
-    }
-}
-
-@Composable
-private fun EmptySessionsContent(
-    modifier: Modifier = Modifier,
-    onRetry: () -> Unit = {}
-) {
-    Box(
-        modifier = modifier,
-        contentAlignment = Alignment.Center
-    ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier.padding(32.dp)
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(
+            text = "No se encontraron sesiones para tu cuenta.",
+            textAlign = TextAlign.Center,
+            style = MaterialTheme.typography.bodyMedium,
+            color = if (isDark) DesignConstants.TextSecondaryDark else DesignConstants.TextSecondary
+        )
+        Spacer(modifier = Modifier.height(24.dp))
+        Button(
+            onClick = onRetry,
+            shape = RoundedCornerShape(DesignConstants.BUTTON_CORNER_RADIUS),
+            colors = ButtonDefaults.buttonColors(containerColor = DesignConstants.PrimaryColor)
         ) {
-            Icon(
-                imageVector = Icons.Default.Phishing,
-                contentDescription = null,
-                modifier = Modifier.size(80.dp),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-            )
-            Spacer(modifier = Modifier.height(16.dp))
-            Text(
-                text = stringResource(R.string.no_sessions),
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = stringResource(R.string.no_sessions_description),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                textAlign = TextAlign.Center
-            )
-            Spacer(modifier = Modifier.height(24.dp))
-            Button(
-                onClick = onRetry,
-                shape = RoundedCornerShape(12.dp)
-            ) {
-                Text(stringResource(R.string.retry))
-            }
+            Text("Reintentar", fontWeight = FontWeight.Bold)
         }
     }
 }
 
 @Composable
-private fun ErrorSessionsContent(
-    errorMessage: String,
-    onRetry: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Box(
-        modifier = modifier,
-        contentAlignment = Alignment.Center
-    ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier.padding(32.dp)
-        ) {
-            Icon(
-                imageVector = Icons.Default.Phishing,
-                contentDescription = null,
-                modifier = Modifier.size(80.dp),
-                tint = MaterialTheme.colorScheme.error.copy(alpha = 0.5f)
-            )
-            Spacer(modifier = Modifier.height(16.dp))
-            Text(
-                text = stringResource(R.string.error_loading_sessions),
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.error
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = errorMessage,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                textAlign = TextAlign.Center
-            )
-            Spacer(modifier = Modifier.height(24.dp))
-            Button(
-                onClick = onRetry,
-                shape = RoundedCornerShape(12.dp)
-            ) {
-                Text(stringResource(R.string.retry))
-            }
-        }
-    }
-}
-
-@Composable
-private fun RevokeSessionDialog(
+private fun ElegantRevokeDialog(
     deviceName: String,
+    isDark: Boolean,
     onConfirm: () -> Unit,
     onDismiss: () -> Unit
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.revoke_session)) },
+        title = {
+            Text(
+                "Cerrar Sesión",
+                fontWeight = FontWeight.Black,
+                color = if (isDark) Color.White else DesignConstants.TextPrimary
+            )
+        },
         text = {
             Text(
-                stringResource(R.string.revoke_session_message, deviceName)
+                "¿Estás seguro de que deseas cerrar la sesión en $deviceName? Tendrás que volver a iniciar sesión en ese dispositivo.",
+                color = if (isDark) DesignConstants.TextSecondaryDark else DesignConstants.TextSecondary
             )
         },
         confirmButton = {
-            TextButton(onClick = onConfirm) {
-                Text(
-                    stringResource(R.string.revoke),
-                    color = MaterialTheme.colorScheme.error
-                )
+            Button(
+                onClick = onConfirm,
+                colors = ButtonDefaults.buttonColors(containerColor = DesignConstants.ErrorColor),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Text("Cerrar Sesión", fontWeight = FontWeight.Bold)
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text(stringResource(R.string.cancel))
+                Text("Cancelar", color = if (isDark) Color.White.copy(alpha = 0.6f) else DesignConstants.TextSecondary)
             }
-        }
+        },
+        containerColor = if (isDark) DesignConstants.SurfaceCardDark else Color.White,
+        shape = RoundedCornerShape(DesignConstants.CARD_CORNER_RADIUS)
     )
 }
 
 @Composable
-private fun RevokeAllSessionsDialog(
+private fun ElegantRevokeAllDialog(
     sessionCount: Int,
+    isDark: Boolean,
     onConfirm: () -> Unit,
     onDismiss: () -> Unit
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.revoke_all)) },
+        title = {
+            Text(
+                "Cerrar Todas las Sesiones",
+                fontWeight = FontWeight.Black,
+                color = if (isDark) Color.White else DesignConstants.TextPrimary
+            )
+        },
         text = {
             Text(
-                stringResource(R.string.revoke_all_sessions_message, sessionCount)
+                "Se cerrarán las $sessionCount sesiones activas en otros dispositivos. Esta sesión actual permanecerá abierta.",
+                color = if (isDark) DesignConstants.TextSecondaryDark else DesignConstants.TextSecondary
             )
         },
         confirmButton = {
-            TextButton(onClick = onConfirm) {
-                Text(
-                    stringResource(R.string.revoke_all),
-                    color = MaterialTheme.colorScheme.error
-                )
+            Button(
+                onClick = onConfirm,
+                colors = ButtonDefaults.buttonColors(containerColor = DesignConstants.ErrorColor),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Text("Cerrar Todas", fontWeight = FontWeight.Bold)
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text(stringResource(R.string.cancel))
+                Text("Cancelar", color = if (isDark) Color.White.copy(alpha = 0.6f) else DesignConstants.TextSecondary)
             }
-        }
+        },
+        containerColor = if (isDark) DesignConstants.SurfaceCardDark else Color.White,
+        shape = RoundedCornerShape(DesignConstants.CARD_CORNER_RADIUS)
     )
 }
 
-private fun getDeviceIconFromString(deviceInfo: String?): ImageVector {
-    val info = deviceInfo?.lowercase() ?: return Icons.Default.Computer
+private fun getDeviceIcon(deviceInfo: String?): ImageVector {
+    val info = deviceInfo?.lowercase() ?: ""
     return when {
-        info.contains("android") -> Icons.Default.PhoneAndroid
-        info.contains("iphone") || info.contains("ios") -> Icons.Default.PhoneAndroid
-        info.contains("tablet") || info.contains("ipad") -> Icons.Default.PhoneAndroid
+        info.contains("android") || info.contains("phone") || info.contains("mobile") -> Icons.Default.PhoneAndroid
+        info.contains("iphone") || info.contains("ios") -> Icons.Default.PhoneIphone
+        info.contains("tablet") || info.contains("ipad") -> Icons.Default.TabletAndroid
         else -> Icons.Default.Computer
     }
 }

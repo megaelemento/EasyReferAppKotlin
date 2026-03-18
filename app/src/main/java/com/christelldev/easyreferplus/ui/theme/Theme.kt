@@ -7,27 +7,27 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 
-// ==================== COLORES MODO CLARO ====================
-val LightPrimary = Color(0xFF00AEEF)          // Azul celeste
+// ==================== COLORES UNIFICADOS (MODERNO 2026) ====================
+val LightPrimary = Color(0xFF00AEEF)          // Azul celeste principal
 val LightOnPrimary = Color(0xFFFFFFFF)
-val LightPrimaryContainer = Color(0xFFE8DEFF)
-val LightOnPrimaryContainer = Color(0xFF005C6B)
+val LightPrimaryContainer = Color(0xFFB3E5FC)
+val LightOnPrimaryContainer = Color(0xFF001F29)
 
 val LightSecondary = Color(0xFF03DAC6)           // Verde azulado
 val LightOnSecondary = Color(0xFFFFFFFF)
-val LightSecondaryContainer = Color(0xFFCCFBF6)
-val LightOnSecondaryContainer = Color(0xFF002020)
+val LightSecondaryContainer = Color(0xFFB2F2EC)
+val LightOnSecondaryContainer = Color(0xFF00201D)
 
 val LightTertiary = Color(0xFFFF6B6B)           // Coral suave
 val LightOnTertiary = Color(0xFFFFFFFF)
-val LightTertiaryContainer = Color(0xFFFFE0E0)
-val LightOnTertiaryContainer = Color(0xFF3D0000)
+val LightTertiaryContainer = Color(0xFFFFDAD6)
+val LightOnTertiaryContainer = Color(0xFF410002)
 
-val LightBackground = Color(0xFFFFFFFF)         // Blanco
-val LightOnBackground = Color(0xFF1C1B1F)
+val LightBackground = Color(0xFFF1F5F9)         // Gris azulado muy claro
+val LightOnBackground = Color(0xFF1B1B1F)
 val LightSurface = Color(0xFFFFFFFF)
-val LightOnSurface = Color(0xFF1C1B1F)
-val LightSurfaceVariant = Color(0xFFF5F5F5)
+val LightOnSurface = Color(0xFF1B1B1F)
+val LightSurfaceVariant = Color(0xFFF1F5F9)
 val LightOnSurfaceVariant = Color(0xFF49454F)
 
 val LightError = Color(0xFFBA1A1A)
@@ -40,25 +40,25 @@ val LightOutlineVariant = Color(0xFFCAC4D0)
 
 // ==================== COLORES MODO OSCURO ====================
 val DarkPrimary = Color(0xFF6DD5FA)              // Azul celeste claro
-val DarkOnPrimary = Color(0xFF381E72)
-val DarkPrimaryContainer = Color(0xFF0077B6)
-val DarkOnPrimaryContainer = Color(0xFFCAF0F8)
+val DarkOnPrimary = Color(0xFF00354A)
+val DarkPrimaryContainer = Color(0xFF004D64)
+val DarkOnPrimaryContainer = Color(0xFFB3E5FC)
 
 val DarkSecondary = Color(0xFF4FFFD6)            // Verde menta
 val DarkOnSecondary = Color(0xFF003731)
 val DarkSecondaryContainer = Color(0xFF005047)
-val DarkOnSecondaryContainer = Color(0xFFCCFBF6)
+val DarkOnSecondaryContainer = Color(0xFFB2F2EC)
 
 val DarkTertiary = Color(0xFFFFB4AB)             // Coral claro
 val DarkOnTertiary = Color(0xFF690005)
 val DarkTertiaryContainer = Color(0xFF93000A)
 val DarkOnTertiaryContainer = Color(0xFFFFDAD6)
 
-val DarkBackground = Color(0xFF121212)            // Negro suave
-val DarkOnBackground = Color(0xFFE6E1E5)
-val DarkSurface = Color(0xFF1E1E1E)
-val DarkOnSurface = Color(0xFFE6E1E5)
-val DarkSurfaceVariant = Color(0xFF2D2D2D)
+val DarkBackground = Color(0xFF0F172A)            // Azul marino muy oscuro
+val DarkOnBackground = Color(0xFFE2E8F0)
+val DarkSurface = Color(0xFF1E293B)               // Azul marino oscuro
+val DarkOnSurface = Color(0xFFE2E8F0)
+val DarkSurfaceVariant = Color(0xFF334155)
 val DarkOnSurfaceVariant = Color(0xFFCAC4D0)
 
 val DarkError = Color(0xFFFFB4AB)
@@ -67,14 +67,14 @@ val DarkErrorContainer = Color(0xFF93000A)
 val DarkOnErrorContainer = Color(0xFFFFDAD6)
 
 val DarkOutline = Color(0xFF938F99)
-val DarkOutlineVariant = Color(0xFF49454F)
+val DarkOutlineVariant = Color(0xFF44474E)
 
 // ==================== ESQUEMAS DE COLOR ====================
 private val LightColorScheme = lightColorScheme(
     primary = LightPrimary,
     onPrimary = LightOnPrimary,
-    primaryContainer = Color(0xFFB3E5FC),
-    onPrimaryContainer = Color(0xFF005C6B),
+    primaryContainer = LightPrimaryContainer,
+    onPrimaryContainer = LightOnPrimaryContainer,
     secondary = LightSecondary,
     onSecondary = LightOnSecondary,
     secondaryContainer = LightSecondaryContainer,
@@ -99,7 +99,7 @@ private val LightColorScheme = lightColorScheme(
 
 private val DarkColorScheme = darkColorScheme(
     primary = DarkPrimary,
-    onPrimary = Color(0xFF00354A),
+    onPrimary = DarkOnPrimary,
     primaryContainer = DarkPrimaryContainer,
     onPrimaryContainer = DarkOnPrimaryContainer,
     secondary = DarkSecondary,
