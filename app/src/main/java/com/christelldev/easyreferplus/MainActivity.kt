@@ -121,6 +121,7 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import com.christelldev.easyreferplus.ui.screens.auth.AppLockScreen
 import com.christelldev.easyreferplus.util.AppLockManager
+import com.christelldev.easyreferplus.util.BiometricHelper
 
 class MainActivity : androidx.appcompat.app.AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -219,6 +220,7 @@ fun MainNavigation(
     var sessionValidated by remember { mutableStateOf(false) }
     // Overlay de bloqueo para background → foreground (el lock inicial lo maneja startDestination)
     var showLockOverlay by remember { mutableStateOf(false) }
+    val context = LocalContext.current
 
     // Detectar background / foreground para activar el overlay de bloqueo
     val appLifecycleOwner = LocalLifecycleOwner.current
@@ -270,6 +272,7 @@ fun MainNavigation(
                     if (!isValid) {
                         // Sesión invalidada - cerrar sesión
                         authRepository.clearAllData()
+                        BiometricHelper.clearPin(context)
                         isLoggedIn = false
                         // Reiniciar al login
                         onLogoutComplete()
@@ -286,10 +289,10 @@ fun MainNavigation(
     }
 
     // Escuchar eventos de logout forzado desde AuthInterceptor (ej. token inválido)
-    val context = LocalContext.current
     LaunchedEffect(Unit) {
         authRepository.logoutEvent.collect { message ->
             android.widget.Toast.makeText(context, message, android.widget.Toast.LENGTH_LONG).show()
+            BiometricHelper.clearPin(context)
             isLoggedIn = false
             onLogoutComplete()
         }
@@ -677,8 +680,9 @@ fun MainNavigation(
                     onLogout = {
                         // Desconectar WebSocket
                         disconnectWebSocket()
-                        // Limpiar TODOS los datos del usuario (tokens, caché, etc.)
+                        // Limpiar TODOS los datos del usuario (tokens, caché, PIN de billetera)
                         authRepository.clearAllData()
+                        BiometricHelper.clearPin(context)
                         // Llamar callback para reiniciar actividad
                         onLogoutComplete()
                     },
@@ -1227,8 +1231,9 @@ fun MainNavigation(
                     onLogout = {
                         // Desconectar WebSocket
                         disconnectWebSocket()
-                        // Limpiar TODOS los datos del usuario (tokens, caché, etc.)
+                        // Limpiar TODOS los datos del usuario (tokens, caché, PIN de billetera)
                         authRepository.clearAllData()
+                        BiometricHelper.clearPin(context)
                         onLogoutComplete()
                     }
                 )

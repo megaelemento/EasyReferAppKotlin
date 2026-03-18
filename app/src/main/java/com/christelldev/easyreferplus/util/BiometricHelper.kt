@@ -56,6 +56,16 @@ object BiometricHelper {
         }
     }
 
+    /** Elimina el PIN almacenado. Llamar en cada logout para evitar que el PIN de un
+     *  usuario previo sea reutilizado por el siguiente usuario en el mismo dispositivo. */
+    fun clearPin(context: Context) {
+        try {
+            getEncryptedPrefs(context).edit().remove(KEY_PIN).apply()
+        } catch (e: Exception) {
+            context.deleteSharedPreferences(PREFS_NAME)
+        }
+    }
+
     fun generatePin(): String =
         String.format("%06d", SecureRandom().nextInt(1_000_000))
 
