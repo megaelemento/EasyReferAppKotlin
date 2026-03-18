@@ -109,6 +109,14 @@ fun WalletTransferScreen(
     val activity = context as FragmentActivity
     var step by remember { mutableIntStateOf(1) }
 
+    // Cargar saldo si el usuario llegó directo a esta pantalla sin pasar por WalletScreen
+    // (el lifecycle observer que llama loadBalance() solo existe dentro de WalletScreen)
+    LaunchedEffect(Unit) {
+        if (!viewModel.uiState.value.hasLoadedOnce) {
+            viewModel.loadBalance()
+        }
+    }
+
     // Auto-advance to step 2 when recipient is verified
     LaunchedEffect(uiState.recipientVerified) {
         if (uiState.recipientVerified && step == 1) {
