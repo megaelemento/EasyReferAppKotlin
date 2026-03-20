@@ -67,6 +67,10 @@ class WalletViewModel(
     private var activeStartDate: String? = null
     private var activeEndDate: String? = null
 
+    // Throttling for network reloads
+    private var lastReloadTime = 0L
+    private val reloadThrottlingMs = 2000L
+
     // WebSocket propio del wallet
     private var wsManager: WebSocketManager? = null
 
@@ -80,8 +84,14 @@ class WalletViewModel(
         wsManager!!.onWalletTransferReceived = { notification ->
             viewModelScope.launch {
                 onWalletNotificationReceived(notification)
-                loadBalance()
-                loadStatement(refresh = true)
+                
+                // Aplicar throttling para no saturar la red con recargas repetitivas
+                val currentTime = System.currentTimeMillis()
+                if (currentTime - lastReloadTime > reloadThrottlingMs) {
+                    lastReloadTime = currentTime
+                    loadBalance()
+                    loadStatement(refresh = true)
+                }
             }
         }
         wsManager!!.connect()

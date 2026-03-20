@@ -36,6 +36,7 @@ import com.christelldev.easyreferplus.ui.viewmodel.HistoryTab
 import com.christelldev.easyreferplus.ui.viewmodel.HistoryViewModel
 import java.text.SimpleDateFormat
 import java.util.*
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -44,7 +45,7 @@ fun HistoryScreen(
     onTransactionClick: (String) -> Unit,
     onBack: () -> Unit
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val isDark = isSystemInDarkTheme()
 
     LaunchedEffect(Unit) {

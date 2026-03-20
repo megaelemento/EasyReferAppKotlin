@@ -43,6 +43,7 @@ import coil.request.ImageRequest
 import com.christelldev.easyreferplus.R
 import com.christelldev.easyreferplus.ui.theme.DesignConstants
 import com.christelldev.easyreferplus.ui.viewmodel.ProfileViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -53,7 +54,7 @@ fun ProfileScreen(
     onNavigateToSessions: () -> Unit = {}
 ) {
     val context = LocalContext.current
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val scrollState = rememberScrollState()
     var isEditing by remember { mutableStateOf(false) }
     var showSelfieDialog by remember { mutableStateOf(false) }

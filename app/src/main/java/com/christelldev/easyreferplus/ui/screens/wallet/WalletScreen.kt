@@ -42,6 +42,7 @@ import com.christelldev.easyreferplus.data.model.WalletStatementItem
 import com.christelldev.easyreferplus.ui.theme.DesignConstants
 import com.christelldev.easyreferplus.ui.viewmodel.WalletViewModel
 import com.christelldev.easyreferplus.util.BiometricHelper
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -52,7 +53,7 @@ fun WalletScreen(
     onNavigateToSetPin: () -> Unit,
     onBack: () -> Unit
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val isDark = isSystemInDarkTheme()
     var pendingPin by remember { mutableStateOf<String?>(null) }

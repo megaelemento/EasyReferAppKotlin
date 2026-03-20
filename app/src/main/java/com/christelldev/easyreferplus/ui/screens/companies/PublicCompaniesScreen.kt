@@ -38,6 +38,7 @@ import com.christelldev.easyreferplus.R
 import com.christelldev.easyreferplus.data.model.UserCompanyResponse
 import com.christelldev.easyreferplus.ui.theme.DesignConstants
 import com.christelldev.easyreferplus.ui.viewmodel.PublicCompaniesViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -46,7 +47,7 @@ fun PublicCompaniesScreen(
     onNavigateBack: () -> Unit,
     onCompanyClick: (Int) -> Unit
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val isDark = isSystemInDarkTheme()
 
     LaunchedEffect(Unit) {

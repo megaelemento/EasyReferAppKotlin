@@ -59,6 +59,7 @@ import com.christelldev.easyreferplus.util.WalletReceiptImageBuilder
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Locale
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -67,7 +68,7 @@ fun WalletTransferScreen(
     onBack: () -> Unit,
     onSuccess: () -> Unit
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val activity = context as FragmentActivity
     var step by remember { mutableIntStateOf(1) }

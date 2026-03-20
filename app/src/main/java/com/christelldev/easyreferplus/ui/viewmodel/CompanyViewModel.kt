@@ -106,9 +106,6 @@ class CompanyViewModel(
                 whatsappNumber = ""
             )
 
-            // Pequeña pausa para asegurar que el estado se limpie antes de establecer nuevos valores
-            kotlinx.coroutines.delay(50)
-
             when (val result = repository.getMyCompany(authorization)) {
                 is com.christelldev.easyreferplus.data.network.UserCompaniesResult.Success -> {
                     val company = result.companies.firstOrNull()

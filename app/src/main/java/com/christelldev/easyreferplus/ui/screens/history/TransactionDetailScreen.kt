@@ -29,6 +29,7 @@ import com.christelldev.easyreferplus.data.model.TransactionReceipt
 import com.christelldev.easyreferplus.ui.theme.DesignConstants
 import java.text.SimpleDateFormat
 import java.util.*
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -37,7 +38,7 @@ fun TransactionDetailScreen(
     viewModel: com.christelldev.easyreferplus.ui.viewmodel.TransactionDetailViewModel,
     onBack: () -> Unit
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val isDark = isSystemInDarkTheme()
 
     LaunchedEffect(transactionId) {

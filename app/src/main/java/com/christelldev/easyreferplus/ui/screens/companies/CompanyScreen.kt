@@ -36,6 +36,7 @@ import com.christelldev.easyreferplus.data.model.CategoryInfo
 import com.christelldev.easyreferplus.data.model.ServiceInfo
 import com.christelldev.easyreferplus.ui.theme.DesignConstants
 import com.christelldev.easyreferplus.ui.viewmodel.CompanyViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -45,7 +46,7 @@ fun CompanyScreen(
     onSuccess: () -> Unit
 ) {
     val context = LocalContext.current
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val scrollState = rememberScrollState()
     val isDark = isSystemInDarkTheme()
 

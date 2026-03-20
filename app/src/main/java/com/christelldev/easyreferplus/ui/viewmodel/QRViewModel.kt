@@ -599,7 +599,15 @@ class QRViewModel(
     }
 
     fun resetState() {
+        // Limpieza explícita del bitmap anterior para liberar RAM
+        _uiState.value.generatedQRBitmap?.recycle()
         _uiState.value = QRUiState()
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        // Limpiar recursos pesados al destruir el ViewModel
+        _uiState.value.generatedQRBitmap?.recycle()
     }
 
     // Generar código QR localmente usando ZXing
