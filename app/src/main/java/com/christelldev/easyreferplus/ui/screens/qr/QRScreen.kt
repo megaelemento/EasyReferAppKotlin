@@ -101,20 +101,16 @@ fun QRScreen(
     }
 
     // ESTADO AVANZADO DE MONTO (Banking Style)
-    var amountTextFieldValue by remember { 
-        mutableStateOf(TextFieldValue(
-            text = uiState.amount,
-            selection = TextRange(uiState.amount.length)
-        ))
+    var amountTextFieldValue by remember {
+        val initial = if (uiState.amount.isEmpty()) "0.00" else uiState.amount
+        mutableStateOf(TextFieldValue(text = initial, selection = TextRange(initial.length)))
     }
 
     // Sincronizar el TextFieldValue cuando el estado externo cambie (ej. al limpiar)
     LaunchedEffect(uiState.amount) {
-        if (uiState.amount != amountTextFieldValue.text) {
-            amountTextFieldValue = TextFieldValue(
-                text = uiState.amount,
-                selection = TextRange(uiState.amount.length)
-            )
+        val display = if (uiState.amount.isEmpty()) "0.00" else uiState.amount
+        if (display != amountTextFieldValue.text) {
+            amountTextFieldValue = TextFieldValue(text = display, selection = TextRange(display.length))
         }
     }
 

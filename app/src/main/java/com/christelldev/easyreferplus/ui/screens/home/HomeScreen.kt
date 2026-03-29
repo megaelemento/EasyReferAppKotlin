@@ -49,6 +49,10 @@ import androidx.compose.material.icons.filled.QrCode2
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.ShoppingBag
 import androidx.compose.material.icons.filled.ShoppingCart
+import androidx.compose.material.icons.filled.DirectionsBike
+import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.MailOutline
+import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.filled.Store
 import androidx.compose.material.icons.filled.Storefront
 import androidx.compose.material.icons.filled.Verified
@@ -105,6 +109,8 @@ import kotlinx.coroutines.launch
 fun HomeScreen(
     viewModel: HomeViewModel,
     cartCount: Int = 0,
+    isMotorizado: Boolean = false,
+    pendingInvitationsCount: Int = 0,
     onNavigateToReferrals: () -> Unit = {},
     onNavigateToCompany: () -> Unit = {},
     onNavigateToCompaniesList: () -> Unit = {},
@@ -121,6 +127,14 @@ fun HomeScreen(
     onNavigateToMyProducts: () -> Unit = {},
     onNavigateToWallet: () -> Unit = {},
     onNavigateToWalletTransfer: () -> Unit = {},
+    onNavigateToDriverPanel: () -> Unit = {},
+    onNavigateToDriverHistory: () -> Unit = {},
+    onNavigateToDriverInvitations: () -> Unit = {},
+    onNavigateToAdminLiveMap: () -> Unit = {},
+    onNavigateToAdminOrders: () -> Unit = {},
+    onNavigateToAdminReports: () -> Unit = {},
+    onNavigateToMisCompras: () -> Unit = {},
+    onNavigateToMisVentas: () -> Unit = {},
     onLogout: () -> Unit = {}
 ) {
     val context = LocalContext.current
@@ -156,6 +170,8 @@ fun HomeScreen(
                 hasEarningsAvailable = uiState.hasEarningsAvailable,
                 hasWithdrawalsAvailable = uiState.hasWithdrawalsAvailable,
                 selfieUrl = uiState.selfieUrl,
+                isMotorizado = isMotorizado,
+                pendingInvitationsCount = pendingInvitationsCount,
                 onNavigateToProfile = {
                     scope.launch { drawerState.close() }
                     onNavigateToProfile()
@@ -211,6 +227,22 @@ fun HomeScreen(
                 onNavigateToWalletTransfer = {
                     scope.launch { drawerState.close() }
                     onNavigateToWalletTransfer()
+                },
+                onNavigateToDriverPanel = {
+                    scope.launch { drawerState.close() }
+                    onNavigateToDriverPanel()
+                },
+                onNavigateToDriverHistory = {
+                    scope.launch { drawerState.close() }
+                    onNavigateToDriverHistory()
+                },
+                onNavigateToDriverInvitations = {
+                    scope.launch { drawerState.close() }
+                    onNavigateToDriverInvitations()
+                },
+                onNavigateToAdminLiveMap = {
+                    scope.launch { drawerState.close() }
+                    onNavigateToAdminLiveMap()
                 },
                 onLogout = {
                     scope.launch { drawerState.close() }
@@ -274,7 +306,9 @@ fun HomeScreen(
                             onCartClick = onNavigateToCart,
                             onMyProductsClick = onNavigateToMyProducts,
                             onWalletClick = onNavigateToWallet,
-                            onWalletTransferClick = onNavigateToWalletTransfer
+                            onWalletTransferClick = onNavigateToWalletTransfer,
+                            onMisComprasClick = onNavigateToMisCompras,
+                            onMisVentasClick = onNavigateToMisVentas
                         )
                     }
 
@@ -544,7 +578,9 @@ private fun QuickActionsSection(
     onCartClick: () -> Unit = {},
     onMyProductsClick: () -> Unit = {},
     onWalletClick: () -> Unit = {},
-    onWalletTransferClick: () -> Unit = {}
+    onWalletTransferClick: () -> Unit = {},
+    onMisComprasClick: () -> Unit = {},
+    onMisVentasClick: () -> Unit = {}
 ) {
     Column(modifier = Modifier.padding(horizontal = 16.dp)) {
         Text(
@@ -566,9 +602,11 @@ private fun QuickActionsSection(
             add(ActionItem(Icons.AutoMirrored.Filled.Send, "Enviar", Color(0xFF3B82F6), onWalletTransferClick))
             add(ActionItem(Icons.Default.Person, "Perfil", Color(0xFF64748B), onProfileClick))
 
+            add(ActionItem(Icons.Default.ShoppingBag, "Mis Compras", Color(0xFFFF6B35), onMisComprasClick))
+            add(ActionItem(Icons.Default.ShoppingCart, "Carrito", Color(0xFFF43F5E), onCartClick))
             if (hasCompany) {
                 add(ActionItem(Icons.Default.Storefront, "Productos", Color(0xFF795548), onMyProductsClick))
-                add(ActionItem(Icons.Default.ShoppingCart, "Carrito", Color(0xFFF43F5E), onCartClick))
+                add(ActionItem(Icons.Default.Store, "Mis Ventas", Color(0xFF059669), onMisVentasClick))
                 add(ActionItem(Icons.Default.History, "Historial", Color(0xFF14B8A6), onHistoryClick))
                 add(ActionItem(Icons.Default.Payments, "Pagos", Color(0xFF6366F1), onPaymentsClick))
             }
@@ -833,11 +871,15 @@ private fun CompanyInfoCard(companyName: String, isActive: Boolean, status: Stri
 private fun ModernDrawerContent(
     userName: String, userEmail: String, isVerified: Boolean, isAdmin: Boolean, hasCompany: Boolean,
     hasEarningsAvailable: Boolean, hasWithdrawalsAvailable: Boolean, selfieUrl: String?,
+    isMotorizado: Boolean = false, pendingInvitationsCount: Int = 0,
     onNavigateToProfile: () -> Unit, onNavigateToReferrals: () -> Unit, onNavigateToCompany: () -> Unit,
     onNavigateToQR: () -> Unit, onNavigateToAdminEarnings: () -> Unit, onNavigateToAdminWithdrawals: () -> Unit,
     onNavigateToMyProducts: () -> Unit, onNavigateToCart: () -> Unit, onNavigateToHistory: () -> Unit,
     onNavigateToPayments: () -> Unit, onNavigateToEarnings: () -> Unit, onNavigateToWithdrawal: () -> Unit,
-    onNavigateToWallet: () -> Unit, onNavigateToWalletTransfer: () -> Unit, onLogout: () -> Unit
+    onNavigateToWallet: () -> Unit, onNavigateToWalletTransfer: () -> Unit,
+    onNavigateToDriverPanel: () -> Unit = {}, onNavigateToDriverHistory: () -> Unit = {},
+    onNavigateToDriverInvitations: () -> Unit = {}, onNavigateToAdminLiveMap: () -> Unit = {},
+    onLogout: () -> Unit
 ) {
     ModalDrawerSheet(modifier = Modifier.width(310.dp), drawerContainerColor = MaterialTheme.colorScheme.surface) {
         Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
@@ -887,6 +929,18 @@ private fun ModernDrawerContent(
             if (isAdmin) {
                 DrawerSectionLabel("Admin")
                 DrawerItem(Icons.Default.AttachMoney, "Ganancias Admin", onNavigateToAdminEarnings)
+                DrawerItem(Icons.Default.Map, "Conductores en Vivo", onNavigateToAdminLiveMap)
+            }
+
+            if (isMotorizado || pendingInvitationsCount > 0) {
+                DrawerSectionLabel("Motorizado")
+                if (pendingInvitationsCount > 0) {
+                    DrawerItem(Icons.Default.MailOutline, "Invitaciones ($pendingInvitationsCount)", onNavigateToDriverInvitations)
+                }
+                if (isMotorizado) {
+                    DrawerItem(Icons.Default.DirectionsBike, "Mis Pedidos", onNavigateToDriverPanel)
+                    DrawerItem(Icons.Default.History, "Historial de Entregas", onNavigateToDriverHistory)
+                }
             }
 
             HorizontalDivider(

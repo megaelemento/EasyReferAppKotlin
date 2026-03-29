@@ -51,7 +51,8 @@ fun ProfileScreen(
     viewModel: ProfileViewModel,
     onBack: () -> Unit,
     onLogout: () -> Unit,
-    onNavigateToSessions: () -> Unit = {}
+    onNavigateToSessions: () -> Unit = {},
+    onNavigateToSavedAddresses: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -238,6 +239,22 @@ fun ProfileScreen(
                                     title = "Empresa",
                                     items = listOf(ProfileItem("Negocio", uiState.empresaNombre ?: "Cargando..."))
                                 )
+                            }
+
+                            // SAVED ADDRESSES
+                            Surface(
+                                modifier = Modifier.fillMaxWidth().clickable { onNavigateToSavedAddresses() },
+                                shape = RoundedCornerShape(20.dp),
+                                color = MaterialTheme.colorScheme.surface,
+                                tonalElevation = 2.dp
+                            ) {
+                                Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(Icons.Default.Place, null, tint = MaterialTheme.colorScheme.primary)
+                                    Spacer(modifier = Modifier.width(16.dp))
+                                    Text("Mis Direcciones", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium)
+                                    Spacer(modifier = Modifier.weight(1f))
+                                    Icon(Icons.Default.ChevronRight, null, tint = MaterialTheme.colorScheme.outline)
+                                }
                             }
 
                             // SECURITY ACTIONS

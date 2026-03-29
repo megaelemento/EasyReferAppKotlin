@@ -3,7 +3,9 @@ package com.christelldev.easyreferplus.data.network
 import android.content.Context
 import kotlinx.coroutines.runBlocking
 import okhttp3.Interceptor
+import okhttp3.Protocol
 import okhttp3.Response
+import okhttp3.ResponseBody.Companion.toResponseBody
 
 class AuthInterceptor(
     private val authRepository: AuthRepository,
@@ -40,8 +42,8 @@ class AuthInterceptor(
 
             response.close()
 
-            // forceRefresh=true: ignorar el skip proactivo y hacer siempre la llamada
-            // de red. Con rotation=true, esto consume el refresh token actual y emite uno nuevo.
+            // forceRefresh=true: el token fue consumido por otro hilo si hay rotación.
+            // refreshToken() detecta la carrera comparando el access token antes/después del mutex.
             val refreshed = runBlocking { authRepository.refreshToken(forceRefresh = true) }
             if (refreshed) {
                 val newToken = authRepository.getAccessToken()
@@ -55,7 +57,15 @@ class AuthInterceptor(
             }
 
             authRepository.triggerLogout()
-            return chain.proceed(originalRequest)
+            // Devolver respuesta 401 sintética en vez de reintentar sin token
+            // (evita bucle infinito de 401 → interceptor → 401 → …)
+            return Response.Builder()
+                .request(originalRequest)
+                .protocol(Protocol.HTTP_1_1)
+                .code(401)
+                .message("Unauthorized")
+                .body("".toResponseBody(null))
+                .build()
         }
 
         return response
@@ -69,7 +79,10 @@ class AuthInterceptor(
         path.contains("/cities/")
 
     private fun shouldForceLogout(errorBody: String): Boolean {
-        val keywords = listOf("password_changed", "contraseña", "invalidada", "session_revoked")
+        // Solo palabras clave muy específicas de eventos de seguridad del servidor.
+        // NUNCA palabras comunes en español ("contraseña", "invalidada") porque
+        // aparecen en mensajes de error normales y provocan cierre de sesión falso.
+        val keywords = listOf("password_changed", "session_revoked")
         return keywords.any { errorBody.contains(it, ignoreCase = true) }
     }
 }

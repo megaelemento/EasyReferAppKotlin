@@ -56,6 +56,17 @@ object NetworkMonitor {
         return@withContext serverAvailable ?: true
     }
 
+    /**
+     * Devuelve el valor cacheado si aún es válido, o null si expiró.
+     * NO hace llamada de red — es instantáneo.
+     */
+    fun getCachedAvailability(): Boolean? {
+        if (System.currentTimeMillis() - lastServerCheck < CACHE_DURATION_MS) {
+            return serverAvailable
+        }
+        return null
+    }
+
     // Forzar nueva verificación
     fun resetCache() {
         lastServerCheck = 0

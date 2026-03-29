@@ -9,8 +9,12 @@ import com.christelldev.easyreferplus.data.model.RefreshTokenResponse
 import com.christelldev.easyreferplus.data.model.LogoutRequest
 import com.google.gson.Gson
 import com.google.gson.annotations.SerializedName
+import kotlinx.coroutines.DelicateCoroutinesApi
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import retrofit2.Response
@@ -68,6 +72,7 @@ class AuthRepository(
             if (response.isSuccessful) {
                 response.body()?.let { loginResponse ->
                     saveTokens(loginResponse)
+                    registerFcmToken(loginResponse.accessToken)
                     AuthResult.Success(loginResponse)
                 } ?: AuthResult.Error(AuthError.Unknown("Respuesta vacía del servidor"))
             } else {
@@ -76,6 +81,25 @@ class AuthRepository(
         } catch (e: Exception) {
             AuthResult.Error(handleNetworkException(e))
         }
+    }
+
+    @OptIn(DelicateCoroutinesApi::class)
+    private fun registerFcmToken(accessToken: String) {
+        com.google.firebase.messaging.FirebaseMessaging.getInstance().token
+            .addOnSuccessListener { token ->
+                sharedPreferences.edit().putString("fcm_token", token).apply()
+                GlobalScope.launch(Dispatchers.IO) {
+                    try {
+                        apiService.updateFcmToken(
+                            authorization = "Bearer $accessToken",
+                            body = mapOf("token" to token),
+                        )
+                        android.util.Log.d("AuthRepo", "Token FCM registrado OK")
+                    } catch (e: Exception) {
+                        android.util.Log.w("AuthRepo", "Error registrando FCM token: ${e.message}")
+                    }
+                }
+            }
     }
 
     private fun handleNetworkException(e: Exception): AuthError {
@@ -137,6 +161,17 @@ class AuthRepository(
     fun getRefreshToken(): String? = sharedPreferences.getString(KEY_REFRESH_TOKEN, null)
     fun isLoggedIn(): Boolean = getAccessToken() != null
     fun getUserNombres(): String? = sharedPreferences.getString(KEY_USER_NOMBRES, null)
+
+    fun getUserId(): Int {
+        val token = getAccessToken() ?: return 0
+        return try {
+            val parts = token.split(".")
+            if (parts.size < 2) return 0
+            val payload = String(android.util.Base64.decode(parts[1], android.util.Base64.URL_SAFE or android.util.Base64.NO_PADDING))
+            val json = org.json.JSONObject(payload)
+            json.optInt("user_id", 0)
+        } catch (_: Exception) { 0 }
+    }
     fun getTokenExpiryTime(): Long = sharedPreferences.getLong(KEY_TOKEN_EXPIRY, 0L)
 
     fun isTokenExpired(): Boolean {
@@ -157,42 +192,54 @@ class AuthRepository(
     /**
      * Refresca el access token usando el refresh token.
      *
-     * - Uso PROACTIVO (AppLock, inicio): si el token aún es válido → skip (best effort).
-     * - Uso REACTIVO (AuthInterceptor tras 401): [forceRefresh]=true para ignorar el skip
-     *   y hacer siempre la llamada de red, incluso si el token "parece" válido localmente.
+     * - PROACTIVO: si el token aún es válido → skip.
+     * - REACTIVO (AuthInterceptor tras 401): [forceRefresh]=true.
      *
-     * Con [refresh_token_rotation]=true en el backend, cada llamada al endpoint de refresh
-     * invalida el refresh token anterior. Por eso el skip proactivo es importante: evita
-     * consumir el refresh token cuando no es necesario.
+     * Con refresh_token_rotation=true, cada llamada al endpoint de refresh consume
+     * el refresh token anterior. Para evitar la condición de carrera cuando múltiples
+     * hilos reciben 401 simultáneamente: se captura el access token ANTES de adquirir
+     * el mutex. Si al entrar al mutex el token ya cambió, otro hilo refrescó primero
+     * y no se hace una segunda llamada (que fallaría con el token ya rotado).
      */
-    suspend fun refreshToken(forceRefresh: Boolean = false): Boolean = refreshMutex.withLock {
-        val expiryTime = getTokenExpiryTime()
-        // Skip si no se fuerza Y el token es válido (o no conocemos el expiry).
-        if (!forceRefresh && getAccessToken() != null &&
-            (expiryTime == 0L || (!isTokenExpired() && !isTokenExpiringSoon()))
-        ) return true
+    suspend fun refreshToken(forceRefresh: Boolean = false): Boolean {
+        // Capturar el access token ANTES de esperar el mutex
+        val tokenBeforeWait = if (forceRefresh) getAccessToken() else null
 
-        val refreshToken = getRefreshToken() ?: return false
-        return try {
-            val response = apiService.refreshToken(RefreshTokenRequest(refreshToken))
-            if (response.isSuccessful) {
-                response.body()?.let {
-                    saveTokensFromRefresh(it)
-                    true
-                } ?: false
-            } else {
-                // 401/403 = refresh token inválido → sesión terminada
-                // 429 y otros = error temporal → mantener sesión para reintentar
-                response.code() != 401 && response.code() != 403
+        return refreshMutex.withLock {
+            // Condición de carrera: si otro hilo ya refrescó mientras esperábamos el mutex,
+            // el access token habrá cambiado → reutilizar el nuevo token sin llamar al servidor.
+            if (forceRefresh && tokenBeforeWait != null && tokenBeforeWait != getAccessToken()) {
+                return@withLock getAccessToken() != null
             }
-        } catch (e: Exception) {
-            true // Error de red, no cerrar sesión
+
+            val expiryTime = getTokenExpiryTime()
+            // Skip si no se fuerza Y el token es válido (o no conocemos el expiry).
+            if (!forceRefresh && getAccessToken() != null &&
+                (expiryTime == 0L || (!isTokenExpired() && !isTokenExpiringSoon()))
+            ) return@withLock true
+
+            val refreshToken = getRefreshToken() ?: return@withLock false
+            return@withLock try {
+                val response = apiService.refreshToken(RefreshTokenRequest(refreshToken))
+                if (response.isSuccessful) {
+                    response.body()?.let {
+                        saveTokensFromRefresh(it)
+                        true
+                    } ?: false
+                } else {
+                    // 401/403 = refresh token inválido → sesión terminada
+                    // 429 y otros = error temporal → mantener sesión para reintentar
+                    response.code() != 401 && response.code() != 403
+                }
+            } catch (e: Exception) {
+                true // Error de red, no cerrar sesión
+            }
         }
     }
 
     suspend fun validateSessionWithServer(): Boolean {
         val accessToken = getAccessToken() ?: return false
-        return try {
+        val result = try {
             val response = apiService.validateSession("Bearer $accessToken", getRefreshToken())
             if (response.isSuccessful) {
                 val body = response.body()
@@ -211,11 +258,19 @@ class AuthRepository(
         } catch (e: Exception) {
             true // Error de red, mantener sesión
         }
+        // Re-sincronizar token FCM en cada inicio de app con sesión válida
+        // para que el backend siempre tenga el token correcto del dispositivo actual
+        if (result) registerFcmToken(getAccessToken() ?: accessToken)
+        return result
     }
 
     suspend fun logout(): Boolean {
         val accessToken = getAccessToken()
         val refreshToken = getRefreshToken()
+        // Limpiar token FCM del backend ANTES de borrar el access token local
+        if (accessToken != null) {
+            try { apiService.clearFcmToken("Bearer $accessToken") } catch (_: Exception) {}
+        }
         clearAllData()
         if (accessToken == null) return true
         return try {

@@ -194,6 +194,21 @@
 
 ---
 
+### 2026-03-23 - Build APK
+**Objetivo:** Compilar APK y subir a Drive.
+
+**Build realizado:**
+- assembleDebug: BUILD SUCCESSFUL
+- APK generado: `app-debug.apk` (46.5 MB)
+- Subido a Drive: `drive:EasyRefer/Apps/` (app-debug.apk/app-debug.apk)
+
+**Config:**
+- SERVER_URL: `http://192.168.9.32:8971` (test local)
+
+**Estado:** ✅ Completado
+
+---
+
 ## 📌 Pendientes
 - [x] Subir a GitHub
 - [ ] QA completo de la app

@@ -30,6 +30,7 @@ data class HomeUiState(
     val empresaStatus: String? = null,
     val empresaActiva: Boolean? = false,
     val isAdmin: Boolean = false,
+    val isMotorizado: Boolean = false,
     val selfieUrl: String? = null,
 
     // Payment access
@@ -131,6 +132,7 @@ class HomeViewModel(
                     empresaStatus = profile?.empresaStatus ?: _uiState.value.empresaStatus,
                     empresaActiva = profile?.empresaActiva ?: _uiState.value.empresaActiva,
                     isAdmin = profile?.isAdmin ?: _uiState.value.isAdmin,
+                    isMotorizado = profile?.role?.lowercase() == "motorizado",
                     selfieUrl = profile?.selfieUrl ?: _uiState.value.selfieUrl,
                     balance = balance ?: _uiState.value.balance,
                     totalReferrals = referrals?.totals?.total ?: _uiState.value.totalReferrals,

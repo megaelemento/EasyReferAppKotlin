@@ -97,6 +97,17 @@ interface ApiService {
     @POST("api/auth/login")
     suspend fun login(@Body request: LoginRequest): Response<LoginResponse>
 
+    @PUT("api/auth/fcm-token")
+    suspend fun updateFcmToken(
+        @Header("Authorization") authorization: String,
+        @Body body: Map<String, String>,
+    ): Response<Unit>
+
+    @DELETE("api/auth/fcm-token")
+    suspend fun clearFcmToken(
+        @Header("Authorization") authorization: String,
+    ): Response<Unit>
+
     @POST("api/auth/logout")
     suspend fun logout(
         @Header("Authorization") authorization: String,
@@ -642,4 +653,297 @@ interface ApiService {
     suspend fun checkWalletRecipient(
         @Query("phone") phone: String
     ): Response<CheckRecipientResponse>
+
+    // =====================================================
+    // DELIVERY - DRIVER
+    // =====================================================
+
+    @GET("api/delivery/drivers/me")
+    suspend fun getDriverProfile(
+        @Header("Authorization") authorization: String
+    ): Response<com.christelldev.easyreferplus.data.model.DriverProfile>
+
+    @GET("api/orders/driver/available")
+    suspend fun getAvailableOrders(
+        @Header("Authorization") authorization: String
+    ): Response<List<com.christelldev.easyreferplus.data.model.AvailableOrder>>
+
+    @GET("api/delivery/drivers/me/active-order")
+    suspend fun getActiveOrder(
+        @Header("Authorization") authorization: String
+    ): Response<com.christelldev.easyreferplus.data.model.ActiveOrderResponse>
+
+    @PUT("api/delivery/drivers/me/duty")
+    suspend fun toggleDriverDuty(
+        @Header("Authorization") authorization: String
+    ): Response<com.christelldev.easyreferplus.data.model.OnDutyToggleResponse>
+
+    @PUT("api/delivery/drivers/me/location")
+    suspend fun updateDriverLocation(
+        @Header("Authorization") authorization: String,
+        @Body body: com.christelldev.easyreferplus.data.model.LocationUpdate
+    ): Response<com.christelldev.easyreferplus.data.model.DriverActionResponse>
+
+    @PUT("api/orders/{orderId}/driver/accept")
+    suspend fun acceptDeliveryOrder(
+        @Header("Authorization") authorization: String,
+        @Path("orderId") orderId: Int
+    ): Response<com.christelldev.easyreferplus.data.model.DriverActionResponse>
+
+    @PUT("api/orders/{orderId}/driver/reject")
+    suspend fun rejectOrder(
+        @Header("Authorization") authorization: String,
+        @Path("orderId") orderId: Int
+    ): Response<com.christelldev.easyreferplus.data.model.DriverActionResponse>
+
+    // Alias sin Response wrapper para uso directo desde DriverOrderRequestActivity
+    @PUT("api/orders/{orderId}/driver/accept")
+    suspend fun acceptOrder(
+        @Header("Authorization") authorization: String,
+        @Path("orderId") orderId: Int
+    ): Response<com.christelldev.easyreferplus.data.model.DriverActionResponse>
+
+    @PUT("api/orders/{orderId}/driver/pickup")
+    suspend fun confirmOrderPickup(
+        @Header("Authorization") authorization: String,
+        @Path("orderId") orderId: Int
+    ): Response<com.christelldev.easyreferplus.data.model.DriverActionResponse>
+
+    @PUT("api/orders/{orderId}/driver/deliver")
+    suspend fun confirmOrderDelivery(
+        @Header("Authorization") authorization: String,
+        @Path("orderId") orderId: Int
+    ): Response<com.christelldev.easyreferplus.data.model.DriverActionResponse>
+
+    // Foto de evidencia de entrega
+    @Multipart
+    @POST("api/orders/{orderId}/delivery-photo")
+    suspend fun uploadDeliveryPhoto(
+        @Header("Authorization") authorization: String,
+        @Path("orderId") orderId: Int,
+        @Part photo: okhttp3.MultipartBody.Part
+    ): Response<com.christelldev.easyreferplus.data.model.DeliveryPhotoResponse>
+
+    // Conductor marca llegada al punto de recogida
+    @PUT("api/orders/{orderId}/arrived-pickup")
+    suspend fun driverArrivedAtPickup(
+        @Header("Authorization") authorization: String,
+        @Path("orderId") orderId: Int
+    ): Response<com.christelldev.easyreferplus.data.model.DriverActionResponse>
+
+    // Conductor marca llegada al destino
+    @PUT("api/orders/{orderId}/arrived-dropoff")
+    suspend fun driverArrivedAtDropoff(
+        @Header("Authorization") authorization: String,
+        @Path("orderId") orderId: Int
+    ): Response<com.christelldev.easyreferplus.data.model.DriverActionResponse>
+
+    // Ganancias del conductor hoy
+    @GET("api/orders/driver/earnings-today")
+    suspend fun getDriverEarningsToday(
+        @Header("Authorization") authorization: String
+    ): Response<com.christelldev.easyreferplus.data.model.DriverEarningsTodayResponse>
+
+    // Establecimiento marca el pedido como listo para recoger
+    @PUT("api/orders/{orderId}/store/ready")
+    suspend fun storeMarkOrderReady(
+        @Header("Authorization") authorization: String,
+        @Path("orderId") orderId: Int
+    ): Response<com.christelldev.easyreferplus.data.model.SimpleSuccessResponse>
+
+    // Comprador confirma que recibió el pedido
+    @PUT("api/orders/{orderId}/buyer/confirm")
+    suspend fun buyerConfirmReceipt(
+        @Header("Authorization") authorization: String,
+        @Path("orderId") orderId: Int
+    ): Response<com.christelldev.easyreferplus.data.model.SimpleSuccessResponse>
+
+    // Comprador cancela el pedido (solo mientras busca conductor)
+    @PUT("api/orders/{orderId}/cancel")
+    suspend fun cancelOrder(
+        @Header("Authorization") authorization: String,
+        @Path("orderId") orderId: Int
+    ): Response<com.christelldev.easyreferplus.data.model.SimpleSuccessResponse>
+
+    @GET("api/delivery/drivers/me/invitations")
+    suspend fun getDriverInvitations(
+        @Header("Authorization") authorization: String
+    ): Response<List<com.christelldev.easyreferplus.data.model.DriverInvitation>>
+
+    @POST("api/delivery/drivers/me/invitations/{invitationId}/accept")
+    suspend fun acceptDriverInvitation(
+        @Header("Authorization") authorization: String,
+        @Path("invitationId") invitationId: Int
+    ): Response<com.christelldev.easyreferplus.data.model.DriverActionResponse>
+
+    @POST("api/delivery/drivers/me/invitations/{invitationId}/reject")
+    suspend fun rejectDriverInvitation(
+        @Header("Authorization") authorization: String,
+        @Path("invitationId") invitationId: Int
+    ): Response<com.christelldev.easyreferplus.data.model.DriverActionResponse>
+
+    // =====================================================
+    // DELIVERY - ADMIN
+    // =====================================================
+
+    @GET("api/delivery/drivers/company/live-locations")
+    suspend fun getAdminDriverLocations(
+        @Header("Authorization") authorization: String
+    ): Response<List<com.christelldev.easyreferplus.data.model.AdminDriverLocation>>
+
+    @GET("api/delivery/drivers/company/orders")
+    suspend fun getCompanyOrders(
+        @Header("Authorization") authorization: String,
+        @Query("page") page: Int = 1,
+        @Query("per_page") perPage: Int = 30,
+        @Query("status") status: String? = null
+    ): Response<com.christelldev.easyreferplus.data.model.CompanyOrdersResponse>
+
+    // =====================================================
+    // ORDERS — COMPRADOR
+    // =====================================================
+
+    @POST("api/orders/")
+    suspend fun createOrder(
+        @Header("Authorization") authorization: String,
+        @Body request: com.christelldev.easyreferplus.data.model.OrderCreateRequest
+    ): Response<com.christelldev.easyreferplus.data.model.OrderCreateResponse>
+
+    @GET("api/orders/delivery-options")
+    suspend fun getDeliveryOptions(
+        @Header("Authorization") authorization: String,
+        @Query("dest_lat") destLat: Double,
+        @Query("dest_lng") destLng: Double
+    ): Response<com.christelldev.easyreferplus.data.model.DeliveryOptionsResponse>
+
+    @POST("api/orders/{orderId}/simulate-payment")
+    suspend fun simulatePayment(
+        @Header("Authorization") authorization: String,
+        @Path("orderId") orderId: Int
+    ): Response<com.christelldev.easyreferplus.data.model.SimulatePaymentResponse>
+
+    @GET("api/orders/")
+    suspend fun getMyOrders(
+        @Header("Authorization") authorization: String,
+        @Query("page") page: Int = 1,
+        @Query("per_page") perPage: Int = 20
+    ): Response<List<com.christelldev.easyreferplus.data.model.OrderOut>>
+
+    @GET("api/orders/{orderId}")
+    suspend fun getOrderDetail(
+        @Header("Authorization") authorization: String,
+        @Path("orderId") orderId: Int
+    ): Response<com.christelldev.easyreferplus.data.model.OrderOut>
+
+    @GET("api/orders/company/received")
+    suspend fun getMyReceivedOrders(
+        @Header("Authorization") authorization: String,
+        @Query("page") page: Int = 1,
+        @Query("per_page") perPage: Int = 20,
+        @Query("status") status: String? = null
+    ): Response<com.christelldev.easyreferplus.data.model.StoreOrdersResponse>
+
+    // ─── Saved Addresses ─────────────────────────────────────────────────────
+
+    @GET("api/orders/saved-addresses")
+    suspend fun getSavedAddresses(
+        @Header("Authorization") authorization: String
+    ): Response<List<com.christelldev.easyreferplus.data.model.SavedAddress>>
+
+    @POST("api/orders/saved-addresses")
+    suspend fun createSavedAddress(
+        @Header("Authorization") authorization: String,
+        @Body request: com.christelldev.easyreferplus.data.model.CreateAddressRequest
+    ): Response<com.christelldev.easyreferplus.data.model.SavedAddress>
+
+    @PUT("api/orders/saved-addresses/{addressId}")
+    suspend fun updateSavedAddress(
+        @Header("Authorization") authorization: String,
+        @Path("addressId") addressId: Int,
+        @Body request: com.christelldev.easyreferplus.data.model.UpdateAddressRequest
+    ): Response<com.christelldev.easyreferplus.data.model.SavedAddress>
+
+    @DELETE("api/orders/saved-addresses/{addressId}")
+    suspend fun deleteSavedAddress(
+        @Header("Authorization") authorization: String,
+        @Path("addressId") addressId: Int
+    ): Response<com.christelldev.easyreferplus.data.model.SimpleSuccessResponse>
+
+    // ─── Order Tracking ─────────────────────────────────────────────────────
+
+    @GET("api/orders/{orderId}/tracking")
+    suspend fun getOrderTracking(
+        @Header("Authorization") authorization: String,
+        @Path("orderId") orderId: Int
+    ): Response<com.christelldev.easyreferplus.data.model.OrderTrackingInfo>
+
+    @GET("api/orders/{orderId}/eta")
+    suspend fun getOrderEta(
+        @Header("Authorization") authorization: String,
+        @Path("orderId") orderId: Int
+    ): Response<com.christelldev.easyreferplus.data.model.OrderEtaResponse>
+
+    // =====================================================
+    // RATINGS & TIPS
+    // =====================================================
+
+    @POST("api/orders/{orderId}/rating")
+    suspend fun createRating(
+        @Header("Authorization") authorization: String,
+        @Path("orderId") orderId: Int,
+        @Body request: com.christelldev.easyreferplus.data.model.RatingRequest
+    ): Response<com.christelldev.easyreferplus.data.model.RatingResponse>
+
+    @GET("api/orders/{orderId}/rating")
+    suspend fun getMyRating(
+        @Header("Authorization") authorization: String,
+        @Path("orderId") orderId: Int
+    ): Response<com.christelldev.easyreferplus.data.model.MyRatingResponse>
+
+    @POST("api/orders/{orderId}/tip")
+    suspend fun createOrUpdateTip(
+        @Header("Authorization") authorization: String,
+        @Path("orderId") orderId: Int,
+        @Body request: com.christelldev.easyreferplus.data.model.TipRequest
+    ): Response<com.christelldev.easyreferplus.data.model.TipResponse>
+
+    @GET("api/orders/{orderId}/tip")
+    suspend fun getTip(
+        @Header("Authorization") authorization: String,
+        @Path("orderId") orderId: Int
+    ): Response<com.christelldev.easyreferplus.data.model.TipDetailResponse>
+
+    @GET("api/orders/ratings/config")
+    suspend fun getRatingConfig(
+        @Header("Authorization") authorization: String
+    ): Response<com.christelldev.easyreferplus.data.model.RatingConfigResponse>
+
+    // ─── Chat ────────────────────────────────────────────────────────────────
+
+    @GET("api/orders/{orderId}/messages")
+    suspend fun getChatMessages(
+        @Path("orderId") orderId: Int,
+        @Query("limit") limit: Int = 50,
+        @Query("before_id") beforeId: Int? = null,
+        @Header("Authorization") authorization: String
+    ): Response<com.christelldev.easyreferplus.data.model.ChatMessagesResponse>
+
+    @POST("api/orders/{orderId}/messages")
+    suspend fun sendChatMessage(
+        @Path("orderId") orderId: Int,
+        @Body body: com.christelldev.easyreferplus.data.model.ChatMessageRequest,
+        @Header("Authorization") authorization: String
+    ): Response<com.christelldev.easyreferplus.data.model.ChatSendResponse>
+
+    @PUT("api/orders/{orderId}/messages/read")
+    suspend fun markChatMessagesRead(
+        @Path("orderId") orderId: Int,
+        @Header("Authorization") authorization: String
+    ): Response<com.christelldev.easyreferplus.data.model.ChatMarkReadResponse>
+
+    @GET("api/orders/{orderId}/unread-count")
+    suspend fun getChatUnreadCount(
+        @Path("orderId") orderId: Int,
+        @Header("Authorization") authorization: String
+    ): Response<com.christelldev.easyreferplus.data.model.ChatUnreadResponse>
 }

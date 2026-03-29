@@ -31,6 +31,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.christelldev.easyreferplus.data.model.CartItem
+import com.christelldev.easyreferplus.ui.viewmodel.AddressViewModel
+import com.christelldev.easyreferplus.ui.viewmodel.OrderViewModel
 
 sealed class CheckoutState {
     object Idle : CheckoutState()
@@ -52,6 +54,8 @@ fun CartScreen(
     cartItems: List<CartItem>,
     isLoading: Boolean,
     checkoutState: CheckoutState,
+    orderViewModel: OrderViewModel,
+    addressViewModel: AddressViewModel? = null,
     onAddToCart: (Int, Int) -> Unit,
     onRemoveFromCart: (Int) -> Unit,
     onUpdateQuantity: (Int, Int) -> Unit,
@@ -60,17 +64,33 @@ fun CartScreen(
     onNavigateBack: () -> Unit,
     onCheckoutDismiss: () -> Unit,
     onRefreshCart: () -> Unit,
-    onCheckoutSuccess: () -> Unit = {}
+    onCheckoutSuccess: (orderId: Int) -> Unit = {}
 ) {
     val isDark = isSystemInDarkTheme()
     val totalAmount = remember(cartItems) { cartItems.sumOf { it.price * it.quantity } }
+    var showDeliverySheet by remember { mutableStateOf(false) }
 
     if (checkoutState is CheckoutState.Success) {
         CheckoutSuccessDialog(
             state = checkoutState,
             onDismiss = {
                 onCheckoutDismiss()
-                onCheckoutSuccess()
+                onCheckoutSuccess(checkoutState.orderId)
+            }
+        )
+    }
+
+    if (showDeliverySheet) {
+        CheckoutFlowSheet(
+            cartItems = cartItems,
+            cartTotal = totalAmount,
+            orderViewModel = orderViewModel,
+            addressViewModel = addressViewModel,
+            onDismiss = { showDeliverySheet = false },
+            onSuccess = { orderId ->
+                showDeliverySheet = false
+                onRefreshCart()
+                onCheckoutSuccess(orderId)
             }
         )
     }
@@ -136,7 +156,7 @@ fun CartScreen(
                         CheckoutSummaryCard(
                             subtotal = totalAmount,
                             total = totalAmount,
-                            onCheckout = onCheckout,
+                            onCheckout = { showDeliverySheet = true },
                             isLoading = checkoutState is CheckoutState.Processing
                         )
                     }

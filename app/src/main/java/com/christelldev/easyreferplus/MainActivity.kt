@@ -122,14 +122,45 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.christelldev.easyreferplus.ui.screens.auth.AppLockScreen
 import com.christelldev.easyreferplus.util.AppLockManager
 import com.christelldev.easyreferplus.util.BiometricHelper
+import com.christelldev.easyreferplus.ui.screens.driver.DriverConfigScreen
+import com.christelldev.easyreferplus.ui.screens.driver.DriverHistoryScreen
+import com.christelldev.easyreferplus.ui.screens.driver.DriverHomeScreen
+import com.christelldev.easyreferplus.ui.screens.driver.DriverInvitationsScreen
+import com.christelldev.easyreferplus.ui.screens.driver.DriverOrderRequestActivity
+import com.christelldev.easyreferplus.ui.screens.driver.DriverOrderScreen
+import com.christelldev.easyreferplus.service.DriverForegroundService
+import com.christelldev.easyreferplus.ui.screens.admin.AdminLiveMapScreen
+import com.christelldev.easyreferplus.ui.screens.admin.AdminOrdersScreen
+import com.christelldev.easyreferplus.ui.viewmodel.DriverViewModel
+import com.christelldev.easyreferplus.ui.viewmodel.AdminDeliveryViewModel
+import com.christelldev.easyreferplus.ui.viewmodel.OrderViewModel
+import com.christelldev.easyreferplus.data.network.OrderRepository
+import com.christelldev.easyreferplus.ui.screens.orders.MisComprasScreen
+import com.christelldev.easyreferplus.ui.screens.orders.MisVentasScreen
+import com.christelldev.easyreferplus.ui.screens.address.SavedAddressesScreen
+import com.christelldev.easyreferplus.ui.screens.address.AddressPickerScreen
+import com.christelldev.easyreferplus.ui.viewmodel.AddressViewModel
+import com.christelldev.easyreferplus.data.network.AddressRepository
+import com.christelldev.easyreferplus.data.model.SavedAddress
+import com.christelldev.easyreferplus.ui.screens.orders.OrderTrackingScreen
+import com.christelldev.easyreferplus.ui.screens.orders.OrderRatingScreen
+import com.christelldev.easyreferplus.ui.screens.orders.OrderChatScreen
+import com.christelldev.easyreferplus.ui.viewmodel.OrderTrackingViewModel
+import com.christelldev.easyreferplus.ui.viewmodel.OrderRatingViewModel
+import com.christelldev.easyreferplus.ui.viewmodel.OrderChatViewModel
+import com.christelldev.easyreferplus.ui.viewmodel.StoreOrdersViewModel
 
 class MainActivity : androidx.appcompat.app.AppCompatActivity() {
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
         // Inicializar configuración de la app
         AppConfig.init(this)
+
+        // Si se abrió la app desde una notificación FCM de pedido (app cerrada), lanzar alerta
+        handleFcmDriverIntent(intent)
 
         val authRepository = AuthRepository.Factory(this).create()
 
@@ -141,6 +172,8 @@ class MainActivity : androidx.appcompat.app.AppCompatActivity() {
                 MainNavigation(
                     authRepository = authRepository,
                     registerRepository = RegisterRepository.Factory(this).create(),
+                    fcmNotificationType = intent?.getStringExtra("event") ?: intent?.getStringExtra("type"),
+                    fcmOrderId = intent?.getStringExtra("order_id")?.toIntOrNull(),
                     onNavigateToLogin = {
                         startActivity(Intent(this, MainActivity::class.java))
                         finish()
@@ -153,6 +186,29 @@ class MainActivity : androidx.appcompat.app.AppCompatActivity() {
                 )
             }
         }
+    }
+
+    /**
+     * Maneja el intent de una notificación FCM de tipo "new_order".
+     * Se llama desde onCreate cuando la app se abrió desde una notificación.
+     * Lanza DriverOrderRequestActivity solo si el usuario está en modo conductor.
+     */
+    private fun handleFcmDriverIntent(intent: Intent?) {
+        if (intent?.getStringExtra("type") != "new_order") return
+        val orderId = intent.getStringExtra("order_id") ?: return
+        val prefs = getSharedPreferences("EasyReferPrefs", android.content.Context.MODE_PRIVATE)
+        if (!prefs.getBoolean("is_driver_account", false)) return
+        val data = mapOf(
+            "type" to "new_order",
+            "order_id" to orderId,
+            "delivery_fee" to (intent.getStringExtra("delivery_fee") ?: "0.00"),
+            "pickup_address" to (intent.getStringExtra("pickup_address") ?: ""),
+            "dropoff_address" to (intent.getStringExtra("dropoff_address") ?: ""),
+            "items_count" to (intent.getStringExtra("items_count") ?: "0"),
+            "total" to (intent.getStringExtra("total") ?: "0.00"),
+            "timeout_seconds" to (intent.getStringExtra("timeout_seconds") ?: "30"),
+        )
+        startActivity(DriverOrderRequestActivity.createIntent(this, data))
     }
 }
 
@@ -205,16 +261,58 @@ sealed class Screen(val route: String) {
     data object WalletSetPin : Screen("wallet_set_pin")
     data object WalletChangePin : Screen("wallet_change_pin")
     data object AppLock : Screen("app_lock")
+    // Delivery - Driver
+    data object DriverHome : Screen("driver_home")
+    data object DriverActiveOrder : Screen("driver_active_order")
+    data object DriverInvitations : Screen("driver_invitations")
+    data object DriverHistory : Screen("driver_history")
+    data object DriverConfig : Screen("driver_config")
+    // Delivery - Admin
+    data object AdminLiveMap : Screen("admin_live_map")
+    data object AdminOrders : Screen("admin_orders")
+    data object AdminReports : Screen("admin_reports")
+    // Compras del usuario
+    data object MisCompras : Screen("mis_compras")
+    // Ventas del establecimiento
+    data object MisVentas : Screen("mis_ventas")
+    // Direcciones guardadas
+    data object SavedAddresses : Screen("saved_addresses")
+    data object AddressPicker : Screen("address_picker?addressId={addressId}") {
+        fun createRoute(addressId: Int? = null) =
+            if (addressId != null) "address_picker?addressId=$addressId" else "address_picker"
+    }
+    // Tracking de pedido en tiempo real
+    data object OrderTracking : Screen("order_tracking/{orderId}") {
+        fun createRoute(orderId: Int) = "order_tracking/$orderId"
+    }
+    // Chat in-app pedido
+    data object OrderChat : Screen("order_chat/{orderId}?otherUserName={otherUserName}&isDriver={isDriver}") {
+        fun createRoute(orderId: Int, otherUserName: String, isDriver: Boolean = false): String {
+            return "order_chat/$orderId?otherUserName=${Uri.encode(otherUserName)}&isDriver=$isDriver"
+        }
+    }
+    // Rating post-entrega
+    data object OrderRating : Screen("order_rating/{orderId}?deliveryFee={deliveryFee}&driverName={driverName}&driverSelfieUrl={driverSelfieUrl}&companyName={companyName}") {
+        fun createRoute(orderId: Int, deliveryFee: Double = 0.0, driverName: String? = null, driverSelfieUrl: String? = null, companyName: String? = null): String {
+            var route = "order_rating/$orderId?deliveryFee=$deliveryFee"
+            driverName?.let { route += "&driverName=${Uri.encode(it)}" }
+            driverSelfieUrl?.let { route += "&driverSelfieUrl=${Uri.encode(it)}" }
+            companyName?.let { route += "&companyName=${Uri.encode(it)}" }
+            return route
+        }
+    }
 }
 
 @Composable
 fun MainNavigation(
     authRepository: AuthRepository,
     registerRepository: RegisterRepository,
+    fcmNotificationType: String? = null,
+    fcmOrderId: Int? = null,
     onNavigateToLogin: () -> Unit,
     onLogoutComplete: () -> Unit
 ) {
-    var isServerAvailable by remember { mutableStateOf<Boolean?>(null) }
+    var isServerAvailable by remember { mutableStateOf<Boolean?>(NetworkMonitor.getCachedAvailability()) }
     var checkKey by remember { mutableStateOf(0) }
     var isLoggedIn by remember { mutableStateOf(authRepository.isLoggedIn()) }
     var sessionValidated by remember { mutableStateOf(false) }
@@ -310,8 +408,8 @@ fun MainNavigation(
         return
     }
 
-    // Mientras verifica el servidor o valida la sesión, mostrar pantalla de carga
-    if (isServerAvailable == null || !sessionValidated) {
+    // Solo bloquear si el servidor no ha sido verificado aún (primera vez o cache expirado)
+    if (isServerAvailable == null) {
         androidx.compose.foundation.layout.Box(
             modifier = Modifier.fillMaxSize(),
             contentAlignment = Alignment.Center
@@ -396,6 +494,55 @@ fun MainNavigation(
     val productRepository = ProductRepository.Factory().create()
     val productViewModel: ProductViewModel = viewModel(
         factory = ProductViewModel.Factory(productRepository) { authRepository.getAccessToken() ?: "" }
+    )
+
+    // Driver ViewModel
+    val driverViewModel: DriverViewModel = viewModel(
+        factory = DriverViewModel.Factory.fromContext(context)
+    )
+
+    // Admin Delivery ViewModel
+    val adminDeliveryViewModel: AdminDeliveryViewModel = viewModel(
+        factory = AdminDeliveryViewModel.Factory(context)
+    )
+
+    // Orders ViewModel
+    val orderRepository = OrderRepository.Factory().create()
+    val orderViewModel: OrderViewModel = viewModel(
+        factory = OrderViewModel.Factory(orderRepository) { authRepository.getAccessToken() ?: "" }
+    )
+    val storeOrdersViewModel: StoreOrdersViewModel = viewModel(
+        factory = StoreOrdersViewModel.Factory(orderRepository) { authRepository.getAccessToken() ?: "" }
+    )
+
+    // Address ViewModel
+    val addressRepository = AddressRepository(apiService)
+    val addressViewModel: AddressViewModel = viewModel(
+        factory = AddressViewModel.Factory(addressRepository) { authRepository.getAccessToken() ?: "" }
+    )
+
+    // Order Tracking ViewModel
+    val orderTrackingViewModel: OrderTrackingViewModel = viewModel(
+        factory = OrderTrackingViewModel.Factory(
+            apiService,
+            { authRepository.getAccessToken() ?: "" },
+            { AppConfig.WS_URL }
+        )
+    )
+
+    // Order Rating ViewModel
+    val orderRatingViewModel: OrderRatingViewModel = viewModel(
+        factory = OrderRatingViewModel.Factory(apiService) { authRepository.getAccessToken() ?: "" }
+    )
+
+    // Order Chat ViewModel
+    val orderChatViewModel: OrderChatViewModel = viewModel(
+        factory = OrderChatViewModel.Factory(
+            apiService,
+            { authRepository.getAccessToken() ?: "" },
+            { AppConfig.WS_URL },
+            { authRepository.getUserId() }
+        )
     )
 
     // WebSocket Manager para notificaciones en tiempo real
@@ -579,6 +726,33 @@ fun MainNavigation(
         }
     }
 
+    // Deep link from FCM push notifications
+    // Notifications use "event" key in data, and "type" for data-only driver messages
+    LaunchedEffect(fcmNotificationType, fcmOrderId) {
+        val event = fcmNotificationType
+        if (fcmOrderId != null && isLoggedIn && sessionValidated && event != null) {
+            // Wait a bit for navigation to be ready
+            kotlinx.coroutines.delay(500)
+            when (event) {
+                "driver_assigned", "driver_arriving", "arrived_pickup",
+                "picked_up", "delivered", "order_paid" -> {
+                    navController.navigate(Screen.OrderTracking.createRoute(fcmOrderId))
+                }
+                "chat_message" -> {
+                    navController.navigate(
+                        Screen.OrderChat.createRoute(fcmOrderId, "Repartidor", false)
+                    )
+                }
+                "rate_order" -> {
+                    navController.navigate(Screen.OrderRating.createRoute(fcmOrderId))
+                }
+                "tip_received" -> {
+                    navController.navigate(Screen.MisCompras.route)
+                }
+            }
+        }
+    }
+
     Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
         NavHost(
             navController = navController,
@@ -665,25 +839,35 @@ fun MainNavigation(
 
             composable(Screen.Home.route) {
                 // Cargar carrito y conectar WebSocket de billetera cuando se muestra el Home
+                val homeUiState by homeViewModel.uiState.collectAsState()
+                val isMotorizado = homeUiState.isMotorizado
+
                 LaunchedEffect(Unit) {
                     productViewModel.loadCart()
-                    // Conectar WebSocket de wallet desde el Home para recibir notificaciones
-                    // de transferencias incluso si el usuario no abre la pantalla Mi Billetera
                     walletViewModel.connectWebSocket()
                 }
 
+                // Siempre cargar invitaciones (cualquier usuario puede recibirlas)
+                // Cargar perfil de driver solo si ya es motorizado
+                LaunchedEffect(Unit) {
+                    driverViewModel.loadInvitations()
+                }
+                LaunchedEffect(isMotorizado) {
+                    if (isMotorizado) driverViewModel.loadProfile()
+                }
+
                 val cartCount by productViewModel.cartCount.collectAsState()
+                val pendingInvitationsCount by driverViewModel.pendingInvitationsCount.collectAsState()
 
                 HomeScreen(
                     viewModel = homeViewModel,
                     cartCount = cartCount,
+                    isMotorizado = isMotorizado,
+                    pendingInvitationsCount = pendingInvitationsCount,
                     onLogout = {
-                        // Desconectar WebSocket
                         disconnectWebSocket()
-                        // Limpiar TODOS los datos del usuario (tokens, caché, PIN de billetera)
                         authRepository.clearAllData()
                         BiometricHelper.clearPin(context)
-                        // Llamar callback para reiniciar actividad
                         onLogoutComplete()
                     },
                     onNavigateToReferrals = {
@@ -693,12 +877,10 @@ fun MainNavigation(
                         navController.navigate(Screen.Company.route)
                     },
                     onNavigateToCompaniesList = {
-                        // Navegar a mis empresas (propias del usuario)
                         loadUserCompanies()
                         navController.navigate(Screen.CompaniesList.route)
                     },
                     onNavigateToPublicCompanies = {
-                        // Navegar a empresas públicas
                         loadPublicCompanies()
                         navController.navigate(Screen.PublicCompanies.route)
                     },
@@ -719,12 +901,9 @@ fun MainNavigation(
                         navController.navigate(Screen.History.route)
                     },
                     onNavigateToPayments = {
-                        // Obtener datos de pagos del ViewModel
                         val paymentCompanyId = homeViewModel.uiState.value.paymentCompanyId ?: 0
                         val paymentCompanyName = homeViewModel.uiState.value.paymentCompanyName ?: "Mi Empresa"
                         val pendingAmount = homeViewModel.uiState.value.pendingPaymentAmount
-
-                        // Navegar con los parámetros
                         navController.navigate("company_payments/$paymentCompanyId?companyName=$paymentCompanyName&pendingAmount=$pendingAmount")
                     },
                     onNavigateToEarnings = {
@@ -747,7 +926,112 @@ fun MainNavigation(
                     },
                     onNavigateToWalletTransfer = {
                         navController.navigate(Screen.WalletTransfer.route)
+                    },
+                    onNavigateToDriverPanel = {
+                        navController.navigate(Screen.DriverHome.route)
+                    },
+                    onNavigateToDriverHistory = {
+                        navController.navigate(Screen.DriverHistory.route)
+                    },
+                    onNavigateToDriverInvitations = {
+                        navController.navigate(Screen.DriverInvitations.route)
+                    },
+                    onNavigateToAdminLiveMap = {
+                        navController.navigate(Screen.AdminLiveMap.route)
+                    },
+                    onNavigateToAdminOrders = {
+                        navController.navigate(Screen.AdminOrders.route)
+                    },
+                    onNavigateToAdminReports = {
+                        navController.navigate(Screen.AdminReports.route)
+                    },
+                    onNavigateToMisCompras = {
+                        navController.navigate(Screen.MisCompras.route)
+                    },
+                    onNavigateToMisVentas = {
+                        navController.navigate(Screen.MisVentas.route)
                     }
+                )
+            }
+
+            composable(Screen.MisCompras.route) {
+                MisComprasScreen(
+                    viewModel = orderViewModel,
+                    onNavigateBack = { navController.popBackStack() },
+                    onNavigateToTracking = { orderId ->
+                        navController.navigate(Screen.OrderTracking.createRoute(orderId))
+                    },
+                    onNavigateToRating = { orderId ->
+                        navController.navigate(Screen.OrderRating.createRoute(orderId))
+                    }
+                )
+            }
+
+            composable(
+                route = Screen.OrderTracking.route,
+                arguments = listOf(navArgument("orderId") { type = NavType.IntType })
+            ) { backStackEntry ->
+                val orderId = backStackEntry.arguments?.getInt("orderId") ?: return@composable
+                OrderTrackingScreen(
+                    viewModel = orderTrackingViewModel,
+                    orderId = orderId,
+                    onNavigateBack = { navController.popBackStack() },
+                    onNavigateToChat = { chatOrderId, driverName ->
+                        navController.navigate(Screen.OrderChat.createRoute(chatOrderId, driverName, isDriver = false))
+                    }
+                )
+            }
+
+            composable(
+                route = Screen.OrderRating.route,
+                arguments = listOf(
+                    navArgument("orderId") { type = NavType.IntType },
+                    navArgument("deliveryFee") { type = NavType.StringType; defaultValue = "0.0" },
+                    navArgument("driverName") { type = NavType.StringType; defaultValue = "" },
+                    navArgument("driverSelfieUrl") { type = NavType.StringType; defaultValue = "" },
+                    navArgument("companyName") { type = NavType.StringType; defaultValue = "" },
+                )
+            ) { backStackEntry ->
+                val orderId = backStackEntry.arguments?.getInt("orderId") ?: return@composable
+                val deliveryFee = backStackEntry.arguments?.getString("deliveryFee")?.toDoubleOrNull() ?: 0.0
+                val driverName = backStackEntry.arguments?.getString("driverName")?.ifBlank { null }
+                val driverSelfieUrl = backStackEntry.arguments?.getString("driverSelfieUrl")?.ifBlank { null }
+                val companyName = backStackEntry.arguments?.getString("companyName")?.ifBlank { null }
+                OrderRatingScreen(
+                    viewModel = orderRatingViewModel,
+                    orderId = orderId,
+                    deliveryFee = deliveryFee,
+                    driverName = driverName,
+                    driverSelfieUrl = driverSelfieUrl,
+                    companyName = companyName,
+                    onNavigateBack = { navController.popBackStack() }
+                )
+            }
+
+            composable(
+                route = Screen.OrderChat.route,
+                arguments = listOf(
+                    navArgument("orderId") { type = NavType.IntType },
+                    navArgument("otherUserName") { type = NavType.StringType; defaultValue = "" },
+                    navArgument("isDriver") { type = NavType.BoolType; defaultValue = false },
+                )
+            ) { backStackEntry ->
+                val orderId = backStackEntry.arguments?.getInt("orderId") ?: return@composable
+                val otherUserName = backStackEntry.arguments?.getString("otherUserName") ?: ""
+                val isDriver = backStackEntry.arguments?.getBoolean("isDriver") ?: false
+                OrderChatScreen(
+                    orderId = orderId,
+                    otherUserName = otherUserName,
+                    isDriver = isDriver,
+                    viewModel = orderChatViewModel,
+                    onBack = { navController.popBackStack() }
+                )
+            }
+
+            composable(Screen.MisVentas.route) {
+                MisVentasScreen(
+                    viewModel = storeOrdersViewModel,
+                    onNavigateBack = { navController.popBackStack() }
                 )
             }
 
@@ -978,6 +1262,8 @@ fun MainNavigation(
                     cartItems = cartItems,
                     isLoading = uiState is com.christelldev.easyreferplus.ui.viewmodel.ProductUiState.Loading,
                     checkoutState = cartCheckoutState,
+                    orderViewModel = orderViewModel,
+                    addressViewModel = addressViewModel,
                     onAddToCart = { productId, quantity ->
                         productViewModel.addToCart(productId, quantity)
                     },
@@ -1001,6 +1287,12 @@ fun MainNavigation(
                     },
                     onRefreshCart = {
                         productViewModel.loadCart()
+                    },
+                    onCheckoutSuccess = { _ ->
+                        productViewModel.clearCart()
+                        navController.navigate(Screen.MisCompras.route) {
+                            popUpTo(Screen.Cart.route) { inclusive = true }
+                        }
                     }
                 )
             }
@@ -1227,6 +1519,9 @@ fun MainNavigation(
                     },
                     onNavigateToSessions = {
                         navController.navigate(Screen.Sessions.route)
+                    },
+                    onNavigateToSavedAddresses = {
+                        navController.navigate(Screen.SavedAddresses.route)
                     },
                     onLogout = {
                         // Desconectar WebSocket
@@ -1522,6 +1817,136 @@ fun MainNavigation(
                     isChangingPin = true,
                     onBack = { navController.popBackStack() },
                     onSuccess = { navController.popBackStack() }
+                )
+            }
+
+            // ── DELIVERY - DRIVER ─────────────────────────────────────────
+            composable(Screen.DriverHome.route) {
+                val lifecycleOwner = LocalLifecycleOwner.current
+                val driverScreenContext = LocalContext.current
+                DisposableEffect(lifecycleOwner) {
+                    val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
+                        if (event == Lifecycle.Event.ON_RESUME) driverViewModel.loadAll()
+                    }
+                    lifecycleOwner.lifecycle.addObserver(observer)
+                    onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+                }
+                DriverHomeScreen(
+                    viewModel = driverViewModel,
+                    onNavigateBack = {
+                        // Al salir del modo conductor, limpiar el flag y detener el servicio
+                        driverScreenContext.getSharedPreferences("EasyReferPrefs", android.content.Context.MODE_PRIVATE)
+                            .edit().putBoolean("is_driver_account", false).apply()
+                        DriverForegroundService.stop(driverScreenContext)
+                        navController.popBackStack()
+                    },
+                    onNavigateToActiveOrder = {
+                        navController.navigate(Screen.DriverActiveOrder.route) {
+                            launchSingleTop = true
+                        }
+                    },
+                    onNavigateToInvitations = { navController.navigate(Screen.DriverInvitations.route) },
+                    onNavigateToConfig = { navController.navigate(Screen.DriverConfig.route) },
+                    onNavigateToHistory = { navController.navigate(Screen.DriverHistory.route) }
+                )
+            }
+
+            composable(Screen.DriverActiveOrder.route) {
+                DriverOrderScreen(
+                    viewModel = driverViewModel,
+                    onNavigateBack = { navController.popBackStack() },
+                    onOrderCompleted = {
+                        navController.navigate(Screen.DriverHome.route) {
+                            popUpTo(Screen.DriverActiveOrder.route) { inclusive = true }
+                        }
+                    },
+                    onNavigateToChat = { chatOrderId, buyerName ->
+                        navController.navigate(Screen.OrderChat.createRoute(chatOrderId, buyerName, isDriver = true))
+                    }
+                )
+            }
+
+            composable(Screen.DriverInvitations.route) {
+                DriverInvitationsScreen(
+                    viewModel = driverViewModel,
+                    onNavigateBack = { navController.popBackStack() }
+                )
+            }
+
+            composable(Screen.DriverConfig.route) {
+                DriverConfigScreen(
+                    viewModel = driverViewModel,
+                    onNavigateBack = { navController.popBackStack() }
+                )
+            }
+
+            composable(Screen.DriverHistory.route) {
+                DriverHistoryScreen(onNavigateBack = { navController.popBackStack() })
+            }
+
+            // ── DELIVERY - ADMIN ──────────────────────────────────────────
+            composable(Screen.AdminLiveMap.route) {
+                val token = remember { authRepository.getAccessToken() ?: "" }
+                AdminLiveMapScreen(
+                    viewModel = adminDeliveryViewModel,
+                    token = token,
+                    onNavigateBack = { navController.popBackStack() }
+                )
+            }
+
+            composable(Screen.AdminOrders.route) {
+                AdminOrdersScreen(
+                    viewModel = adminDeliveryViewModel,
+                    onNavigateBack = { navController.popBackStack() }
+                )
+            }
+
+            composable(Screen.AdminReports.route) {
+                // Placeholder — pantalla de reportes pendiente de implementar
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("Reportes — Próximamente", style = MaterialTheme.typography.titleMedium)
+                }
+            }
+
+            // ── DIRECCIONES GUARDADAS ────────────────────────────────────
+            composable(Screen.SavedAddresses.route) {
+                SavedAddressesScreen(
+                    viewModel = addressViewModel,
+                    onNavigateBack = { navController.popBackStack() },
+                    onAddAddress = {
+                        navController.navigate(Screen.AddressPicker.createRoute())
+                    },
+                    onEditAddress = { address ->
+                        navController.navigate(Screen.AddressPicker.createRoute(address.id))
+                    }
+                )
+            }
+
+            composable(
+                route = Screen.AddressPicker.route,
+                arguments = listOf(
+                    navArgument("addressId") {
+                        type = NavType.StringType
+                        nullable = true
+                        defaultValue = null
+                    }
+                )
+            ) { backStackEntry ->
+                val addressIdStr = backStackEntry.arguments?.getString("addressId")
+                val addressId = addressIdStr?.toIntOrNull()
+                val addresses by addressViewModel.addresses.collectAsState()
+                val editingAddress = if (addressId != null) addresses.find { it.id == addressId } else null
+
+                AddressPickerScreen(
+                    viewModel = addressViewModel,
+                    editingAddress = editingAddress,
+                    onNavigateBack = { navController.popBackStack() },
+                    onSaved = {
+                        navController.popBackStack()
+                    }
                 )
             }
         }

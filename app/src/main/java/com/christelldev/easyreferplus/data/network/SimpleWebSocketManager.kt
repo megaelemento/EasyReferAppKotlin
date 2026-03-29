@@ -33,6 +33,8 @@ class SimpleWebSocketManager(
         const val CHANNEL_WITHDRAWALS = "withdrawals"
         const val CHANNEL_EARNINGS = "earnings"
         const val CHANNEL_WALLET = "wallet"
+        const val CHANNEL_ORDERS = "orders"
+        const val CHANNEL_COMPANY_SALES = "company_sales"
     }
 
     private var webSocket: WebSocket? = null
@@ -66,6 +68,12 @@ class SimpleWebSocketManager(
 
     private val _walletData = MutableStateFlow<Map<String, Any>?>(null)
     val walletData: StateFlow<Map<String, Any>?> = _walletData.asStateFlow()
+
+    private val _ordersData = MutableStateFlow<Map<String, Any>?>(null)
+    val ordersData: StateFlow<Map<String, Any>?> = _ordersData.asStateFlow()
+
+    private val _companySalesData = MutableStateFlow<Map<String, Any>?>(null)
+    val companySalesData: StateFlow<Map<String, Any>?> = _companySalesData.asStateFlow()
 
     sealed class ConnectionState {
         data object Disconnected : ConnectionState()
@@ -196,6 +204,8 @@ class SimpleWebSocketManager(
                 "withdrawals_update" -> _withdrawalsData.value = data
                 "earnings_update" -> _earningsData.value = data
                 "wallet_update" -> _walletData.value = data
+                "orders_update" -> _ordersData.value = data
+                "company_sale" -> _companySalesData.value = data
                 else -> Log.d(TAG, "Mensaje desconocido: $type")
             }
         } catch (e: Exception) {
