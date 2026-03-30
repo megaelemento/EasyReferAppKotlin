@@ -133,6 +133,7 @@ import com.christelldev.easyreferplus.ui.screens.admin.AdminLiveMapScreen
 import com.christelldev.easyreferplus.ui.screens.admin.AdminOrdersScreen
 import com.christelldev.easyreferplus.ui.viewmodel.DriverViewModel
 import com.christelldev.easyreferplus.ui.viewmodel.AdminDeliveryViewModel
+import com.christelldev.easyreferplus.ui.viewmodel.OrderListState
 import com.christelldev.easyreferplus.ui.viewmodel.OrderViewModel
 import com.christelldev.easyreferplus.data.network.OrderRepository
 import com.christelldev.easyreferplus.ui.screens.orders.MisComprasScreen
@@ -155,6 +156,16 @@ class MainActivity : androidx.appcompat.app.AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+
+        // Crash handler — escribe stacktrace a archivo para dispositivos sin logcat visible
+        val defaultHandler = Thread.getDefaultUncaughtExceptionHandler()
+        Thread.setDefaultUncaughtExceptionHandler { thread, throwable ->
+            try {
+                val file = java.io.File(getExternalFilesDir(null), "crash.txt")
+                file.writeText("${java.util.Date()}\n${throwable.stackTraceToString()}")
+            } catch (_: Exception) {}
+            defaultHandler?.uncaughtException(thread, throwable)
+        }
 
         // Inicializar configuración de la app
         AppConfig.init(this)
@@ -858,10 +869,21 @@ fun MainNavigation(
 
                 val cartCount by productViewModel.cartCount.collectAsState()
                 val pendingInvitationsCount by driverViewModel.pendingInvitationsCount.collectAsState()
+                val ordersState by orderViewModel.ordersState.collectAsState()
+
+                LaunchedEffect(Unit) {
+                    orderViewModel.loadMyOrders()
+                }
+
+                val activeOrder = (ordersState as? OrderListState.Success)?.orders?.firstOrNull {
+                    it.status in listOf("pending_payment", "paid_pending_driver", "driver_assigned", "ready_for_pickup", "picked_up")
+                }
 
                 HomeScreen(
                     viewModel = homeViewModel,
                     cartCount = cartCount,
+                    activeOrderId = activeOrder?.id,
+                    activeOrderStatus = activeOrder?.status,
                     isMotorizado = isMotorizado,
                     pendingInvitationsCount = pendingInvitationsCount,
                     onLogout = {
@@ -950,6 +972,9 @@ fun MainNavigation(
                     },
                     onNavigateToMisVentas = {
                         navController.navigate(Screen.MisVentas.route)
+                    },
+                    onNavigateToOrderTracking = { orderId ->
+                        navController.navigate(Screen.OrderTracking.createRoute(orderId))
                     }
                 )
             }

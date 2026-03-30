@@ -65,8 +65,7 @@ class OrderTrackingViewModel(
         viewModelScope.launch {
             _state.value = _state.value.copy(isLoading = true, orderId = orderId, error = null)
             try {
-                val token = "Bearer ${getToken()}"
-                val response = apiService.getOrderTracking(token, orderId)
+                val response = apiService.getOrderTracking(orderId)
                 if (response.isSuccessful) {
                     val info = response.body()!!
                     _state.value = _state.value.copy(
@@ -111,8 +110,8 @@ class OrderTrackingViewModel(
     private fun connectWebSocket(orderId: Int) {
         if (webSocket != null) return
         val token = getToken()
-        val wsUrl = getWsUrl()
-        val url = "${wsUrl}ws/delivery/$orderId?token=$token"
+        val wsUrl = getWsUrl().trimEnd('/')
+        val url = "${wsUrl}/ws/delivery/$orderId?token=$token"
 
         val client = OkHttpClient()
         val request = Request.Builder().url(url).build()
@@ -212,8 +211,7 @@ class OrderTrackingViewModel(
             while (true) {
                 delay(30_000) // Poll every 30s
                 try {
-                    val token = "Bearer ${getToken()}"
-                    val response = apiService.getOrderEta(token, orderId)
+                    val response = apiService.getOrderEta(orderId)
                     if (response.isSuccessful) {
                         val eta = response.body()
                         if (eta?.etaMinutes != null) {

@@ -114,6 +114,27 @@ class OrderViewModel(
         }
     }
 
+    private val activeStatuses = setOf(
+        "pending_payment", "paid_pending_driver", "driver_assigned",
+        "ready_for_pickup", "picked_up",
+    )
+
+    fun hasActiveOrder(): Boolean {
+        val state = _ordersState.value
+        if (state is OrderListState.Success) {
+            return state.orders.any { it.status in activeStatuses }
+        }
+        return false
+    }
+
+    fun getActiveOrderId(): Int? {
+        val state = _ordersState.value
+        if (state is OrderListState.Success) {
+            return state.orders.firstOrNull { it.status in activeStatuses }?.id
+        }
+        return null
+    }
+
     fun loadDeliveryOptions(destLat: Double, destLng: Double) {
         viewModelScope.launch {
             _checkoutState.value = CheckoutFlowState.LoadingOptions

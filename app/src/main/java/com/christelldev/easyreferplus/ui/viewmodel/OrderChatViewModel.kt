@@ -50,8 +50,7 @@ class OrderChatViewModel(
                 error = null,
             )
             try {
-                val token = "Bearer ${getToken()}"
-                val response = apiService.getChatMessages(orderId, limit = 50, authorization = token)
+                val response = apiService.getChatMessages(orderId, limit = 50)
                 if (response.isSuccessful) {
                     val body = response.body()!!
                     _state.value = _state.value.copy(
@@ -60,9 +59,12 @@ class OrderChatViewModel(
                         hasMore = body.hasMore,
                     )
                     // Mark as read
-                    apiService.markChatMessagesRead(orderId, token)
+                    apiService.markChatMessagesRead(orderId)
                 } else {
-                    _state.value = _state.value.copy(isLoading = false, error = "Error al cargar mensajes")
+                    val code = response.code()
+                    val errorBody = try { response.errorBody()?.string()?.take(200) } catch (_: Exception) { "" }
+                    Log.e("OrderChat", "Error $code: $errorBody")
+                    _state.value = _state.value.copy(isLoading = false, error = "Error $code: $errorBody")
                 }
             } catch (e: Exception) {
                 _state.value = _state.value.copy(isLoading = false, error = "Error de conexión: ${e.message}")
@@ -79,8 +81,7 @@ class OrderChatViewModel(
 
         viewModelScope.launch {
             try {
-                val token = "Bearer ${getToken()}"
-                val response = apiService.getChatMessages(s.orderId, limit = 50, beforeId = firstId, authorization = token)
+                val response = apiService.getChatMessages(s.orderId, limit = 50, beforeId = firstId)
                 if (response.isSuccessful) {
                     val body = response.body()!!
                     _state.value = _state.value.copy(
@@ -118,8 +119,7 @@ class OrderChatViewModel(
         viewModelScope.launch {
             _state.value = s.copy(isSending = true)
             try {
-                val token = "Bearer ${getToken()}"
-                val response = apiService.sendChatMessage(s.orderId, ChatMessageRequest(trimmed), token)
+                val response = apiService.sendChatMessage(s.orderId, ChatMessageRequest(trimmed))
                 if (response.isSuccessful) {
                     val msg = response.body()!!
                     val chatMsg = ChatMessage(
@@ -157,8 +157,7 @@ class OrderChatViewModel(
     fun markAsRead() {
         viewModelScope.launch {
             try {
-                val token = "Bearer ${getToken()}"
-                apiService.markChatMessagesRead(_state.value.orderId, token)
+                apiService.markChatMessagesRead(_state.value.orderId)
                 // Also tell WS
                 webSocket?.let { ws ->
                     try {
@@ -172,8 +171,8 @@ class OrderChatViewModel(
     private fun connectWebSocket(orderId: Int) {
         if (webSocket != null) return
         val token = getToken()
-        val wsUrl = getWsUrl()
-        val url = "${wsUrl}ws/chat/$orderId?token=$token"
+        val wsUrl = getWsUrl().trimEnd('/')
+        val url = "${wsUrl}/ws/chat/$orderId?token=$token"
 
         val client = OkHttpClient()
         val request = Request.Builder().url(url).build()
@@ -272,8 +271,7 @@ class OrderChatViewModel(
     private fun refreshMessages() {
         viewModelScope.launch {
             try {
-                val token = "Bearer ${getToken()}"
-                val response = apiService.getChatMessages(_state.value.orderId, limit = 50, authorization = token)
+                val response = apiService.getChatMessages(_state.value.orderId, limit = 50)
                 if (response.isSuccessful) {
                     val body = response.body()!!
                     _state.value = _state.value.copy(

@@ -52,6 +52,7 @@ import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material.icons.filled.DirectionsBike
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.MailOutline
+import androidx.compose.material.icons.filled.LocalShipping
 import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.filled.Store
 import androidx.compose.material.icons.filled.Storefront
@@ -109,6 +110,8 @@ import kotlinx.coroutines.launch
 fun HomeScreen(
     viewModel: HomeViewModel,
     cartCount: Int = 0,
+    activeOrderId: Int? = null,
+    activeOrderStatus: String? = null,
     isMotorizado: Boolean = false,
     pendingInvitationsCount: Int = 0,
     onNavigateToReferrals: () -> Unit = {},
@@ -135,6 +138,7 @@ fun HomeScreen(
     onNavigateToAdminReports: () -> Unit = {},
     onNavigateToMisCompras: () -> Unit = {},
     onNavigateToMisVentas: () -> Unit = {},
+    onNavigateToOrderTracking: (Int) -> Unit = {},
     onLogout: () -> Unit = {}
 ) {
     val context = LocalContext.current
@@ -244,6 +248,10 @@ fun HomeScreen(
                     scope.launch { drawerState.close() }
                     onNavigateToAdminLiveMap()
                 },
+                onNavigateToMisCompras = {
+                    scope.launch { drawerState.close() }
+                    onNavigateToMisCompras()
+                },
                 onLogout = {
                     scope.launch { drawerState.close() }
                     showLogoutDialog = true
@@ -277,6 +285,17 @@ fun HomeScreen(
                             CartNotificationBanner(
                                 cartCount = cartCount,
                                 onClick = onNavigateToCart
+                            )
+                        }
+                        item { Spacer(modifier = Modifier.height(12.dp)) }
+                    }
+
+                    if (activeOrderId != null) {
+                        item {
+                            ActiveOrderBanner(
+                                orderId = activeOrderId,
+                                status = activeOrderStatus ?: "",
+                                onClick = { onNavigateToOrderTracking(activeOrderId) }
                             )
                         }
                         item { Spacer(modifier = Modifier.height(12.dp)) }
@@ -499,6 +518,68 @@ private fun CartNotificationBanner(cartCount: Int, onClick: () -> Unit) {
                 imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.secondary
+            )
+        }
+    }
+}
+
+@Composable
+private fun ActiveOrderBanner(orderId: Int, status: String, onClick: () -> Unit) {
+    val statusText = when (status) {
+        "pending_payment" -> "Pendiente de pago"
+        "paid_pending_driver" -> "Buscando repartidor"
+        "driver_assigned" -> "Repartidor asignado"
+        "ready_for_pickup" -> "Listo para recoger"
+        "picked_up" -> "En camino"
+        else -> status
+    }
+    val statusColor = Color(0xFF2196F3)
+
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp)
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(16.dp),
+        color = statusColor.copy(alpha = 0.12f),
+        tonalElevation = 2.dp
+    ) {
+        Row(
+            modifier = Modifier.padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Surface(
+                modifier = Modifier.size(40.dp),
+                shape = CircleShape,
+                color = statusColor.copy(alpha = 0.2f)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = Icons.Default.LocalShipping,
+                        contentDescription = null,
+                        tint = statusColor,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.width(16.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "Pedido #$orderId en curso",
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    text = statusText,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = statusColor
+                )
+            }
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                contentDescription = null,
+                tint = statusColor
             )
         }
     }
@@ -879,6 +960,7 @@ private fun ModernDrawerContent(
     onNavigateToWallet: () -> Unit, onNavigateToWalletTransfer: () -> Unit,
     onNavigateToDriverPanel: () -> Unit = {}, onNavigateToDriverHistory: () -> Unit = {},
     onNavigateToDriverInvitations: () -> Unit = {}, onNavigateToAdminLiveMap: () -> Unit = {},
+    onNavigateToMisCompras: () -> Unit = {},
     onLogout: () -> Unit
 ) {
     ModalDrawerSheet(modifier = Modifier.width(310.dp), drawerContainerColor = MaterialTheme.colorScheme.surface) {
@@ -912,6 +994,7 @@ private fun ModernDrawerContent(
             DrawerItem(Icons.Default.Person, "Perfil", onNavigateToProfile)
             DrawerItem(Icons.Default.Group, "Referidos", onNavigateToReferrals)
             DrawerItem(Icons.Default.Business, "Mi Empresa", onNavigateToCompany)
+            DrawerItem(Icons.Default.ShoppingBag, "Mis Compras", onNavigateToMisCompras)
 
             DrawerSectionLabel("Finanzas")
             DrawerItem(Icons.Default.AccountBalanceWallet, "Billetera", onNavigateToWallet)

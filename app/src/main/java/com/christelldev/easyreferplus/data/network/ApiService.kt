@@ -873,13 +873,11 @@ interface ApiService {
 
     @GET("api/orders/{orderId}/tracking")
     suspend fun getOrderTracking(
-        @Header("Authorization") authorization: String,
         @Path("orderId") orderId: Int
     ): Response<com.christelldev.easyreferplus.data.model.OrderTrackingInfo>
 
     @GET("api/orders/{orderId}/eta")
     suspend fun getOrderEta(
-        @Header("Authorization") authorization: String,
         @Path("orderId") orderId: Int
     ): Response<com.christelldev.easyreferplus.data.model.OrderEtaResponse>
 
@@ -925,20 +923,17 @@ interface ApiService {
         @Path("orderId") orderId: Int,
         @Query("limit") limit: Int = 50,
         @Query("before_id") beforeId: Int? = null,
-        @Header("Authorization") authorization: String
     ): Response<com.christelldev.easyreferplus.data.model.ChatMessagesResponse>
 
     @POST("api/orders/{orderId}/messages")
     suspend fun sendChatMessage(
         @Path("orderId") orderId: Int,
         @Body body: com.christelldev.easyreferplus.data.model.ChatMessageRequest,
-        @Header("Authorization") authorization: String
     ): Response<com.christelldev.easyreferplus.data.model.ChatSendResponse>
 
     @PUT("api/orders/{orderId}/messages/read")
     suspend fun markChatMessagesRead(
         @Path("orderId") orderId: Int,
-        @Header("Authorization") authorization: String
     ): Response<com.christelldev.easyreferplus.data.model.ChatMarkReadResponse>
 
     @GET("api/orders/{orderId}/unread-count")

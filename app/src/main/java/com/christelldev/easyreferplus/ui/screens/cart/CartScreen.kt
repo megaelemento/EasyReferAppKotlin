@@ -69,6 +69,21 @@ fun CartScreen(
     val isDark = isSystemInDarkTheme()
     val totalAmount = remember(cartItems) { cartItems.sumOf { it.price * it.quantity } }
     var showDeliverySheet by remember { mutableStateOf(false) }
+    var showActiveOrderDialog by remember { mutableStateOf(false) }
+
+    if (showActiveOrderDialog) {
+        val activeId = orderViewModel.getActiveOrderId()
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { showActiveOrderDialog = false },
+            title = { Text("Pedido activo") },
+            text = { Text("Ya tienes un pedido activo${if (activeId != null) " (#$activeId)" else ""}. Debes esperar a que se complete o cancele antes de hacer otro.") },
+            confirmButton = {
+                androidx.compose.material3.TextButton(onClick = { showActiveOrderDialog = false }) {
+                    Text("Entendido")
+                }
+            }
+        )
+    }
 
     if (checkoutState is CheckoutState.Success) {
         CheckoutSuccessDialog(
@@ -156,7 +171,13 @@ fun CartScreen(
                         CheckoutSummaryCard(
                             subtotal = totalAmount,
                             total = totalAmount,
-                            onCheckout = { showDeliverySheet = true },
+                            onCheckout = {
+                                if (orderViewModel.hasActiveOrder()) {
+                                    showActiveOrderDialog = true
+                                } else {
+                                    showDeliverySheet = true
+                                }
+                            },
                             isLoading = checkoutState is CheckoutState.Processing
                         )
                     }
