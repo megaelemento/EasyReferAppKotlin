@@ -353,7 +353,8 @@ fun MainNavigation(
 
     // Verificar servidor al inicio
     LaunchedEffect(checkKey) {
-        isServerAvailable = NetworkMonitor.isServerAvailable()
+        val result = NetworkMonitor.isServerAvailable()
+        isServerAvailable = result
     }
 
     // Validar sesión con el servidor al inicio (solo si hay token)
@@ -888,9 +889,11 @@ fun MainNavigation(
                     pendingInvitationsCount = pendingInvitationsCount,
                     onLogout = {
                         disconnectWebSocket()
-                        authRepository.clearAllData()
                         BiometricHelper.clearPin(context)
-                        onLogoutComplete()
+                        mainScope.launch {
+                            authRepository.logout()
+                            onLogoutComplete()
+                        }
                     },
                     onNavigateToReferrals = {
                         navController.navigate(Screen.Referral.route)
@@ -1549,12 +1552,12 @@ fun MainNavigation(
                         navController.navigate(Screen.SavedAddresses.route)
                     },
                     onLogout = {
-                        // Desconectar WebSocket
                         disconnectWebSocket()
-                        // Limpiar TODOS los datos del usuario (tokens, caché, PIN de billetera)
-                        authRepository.clearAllData()
                         BiometricHelper.clearPin(context)
-                        onLogoutComplete()
+                        mainScope.launch {
+                            authRepository.logout()
+                            onLogoutComplete()
+                        }
                     }
                 )
             }

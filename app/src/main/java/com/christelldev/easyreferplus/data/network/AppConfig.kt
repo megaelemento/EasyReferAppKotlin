@@ -30,9 +30,9 @@ object AppConfig {
 
     // ==================== URLs DERIVADAS ====================
 
-    // URL base
+    // URL base (con trailing slash, requerido por Retrofit)
     val BASE_URL: String
-        get() = SERVER_URL
+        get() = SERVER_URL.trimEnd('/') + "/"
 
     // URL base sin trailing slash
     val BASE_URL_CLEAN: String

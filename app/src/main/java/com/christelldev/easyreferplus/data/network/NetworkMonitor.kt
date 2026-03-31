@@ -13,9 +13,8 @@ object NetworkMonitor {
 
     private var lastServerCheck: Long = 0
     private var serverAvailable: Boolean? = null
-    private const val CACHE_DURATION_MS = 30000L // 30 segundos
+    private const val CACHE_DURATION_MS = 30000L
 
-    // Verificar si hay conexión a internet
     fun isNetworkAvailable(context: Context): Boolean {
         val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
         val network = connectivityManager.activeNetwork ?: return false
@@ -23,43 +22,32 @@ object NetworkMonitor {
         return capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
     }
 
-    // Verificar si el servidor está disponible
-    // CORREGIDO: Verificación real del servidor
     suspend fun isServerAvailable(): Boolean = withContext(Dispatchers.IO) {
-        // Usar cache si está reciente
         if (System.currentTimeMillis() - lastServerCheck < CACHE_DURATION_MS) {
-            return@withContext serverAvailable ?: true // Default true para no bloquear
+            return@withContext serverAvailable ?: true
         }
 
         lastServerCheck = System.currentTimeMillis()
 
         serverAvailable = try {
-            val request = Request.Builder()
-                .url(AppConfig.SERVER_CHECK_URL)
-                .get()
-                .build()
-
+            val url = AppConfig.SERVER_CHECK_URL
+            val request = Request.Builder().url(url).get().build()
             val client = OkHttpClient.Builder()
-                .connectTimeout(10, TimeUnit.SECONDS)
-                .readTimeout(10, TimeUnit.SECONDS)
+                .connectTimeout(15, TimeUnit.SECONDS)
+                .readTimeout(15, TimeUnit.SECONDS)
                 .build()
-
             val response = client.newCall(request).execute()
             val isSuccess = response.isSuccessful
             response.close()
             isSuccess
         } catch (e: Exception) {
-            android.util.Log.e("NetworkMonitor", "Error checking server: ${e.message}")
-            true // Default true para no bloquear
+            android.util.Log.e("NetworkMonitor", "Error: ${e.message}")
+            true // Default true — never block the app
         }
 
         return@withContext serverAvailable ?: true
     }
 
-    /**
-     * Devuelve el valor cacheado si aún es válido, o null si expiró.
-     * NO hace llamada de red — es instantáneo.
-     */
     fun getCachedAvailability(): Boolean? {
         if (System.currentTimeMillis() - lastServerCheck < CACHE_DURATION_MS) {
             return serverAvailable
@@ -67,7 +55,6 @@ object NetworkMonitor {
         return null
     }
 
-    // Forzar nueva verificación
     fun resetCache() {
         lastServerCheck = 0
         serverAvailable = null
