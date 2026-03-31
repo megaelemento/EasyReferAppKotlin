@@ -3,6 +3,8 @@ package com.christelldev.easyreferplus.ui.screens.companies
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -22,6 +24,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -31,6 +34,7 @@ import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.christelldev.easyreferplus.R
 import com.christelldev.easyreferplus.data.model.UserCompanyResponse
+import com.christelldev.easyreferplus.data.network.AppConfig
 import com.christelldev.easyreferplus.ui.theme.DesignConstants
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -42,7 +46,8 @@ fun CompaniesListScreen(
     onBack: () -> Unit,
     onRegisterCompany: (() -> Unit)? = null,
     onEditCompany: (Int) -> Unit = {},
-    onCompanyClick: ((UserCompanyResponse) -> Unit)? = null
+    onCompanyClick: ((UserCompanyResponse) -> Unit)? = null,
+    onStoreSetup: (() -> Unit)? = null
 ) {
     val isDark = isSystemInDarkTheme()
     val displayCompanies = if (isPublicMode) publicCompanies else userCompanies
@@ -123,7 +128,8 @@ fun CompaniesListScreen(
                                 company = company,
                                 isPublic = isPublicMode,
                                 onEdit = { onEditCompany(it) },
-                                onClick = { onCompanyClick?.invoke(it) }
+                                onClick = { onCompanyClick?.invoke(it) },
+                                onStoreSetup = if (!isPublicMode) onStoreSetup else null
                             )
                         }
                     }
@@ -172,10 +178,13 @@ fun CompanyListItemPremium(
     company: UserCompanyResponse,
     isPublic: Boolean,
     onEdit: (Int) -> Unit,
-    onClick: (UserCompanyResponse) -> Unit
+    onClick: (UserCompanyResponse) -> Unit,
+    onStoreSetup: (() -> Unit)? = null
 ) {
+    val context = LocalContext.current
     val statusColor = if (company.isValidated) Color(0xFF10B981) else Color(0xFFF59E0B)
-    
+    val hasActiveStore = company.storeEnabled && company.storeSlug != null
+
     Surface(
         modifier = Modifier.fillMaxWidth().clickable { if (isPublic) onClick(company) },
         shape = RoundedCornerShape(20.dp),
@@ -183,51 +192,90 @@ fun CompanyListItemPremium(
         tonalElevation = 2.dp,
         shadowElevation = 4.dp
     ) {
-        Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-            // Logo / Inicial
-            if (company.logoUrl != null && company.hasLogo) {
-                AsyncImage(
-                    model = company.logoUrl,
-                    contentDescription = null,
-                    modifier = Modifier.size(56.dp).clip(CircleShape)
-                )
-            } else {
-                Surface(
-                    modifier = Modifier.size(56.dp),
-                    shape = CircleShape,
-                    color = statusColor.copy(alpha = 0.1f)
-                ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Text(company.companyName.take(1).uppercase(), fontWeight = FontWeight.Black, color = statusColor, style = MaterialTheme.typography.headlineSmall)
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                // Logo / Inicial
+                if (company.logoUrl != null && company.hasLogo) {
+                    AsyncImage(
+                        model = company.logoUrl,
+                        contentDescription = null,
+                        modifier = Modifier.size(56.dp).clip(CircleShape)
+                    )
+                } else {
+                    Surface(
+                        modifier = Modifier.size(56.dp),
+                        shape = CircleShape,
+                        color = statusColor.copy(alpha = 0.1f)
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Text(company.companyName.take(1).uppercase(), fontWeight = FontWeight.Black, color = statusColor, style = MaterialTheme.typography.headlineSmall)
+                        }
                     }
                 }
-            }
 
-            Spacer(modifier = Modifier.width(16.dp))
+                Spacer(modifier = Modifier.width(16.dp))
 
-            Column(modifier = Modifier.weight(1f)) {
-                Text(company.companyName, fontWeight = FontWeight.ExtraBold, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Surface(modifier = Modifier.size(8.dp), shape = CircleShape, color = statusColor) {}
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = if (company.isValidated) "Negocio Validado" else "En Validación",
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = statusColor
-                    )
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(company.companyName, fontWeight = FontWeight.ExtraBold, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Surface(modifier = Modifier.size(8.dp), shape = CircleShape, color = statusColor) {}
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = if (company.isValidated) "Negocio Validado" else "En Validación",
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = statusColor
+                        )
+                    }
+                    // Badge tienda activa
+                    if (hasActiveStore) {
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Icon(Icons.Default.Storefront, null, modifier = Modifier.size(12.dp), tint = Color(0xFF6366f1))
+                            Text("Tienda web activa", style = MaterialTheme.typography.labelSmall, color = Color(0xFF6366f1))
+                        }
+                    }
+                }
+
+                if (!isPublic) {
+                    // Botón tienda (solo para dueño validado)
+                    if (company.isValidated && onStoreSetup != null) {
+                        IconButton(
+                            onClick = { onStoreSetup() },
+                            modifier = Modifier.background(Color(0xFF6366f1).copy(alpha = 0.1f), CircleShape).size(36.dp)
+                        ) {
+                            Icon(Icons.Default.Storefront, null, tint = Color(0xFF6366f1), modifier = Modifier.size(18.dp))
+                        }
+                        Spacer(modifier = Modifier.width(8.dp))
+                    }
+                    IconButton(
+                        onClick = { onEdit(company.id) },
+                        modifier = Modifier.background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f), CircleShape).size(36.dp)
+                    ) {
+                        Icon(Icons.Default.Edit, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
+                    }
+                } else {
+                    Icon(Icons.Default.ChevronRight, null, tint = MaterialTheme.colorScheme.outline)
                 }
             }
 
-            if (!isPublic) {
-                IconButton(
-                    onClick = { onEdit(company.id) },
-                    modifier = Modifier.background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f), CircleShape).size(36.dp)
+            // Botón "Visitar Tienda" en modo público
+            if (isPublic && hasActiveStore) {
+                Spacer(modifier = Modifier.height(12.dp))
+                OutlinedButton(
+                    onClick = {
+                        val url = "${AppConfig.BASE_URL_CLEAN}/empresas/${company.storeSlug}"
+                        context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFF6366f1)),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF6366f1).copy(alpha = 0.5f))
                 ) {
-                    Icon(Icons.Default.Edit, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
+                    Icon(Icons.Default.OpenInBrowser, null, modifier = Modifier.size(16.dp))
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text("Visitar Tienda", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelLarge)
                 }
-            } else {
-                Icon(Icons.Default.ChevronRight, null, tint = MaterialTheme.colorScheme.outline)
             }
         }
     }

@@ -69,6 +69,8 @@ import com.christelldev.easyreferplus.ui.screens.companies.CompaniesListScreen
 import com.christelldev.easyreferplus.ui.screens.companies.CompanyDetailScreen
 import com.christelldev.easyreferplus.ui.screens.companies.PublicCompaniesScreen
 import com.christelldev.easyreferplus.ui.screens.companies.EditCompanyScreen
+import com.christelldev.easyreferplus.ui.screens.companies.StoreSetupScreen
+import com.christelldev.easyreferplus.ui.viewmodel.StoreViewModel
 import com.christelldev.easyreferplus.ui.screens.cart.CartScreen
 import com.christelldev.easyreferplus.ui.screens.products.MyProductsScreen
 import com.christelldev.easyreferplus.ui.screens.products.ProductFormScreen
@@ -282,6 +284,8 @@ sealed class Screen(val route: String) {
     data object AdminLiveMap : Screen("admin_live_map")
     data object AdminOrders : Screen("admin_orders")
     data object AdminReports : Screen("admin_reports")
+    // Tienda web
+    data object StoreSetup : Screen("store_setup")
     // Compras del usuario
     data object MisCompras : Screen("mis_compras")
     // Ventas del establecimiento
@@ -525,6 +529,9 @@ fun MainNavigation(
     )
     val storeOrdersViewModel: StoreOrdersViewModel = viewModel(
         factory = StoreOrdersViewModel.Factory(orderRepository) { authRepository.getAccessToken() ?: "" }
+    )
+    val storeViewModel: StoreViewModel = viewModel(
+        factory = StoreViewModel.Factory(companyRepository) { authRepository.getAccessToken() ?: "" }
     )
 
     // Address ViewModel
@@ -1103,12 +1110,20 @@ fun MainNavigation(
                     onBack = {
                         navController.popBackStack()
                     },
-                    // onRegisterCompany = null - Ya no se permite registrar nuevas empresas
-                    // since only one company per RUC is allowed
                     onRegisterCompany = null,
                     onEditCompany = { companyId ->
                         navController.navigate(Screen.EditCompany.createRoute(companyId))
+                    },
+                    onStoreSetup = {
+                        navController.navigate(Screen.StoreSetup.route)
                     }
+                )
+            }
+
+            composable(Screen.StoreSetup.route) {
+                StoreSetupScreen(
+                    viewModel = storeViewModel,
+                    onBack = { navController.popBackStack() }
                 )
             }
 

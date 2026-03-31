@@ -342,7 +342,24 @@ data class UserCompanyResponse(
     @SerializedName("service_id")
     val serviceId: Int? = null,
     @SerializedName("service_name")
-    val serviceName: String? = null
+    val serviceName: String? = null,
+    // Tienda online
+    @SerializedName("store_enabled")
+    val storeEnabled: Boolean = false,
+    @SerializedName("store_slug")
+    val storeSlug: String? = null,
+    @SerializedName("store_template_id")
+    val storeTemplateId: Int = 1,
+    @SerializedName("store_primary_color")
+    val storePrimaryColor: String = "#6366f1",
+    @SerializedName("store_secondary_color")
+    val storeSecondaryColor: String = "#f59e0b",
+    @SerializedName("store_tagline")
+    val storeTagline: String? = null,
+    @SerializedName("store_banner_url")
+    val storeBannerUrl: String? = null,
+    @SerializedName("store_font")
+    val storeFont: String = "inter"
 )
 
 // Respuesta de búsqueda de empresas

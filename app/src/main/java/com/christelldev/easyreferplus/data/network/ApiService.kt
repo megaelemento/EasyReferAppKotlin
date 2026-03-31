@@ -92,6 +92,8 @@ import retrofit2.http.PUT
 import retrofit2.http.Part
 import retrofit2.http.Path
 import retrofit2.http.Query
+import retrofit2.http.Field
+import retrofit2.http.FormUrlEncoded
 
 interface ApiService {
     @POST("api/auth/login")
@@ -941,4 +943,33 @@ interface ApiService {
         @Path("orderId") orderId: Int,
         @Header("Authorization") authorization: String
     ): Response<com.christelldev.easyreferplus.data.model.ChatUnreadResponse>
+
+    // ─── Tienda Online ────────────────────────────────────────────────────────
+
+    @GET("api/stores/my-store")
+    suspend fun getMyStore(
+        @Header("Authorization") authorization: String
+    ): Response<com.christelldev.easyreferplus.data.model.MyStoreResponse>
+
+    @FormUrlEncoded
+    @PUT("api/stores/setup")
+    suspend fun setupStore(
+        @Header("Authorization") authorization: String,
+        @Field("slug") slug: String,
+        @Field("template_id") templateId: Int,
+        @Field("primary_color") primaryColor: String,
+        @Field("secondary_color") secondaryColor: String,
+        @Field("tagline") tagline: String,
+        @Field("font") font: String
+    ): Response<com.christelldev.easyreferplus.data.model.StoreSetupResponse>
+
+    @POST("api/stores/toggle")
+    suspend fun toggleStore(
+        @Header("Authorization") authorization: String
+    ): Response<com.christelldev.easyreferplus.data.model.StoreToggleResponse>
+
+    @GET("api/stores/check-slug/{slug}")
+    suspend fun checkSlug(
+        @Path("slug") slug: String
+    ): Response<com.christelldev.easyreferplus.data.model.SlugCheckResponse>
 }

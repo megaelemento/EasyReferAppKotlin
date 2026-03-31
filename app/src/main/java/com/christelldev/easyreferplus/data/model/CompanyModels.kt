@@ -309,3 +309,40 @@ data class SelfieDeleteResponse(
     @SerializedName("message")
     val message: String
 )
+
+// ─── Tienda Online ────────────────────────────────────────────────────────────
+
+data class MyStoreResponse(
+    @SerializedName("has_company") val hasCompany: Boolean = false,
+    @SerializedName("store_enabled") val storeEnabled: Boolean = false,
+    @SerializedName("store_slug") val storeSlug: String? = null,
+    @SerializedName("store_template_id") val storeTemplateId: Int = 1,
+    @SerializedName("store_primary_color") val storePrimaryColor: String = "#6366f1",
+    @SerializedName("store_secondary_color") val storeSecondaryColor: String = "#f59e0b",
+    @SerializedName("store_tagline") val storeTagline: String? = null,
+    @SerializedName("store_font") val storeFont: String = "inter",
+    @SerializedName("store_banner_url") val storeBannerUrl: String? = null,
+    @SerializedName("store_url") val storeUrl: String? = null,
+    @SerializedName("company_name") val companyName: String = "",
+    @SerializedName("is_validated") val isValidated: Boolean = false,
+    @SerializedName("products_count") val productsCount: Int = 0
+)
+
+data class StoreSetupResponse(
+    @SerializedName("success") val success: Boolean,
+    @SerializedName("store_enabled") val storeEnabled: Boolean = false,
+    @SerializedName("store_url") val storeUrl: String? = null,
+    @SerializedName("message") val message: String = ""
+)
+
+data class StoreToggleResponse(
+    @SerializedName("success") val success: Boolean,
+    @SerializedName("store_enabled") val storeEnabled: Boolean = false,
+    @SerializedName("message") val message: String = ""
+)
+
+data class SlugCheckResponse(
+    @SerializedName("available") val available: Boolean,
+    @SerializedName("slug") val slug: String? = null,
+    @SerializedName("reason") val reason: String? = null
+)

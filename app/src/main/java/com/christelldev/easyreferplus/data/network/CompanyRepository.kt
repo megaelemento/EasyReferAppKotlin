@@ -10,6 +10,10 @@ import com.christelldev.easyreferplus.data.model.CompaniesSearchResponse
 import com.christelldev.easyreferplus.data.model.LogoUploadResponse
 import com.christelldev.easyreferplus.data.model.CategoryInfo
 import com.christelldev.easyreferplus.data.model.ServiceInfo
+import com.christelldev.easyreferplus.data.model.MyStoreResponse
+import com.christelldev.easyreferplus.data.model.StoreSetupResponse
+import com.christelldev.easyreferplus.data.model.StoreToggleResponse
+import com.christelldev.easyreferplus.data.model.SlugCheckResponse
 import com.google.gson.Gson
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
@@ -540,6 +544,72 @@ class CompanyRepository(
             }
         } catch (e: Exception) {
             LogoResult.Error("Error de conexión: ${e.message}")
+        }
+    }
+
+    // ─── Tienda Online ────────────────────────────────────────────────────────
+
+    suspend fun getMyStore(authorization: String): Result<MyStoreResponse> {
+        return try {
+            val response = apiService.getMyStore(authorization)
+            if (response.isSuccessful) {
+                val body = response.body()
+                if (body != null) Result.success(body)
+                else Result.failure(Exception("Sin datos"))
+            } else {
+                Result.failure(Exception("Error ${response.code()}"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun setupStore(
+        authorization: String,
+        slug: String,
+        templateId: Int,
+        primaryColor: String,
+        secondaryColor: String,
+        tagline: String,
+        font: String
+    ): Result<StoreSetupResponse> {
+        return try {
+            val response = apiService.setupStore(authorization, slug, templateId, primaryColor, secondaryColor, tagline, font)
+            if (response.isSuccessful) {
+                val body = response.body()
+                if (body != null && body.success) Result.success(body)
+                else Result.failure(Exception(body?.message ?: "Error al guardar"))
+            } else {
+                val msg = try { response.errorBody()?.string()?.let { org.json.JSONObject(it).optString("detail", "Error") } ?: "Error ${response.code()}" } catch (e: Exception) { "Error ${response.code()}" }
+                Result.failure(Exception(msg))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun toggleStore(authorization: String): Result<StoreToggleResponse> {
+        return try {
+            val response = apiService.toggleStore(authorization)
+            if (response.isSuccessful) {
+                val body = response.body()
+                if (body != null && body.success) Result.success(body)
+                else Result.failure(Exception(body?.message ?: "Error"))
+            } else {
+                val msg = try { response.errorBody()?.string()?.let { org.json.JSONObject(it).optString("detail", "Error") } ?: "Error ${response.code()}" } catch (e: Exception) { "Error ${response.code()}" }
+                Result.failure(Exception(msg))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun checkSlug(slug: String): SlugCheckResponse? {
+        return try {
+            val response = apiService.checkSlug(slug)
+            if (response.isSuccessful) response.body() else null
+        } catch (e: Exception) {
+            null
         }
     }
 
