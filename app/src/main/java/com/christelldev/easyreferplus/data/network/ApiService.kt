@@ -746,6 +746,13 @@ interface ApiService {
         @Header("Authorization") authorization: String
     ): Response<com.christelldev.easyreferplus.data.model.DriverEarningsTodayResponse>
 
+    // Establecimiento acepta el pedido (pending_acceptance → paid_pending_driver)
+    @PUT("api/orders/{orderId}/store/accept")
+    suspend fun storeAcceptOrder(
+        @Header("Authorization") authorization: String,
+        @Path("orderId") orderId: Int
+    ): Response<com.christelldev.easyreferplus.data.model.SimpleSuccessResponse>
+
     // Establecimiento marca el pedido como listo para recoger
     @PUT("api/orders/{orderId}/store/ready")
     suspend fun storeMarkOrderReady(

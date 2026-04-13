@@ -31,7 +31,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.christelldev.easyreferplus.data.model.CartItem
-import com.christelldev.easyreferplus.ui.viewmodel.AddressViewModel
 import com.christelldev.easyreferplus.ui.viewmodel.OrderViewModel
 
 sealed class CheckoutState {
@@ -55,7 +54,6 @@ fun CartScreen(
     isLoading: Boolean,
     checkoutState: CheckoutState,
     orderViewModel: OrderViewModel,
-    addressViewModel: AddressViewModel? = null,
     onAddToCart: (Int, Int) -> Unit,
     onRemoveFromCart: (Int) -> Unit,
     onUpdateQuantity: (Int, Int) -> Unit,
@@ -68,7 +66,6 @@ fun CartScreen(
 ) {
     val isDark = isSystemInDarkTheme()
     val totalAmount = remember(cartItems) { cartItems.sumOf { it.price * it.quantity } }
-    var showDeliverySheet by remember { mutableStateOf(false) }
     var showActiveOrderDialog by remember { mutableStateOf(false) }
 
     if (showActiveOrderDialog) {
@@ -91,21 +88,6 @@ fun CartScreen(
             onDismiss = {
                 onCheckoutDismiss()
                 onCheckoutSuccess(checkoutState.orderId)
-            }
-        )
-    }
-
-    if (showDeliverySheet) {
-        CheckoutFlowSheet(
-            cartItems = cartItems,
-            cartTotal = totalAmount,
-            orderViewModel = orderViewModel,
-            addressViewModel = addressViewModel,
-            onDismiss = { showDeliverySheet = false },
-            onSuccess = { orderId ->
-                showDeliverySheet = false
-                onRefreshCart()
-                onCheckoutSuccess(orderId)
             }
         )
     }
@@ -175,7 +157,7 @@ fun CartScreen(
                                 if (orderViewModel.hasActiveOrder()) {
                                     showActiveOrderDialog = true
                                 } else {
-                                    showDeliverySheet = true
+                                    onCheckout()
                                 }
                             },
                             isLoading = checkoutState is CheckoutState.Processing

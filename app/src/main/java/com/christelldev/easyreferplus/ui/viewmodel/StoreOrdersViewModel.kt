@@ -51,6 +51,16 @@ class StoreOrdersViewModel(
 
     fun clearNewOrderAlert() { _newOrderAlert.value = false }
 
+    fun acceptOrder(orderId: Int, onSuccess: () -> Unit, onError: (String) -> Unit) {
+        viewModelScope.launch {
+            val token = "Bearer ${getToken()}"
+            when (val r = repository.acceptStoreOrder(token, orderId)) {
+                is OrderRepository.Result.Success -> onSuccess()
+                is OrderRepository.Result.Error -> onError(r.message)
+            }
+        }
+    }
+
     fun markOrderReady(orderId: Int, onSuccess: () -> Unit, onError: (String) -> Unit) {
         viewModelScope.launch {
             val token = "Bearer ${getToken()}"

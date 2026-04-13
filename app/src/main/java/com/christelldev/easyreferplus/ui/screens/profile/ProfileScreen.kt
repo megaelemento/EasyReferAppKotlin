@@ -52,12 +52,35 @@ fun ProfileScreen(
     onBack: () -> Unit,
     onLogout: () -> Unit,
     onNavigateToSessions: () -> Unit = {},
-    onNavigateToSavedAddresses: () -> Unit = {}
+    onNavigateToSavedAddresses: () -> Unit = {},
+    isOnDuty: Boolean = false
 ) {
     val context = LocalContext.current
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val scrollState = rememberScrollState()
     var isEditing by remember { mutableStateOf(false) }
+    var showLogoutDialog by remember { mutableStateOf(false) }
+
+    if (showLogoutDialog) {
+        AlertDialog(
+            onDismissRequest = { showLogoutDialog = false },
+            title = { Text("Cerrar Sesión", fontWeight = FontWeight.ExtraBold) },
+            text = {
+                if (isOnDuty)
+                    Text("Tienes el turno activo. Si cierras sesión, el turno se desactivará automáticamente. ¿Deseas continuar?")
+                else
+                    Text("¿Estás seguro que deseas salir?")
+            },
+            confirmButton = {
+                Button(
+                    onClick = { showLogoutDialog = false; onLogout() },
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                ) { Text("Salir", fontWeight = FontWeight.Bold) }
+            },
+            dismissButton = { TextButton(onClick = { showLogoutDialog = false }) { Text("Cancelar") } },
+            shape = RoundedCornerShape(24.dp)
+        )
+    }
     var showSelfieDialog by remember { mutableStateOf(false) }
     val isDark = isSystemInDarkTheme()
 
@@ -273,7 +296,7 @@ fun ProfileScreen(
                                 }
                             }
 
-                            TextButton(onClick = onLogout, modifier = Modifier.fillMaxWidth().padding(bottom = 32.dp)) {
+                            TextButton(onClick = { showLogoutDialog = true }, modifier = Modifier.fillMaxWidth().padding(bottom = 32.dp)) {
                                 Icon(Icons.AutoMirrored.Filled.Logout, null, tint = MaterialTheme.colorScheme.error)
                                 Spacer(modifier = Modifier.width(12.dp))
                                 Text("Cerrar Sesión", color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.Bold)

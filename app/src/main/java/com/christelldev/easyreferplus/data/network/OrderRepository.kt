@@ -73,6 +73,16 @@ class OrderRepository(private val apiService: ApiService) {
         }
     }
 
+    suspend fun acceptStoreOrder(authorization: String, orderId: Int): Result<SimpleSuccessResponse> {
+        return try {
+            val response = apiService.storeAcceptOrder(authorization, orderId)
+            if (response.isSuccessful) Result.Success(response.body()!!)
+            else Result.Error("Error ${response.code()}: ${response.message()}")
+        } catch (e: Exception) {
+            Result.Error("Error de conexión: ${e.message}")
+        }
+    }
+
     suspend fun markOrderReady(authorization: String, orderId: Int): Result<SimpleSuccessResponse> {
         return try {
             val response = apiService.storeMarkOrderReady(authorization, orderId)

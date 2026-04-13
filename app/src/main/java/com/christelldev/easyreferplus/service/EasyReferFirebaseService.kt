@@ -80,6 +80,14 @@ class EasyReferFirebaseService : FirebaseMessagingService() {
             return
         }
 
+        // Notificación de nuevo pedido para el establecimiento
+        if (message.data["type"] == "new_company_order") {
+            val title = message.data["title"] ?: "¡Nuevo pedido!"
+            val body = message.data["body"] ?: "Tienes un nuevo pedido pendiente de aceptación."
+            showNotification(title, body, message.data)
+            return
+        }
+
         val title = message.notification?.title ?: message.data["title"] ?: "EasyRefer"
         val body  = message.notification?.body  ?: message.data["body"]  ?: return
 

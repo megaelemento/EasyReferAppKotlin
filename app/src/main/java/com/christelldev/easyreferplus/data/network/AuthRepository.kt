@@ -9,14 +9,13 @@ import com.christelldev.easyreferplus.data.model.RefreshTokenResponse
 import com.christelldev.easyreferplus.data.model.LogoutRequest
 import com.google.gson.Gson
 import com.google.gson.annotations.SerializedName
-import kotlinx.coroutines.DelicateCoroutinesApi
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlin.coroutines.resume
+import kotlin.coroutines.resumeWithException
 import retrofit2.Response
 
 sealed class AuthResult {
@@ -83,23 +82,22 @@ class AuthRepository(
         }
     }
 
-    @OptIn(DelicateCoroutinesApi::class)
-    private fun registerFcmToken(accessToken: String) {
-        com.google.firebase.messaging.FirebaseMessaging.getInstance().token
-            .addOnSuccessListener { token ->
-                sharedPreferences.edit().putString("fcm_token", token).apply()
-                GlobalScope.launch(Dispatchers.IO) {
-                    try {
-                        apiService.updateFcmToken(
-                            authorization = "Bearer $accessToken",
-                            body = mapOf("token" to token),
-                        )
-                        android.util.Log.d("AuthRepo", "Token FCM registrado OK")
-                    } catch (e: Exception) {
-                        android.util.Log.w("AuthRepo", "Error registrando FCM token: ${e.message}")
-                    }
-                }
+    private suspend fun registerFcmToken(accessToken: String) {
+        try {
+            val token = suspendCancellableCoroutine<String> { cont ->
+                com.google.firebase.messaging.FirebaseMessaging.getInstance().token
+                    .addOnSuccessListener { cont.resume(it) }
+                    .addOnFailureListener { cont.resumeWithException(it) }
             }
+            sharedPreferences.edit().putString("fcm_token", token).apply()
+            apiService.updateFcmToken(
+                authorization = "Bearer $accessToken",
+                body = mapOf("token" to token),
+            )
+            android.util.Log.d("AuthRepo", "Token FCM registrado OK: ${token.take(20)}…")
+        } catch (e: Exception) {
+            android.util.Log.w("AuthRepo", "Error registrando FCM token: ${e.message}")
+        }
     }
 
     private fun handleNetworkException(e: Exception): AuthError {

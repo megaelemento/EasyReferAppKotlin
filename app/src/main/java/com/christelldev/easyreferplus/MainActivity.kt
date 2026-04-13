@@ -72,6 +72,7 @@ import com.christelldev.easyreferplus.ui.screens.companies.EditCompanyScreen
 import com.christelldev.easyreferplus.ui.screens.companies.StoreSetupScreen
 import com.christelldev.easyreferplus.ui.viewmodel.StoreViewModel
 import com.christelldev.easyreferplus.ui.screens.cart.CartScreen
+import com.christelldev.easyreferplus.ui.screens.cart.CheckoutFlowScreen
 import com.christelldev.easyreferplus.ui.screens.products.MyProductsScreen
 import com.christelldev.easyreferplus.ui.screens.products.ProductFormScreen
 import com.christelldev.easyreferplus.ui.screens.products.CompanyProductsScreen
@@ -256,6 +257,7 @@ sealed class Screen(val route: String) {
     }
     // Nuevas pantallas de productos y carrito
     data object Cart : Screen("cart")
+    data object Checkout : Screen("checkout")
     data object MyProducts : Screen("my_products")
     data object ProductForm : Screen("product_form/{productId}") {
         fun createRoute(productId: Int?) = if (productId != null) "product_form/$productId" else "product_form/new"
@@ -877,6 +879,8 @@ fun MainNavigation(
 
                 val cartCount by productViewModel.cartCount.collectAsState()
                 val pendingInvitationsCount by driverViewModel.pendingInvitationsCount.collectAsState()
+                val driverProfile by driverViewModel.profile.collectAsState()
+                val isOnDuty = isMotorizado && driverProfile?.isOnDuty == true
                 val ordersState by orderViewModel.ordersState.collectAsState()
 
                 LaunchedEffect(Unit) {
@@ -894,10 +898,12 @@ fun MainNavigation(
                     activeOrderStatus = activeOrder?.status,
                     isMotorizado = isMotorizado,
                     pendingInvitationsCount = pendingInvitationsCount,
+                    isOnDuty = isOnDuty,
                     onLogout = {
                         disconnectWebSocket()
                         BiometricHelper.clearPin(context)
                         mainScope.launch {
+                            if (isOnDuty) driverViewModel.toggleOnDuty { _, _ -> }
                             authRepository.logout()
                             onLogoutComplete()
                         }
@@ -1306,7 +1312,6 @@ fun MainNavigation(
                     isLoading = uiState is com.christelldev.easyreferplus.ui.viewmodel.ProductUiState.Loading,
                     checkoutState = cartCheckoutState,
                     orderViewModel = orderViewModel,
-                    addressViewModel = addressViewModel,
                     onAddToCart = { productId, quantity ->
                         productViewModel.addToCart(productId, quantity)
                     },
@@ -1317,7 +1322,7 @@ fun MainNavigation(
                         productViewModel.updateCartItem(productId, quantity)
                     },
                     onCheckout = {
-                        productViewModel.checkout()
+                        navController.navigate(Screen.Checkout.route)
                     },
                     onClearCart = {
                         productViewModel.clearCart()
@@ -1333,6 +1338,27 @@ fun MainNavigation(
                     },
                     onCheckoutSuccess = { _ ->
                         productViewModel.clearCart()
+                        navController.navigate(Screen.MisCompras.route) {
+                            popUpTo(Screen.Cart.route) { inclusive = true }
+                        }
+                    }
+                )
+            }
+
+            // Pantalla de Checkout (flujo de pago en pantalla completa)
+            composable(Screen.Checkout.route) {
+                val cartItems by productViewModel.cartItems.collectAsState()
+                val totalAmount = remember(cartItems) { cartItems.sumOf { it.price * it.quantity } }
+
+                CheckoutFlowScreen(
+                    cartItems = cartItems,
+                    cartTotal = totalAmount,
+                    orderViewModel = orderViewModel,
+                    addressViewModel = addressViewModel,
+                    onBack = { navController.popBackStack() },
+                    onSuccess = { _ ->
+                        productViewModel.clearCart()
+                        productViewModel.loadCart()
                         navController.navigate(Screen.MisCompras.route) {
                             popUpTo(Screen.Cart.route) { inclusive = true }
                         }
@@ -1555,6 +1581,8 @@ fun MainNavigation(
             }
 
             composable(Screen.Profile.route) {
+                val profileDriverProfile by driverViewModel.profile.collectAsState()
+                val profileIsOnDuty = profileDriverProfile?.isOnDuty == true
                 ProfileScreen(
                     viewModel = profileViewModel,
                     onBack = {
@@ -1566,10 +1594,12 @@ fun MainNavigation(
                     onNavigateToSavedAddresses = {
                         navController.navigate(Screen.SavedAddresses.route)
                     },
+                    isOnDuty = profileIsOnDuty,
                     onLogout = {
                         disconnectWebSocket()
                         BiometricHelper.clearPin(context)
                         mainScope.launch {
+                            if (profileIsOnDuty) driverViewModel.toggleOnDuty { _, _ -> }
                             authRepository.logout()
                             onLogoutComplete()
                         }

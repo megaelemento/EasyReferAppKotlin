@@ -139,6 +139,7 @@ fun HomeScreen(
     onNavigateToMisCompras: () -> Unit = {},
     onNavigateToMisVentas: () -> Unit = {},
     onNavigateToOrderTracking: (Int) -> Unit = {},
+    isOnDuty: Boolean = false,
     onLogout: () -> Unit = {}
 ) {
     val context = LocalContext.current
@@ -153,6 +154,7 @@ fun HomeScreen(
 
     if (showLogoutDialog) {
         LogoutConfirmationDialog(
+            isOnDuty = isOnDuty,
             onConfirm = {
                 showLogoutDialog = false
                 scope.launch { onLogout() }
@@ -1061,11 +1063,16 @@ private fun DrawerItem(icon: ImageVector, label: String, onClick: () -> Unit, co
 }
 
 @Composable
-private fun LogoutConfirmationDialog(onConfirm: () -> Unit, onDismiss: () -> Unit) {
+private fun LogoutConfirmationDialog(isOnDuty: Boolean = false, onConfirm: () -> Unit, onDismiss: () -> Unit) {
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Cerrar Sesión", fontWeight = FontWeight.ExtraBold) },
-        text = { Text("¿Estás seguro que deseas salir?") },
+        text = {
+            if (isOnDuty)
+                Text("Tienes el turno activo. Si cierras sesión, el turno se desactivará automáticamente. ¿Deseas continuar?")
+            else
+                Text("¿Estás seguro que deseas salir?")
+        },
         confirmButton = { Button(onClick = onConfirm, colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)) { Text("Salir", fontWeight = FontWeight.Bold) } },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Cancelar") } },
         shape = RoundedCornerShape(24.dp)

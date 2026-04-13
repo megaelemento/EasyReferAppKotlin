@@ -2,6 +2,8 @@ package com.christelldev.easyreferplus.ui.screens.products
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -234,53 +236,78 @@ fun ProductDetailScreen(
                 .padding(paddingValues)
                 .verticalScroll(rememberScrollState())
         ) {
-            // Product images con gradiente de fondo
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(320.dp)
-                    .background(
-                        brush = Brush.verticalGradient(
-                            colors = listOf(
-                                Color(0xFFE3F2FD),
-                                Color(0xFFBBDEFB)
-                            )
-                        )
-                    ),
-                contentAlignment = Alignment.Center
-            ) {
-                if (!product.images.isNullOrEmpty()) {
-                    AsyncImage(
-                        model = product.images?.firstOrNull { it.isPrimary }?.imageUrl
-                            ?: product.images?.firstOrNull()?.imageUrl,
-                        contentDescription = product.productName,
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(16.dp)
-                            .clip(RoundedCornerShape(CARD_CORNER_RADIUS)),
-                        contentScale = ContentScale.Crop
-                    )
-                } else {
+            // Product images — carrusel si hay múltiples
+            val sortedImages = remember(product.images) {
+                product.images?.sortedWith(compareByDescending<com.christelldev.easyreferplus.data.model.ProductImage> { it.isPrimary }) ?: emptyList()
+            }
+
+            if (sortedImages.isEmpty()) {
+                // Sin imágenes
+                Box(
+                    modifier = Modifier.fillMaxWidth().height(280.dp)
+                        .background(Brush.verticalGradient(listOf(Color(0xFFE3F2FD), Color(0xFFBBDEFB)))),
+                    contentAlignment = Alignment.Center
+                ) {
                     Card(
-                        modifier = Modifier
-                            .size(160.dp)
-                            .shadow(elevation = CARD_ELEVATION, shape = CircleShape),
+                        modifier = Modifier.size(140.dp).shadow(elevation = CARD_ELEVATION, shape = CircleShape),
                         shape = CircleShape,
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.surface
-                        )
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
                     ) {
-                        Box(
-                            modifier = Modifier.fillMaxSize(),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                Icons.Default.Image,
-                                contentDescription = null,
-                                modifier = Modifier.size(80.dp),
-                                tint = Color(0xFF03A9F4)
-                            )
+                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            Icon(Icons.Default.Image, null, modifier = Modifier.size(70.dp), tint = Color(0xFF03A9F4))
                         }
+                    }
+                }
+            } else if (sortedImages.size == 1) {
+                // Una sola imagen
+                AsyncImage(
+                    model = sortedImages.first().imageUrl,
+                    contentDescription = product.productName,
+                    modifier = Modifier.fillMaxWidth().height(320.dp).clip(RoundedCornerShape(0.dp)),
+                    contentScale = ContentScale.Crop
+                )
+            } else {
+                // Carrusel múltiples imágenes
+                val pagerState = rememberPagerState { sortedImages.size }
+                Box(modifier = Modifier.fillMaxWidth().height(320.dp)) {
+                    HorizontalPager(
+                        state = pagerState,
+                        modifier = Modifier.fillMaxSize()
+                    ) { page ->
+                        AsyncImage(
+                            model = sortedImages[page].imageUrl,
+                            contentDescription = product.productName,
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop
+                        )
+                    }
+                    // Indicadores (puntos)
+                    Row(
+                        modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 12.dp),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        repeat(sortedImages.size) { i ->
+                            val selected = pagerState.currentPage == i
+                            Surface(
+                                modifier = Modifier.size(if (selected) 8.dp else 6.dp),
+                                shape = CircleShape,
+                                color = if (selected) Color.White else Color.White.copy(alpha = 0.5f)
+                            ) {}
+                        }
+                    }
+                    // Contador "1 / N"
+                    Surface(
+                        modifier = Modifier.align(Alignment.TopEnd).padding(12.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        color = Color.Black.copy(alpha = 0.45f)
+                    ) {
+                        Text(
+                            "${pagerState.currentPage + 1} / ${sortedImages.size}",
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                            color = Color.White,
+                            style = MaterialTheme.typography.labelSmall
+                        )
                     }
                 }
             }

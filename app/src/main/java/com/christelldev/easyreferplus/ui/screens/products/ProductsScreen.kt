@@ -6,6 +6,8 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -36,6 +38,8 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.foundation.border
+import androidx.compose.foundation.shape.CircleShape
 import coil.compose.AsyncImage
 import com.christelldev.easyreferplus.R
 import com.christelldev.easyreferplus.data.model.Product
@@ -308,7 +312,88 @@ fun ProductFormScreen(
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(32.dp))
+                    Spacer(modifier = Modifier.height(20.dp))
+
+                    // ─── Sección de imágenes ──────────────────────────────────
+                    Surface(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(24.dp), color = MaterialTheme.colorScheme.surface, tonalElevation = 2.dp) {
+                        Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(Icons.Default.Image, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text("Imágenes", fontWeight = FontWeight.ExtraBold, style = MaterialTheme.typography.titleSmall)
+                                Spacer(modifier = Modifier.weight(1f))
+                                if (product != null) {
+                                    Surface(
+                                        modifier = Modifier.clickable { onUploadImage(product.id) },
+                                        shape = RoundedCornerShape(12.dp),
+                                        color = MaterialTheme.colorScheme.primaryContainer
+                                    ) {
+                                        Row(modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                            Icon(Icons.Default.AddAPhoto, null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary)
+                                            Text("Agregar foto", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                                        }
+                                    }
+                                }
+                            }
+
+                            if (product == null) {
+                                Text("Guarda el producto primero para poder agregar imágenes.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            } else if (product.images.isEmpty()) {
+                                Box(modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp), contentAlignment = Alignment.Center) {
+                                    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                        Icon(Icons.Default.AddPhotoAlternate, null, modifier = Modifier.size(40.dp), tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.3f))
+                                        Text("Sin imágenes. Toca 'Agregar foto' para subir.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+                                    }
+                                }
+                            } else {
+                                LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                                    items(product.images) { image ->
+                                        Box(modifier = Modifier.size(100.dp)) {
+                                            AsyncImage(
+                                                model = image.imageUrl,
+                                                contentDescription = null,
+                                                modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(12.dp))
+                                                    .then(if (image.isPrimary) Modifier.border(2.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(12.dp)) else Modifier),
+                                                contentScale = ContentScale.Crop
+                                            )
+                                            // Badge "Principal"
+                                            if (image.isPrimary) {
+                                                Surface(
+                                                    modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 4.dp),
+                                                    shape = RoundedCornerShape(6.dp),
+                                                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.9f)
+                                                ) {
+                                                    Text("Principal", modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp), style = MaterialTheme.typography.labelSmall, color = Color.White, fontWeight = FontWeight.Bold)
+                                                }
+                                            }
+                                            // Botón eliminar
+                                            Surface(
+                                                modifier = Modifier.align(Alignment.TopEnd).padding(4.dp).size(24.dp).clickable { onDeleteImage(image.id) },
+                                                shape = CircleShape,
+                                                color = Color.Black.copy(alpha = 0.6f)
+                                            ) {
+                                                Box(contentAlignment = Alignment.Center) {
+                                                    Icon(Icons.Default.Close, null, tint = Color.White, modifier = Modifier.size(14.dp))
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
+                            // Mensaje de éxito al subir
+                            if (successMessage != null) {
+                                Surface(shape = RoundedCornerShape(8.dp), color = Color(0xFF22c55e).copy(alpha = 0.1f)) {
+                                    Row(modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                        Icon(Icons.Default.CheckCircle, null, tint = Color(0xFF22c55e), modifier = Modifier.size(16.dp))
+                                        Text(successMessage, style = MaterialTheme.typography.labelMedium, color = Color(0xFF22c55e))
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(20.dp))
 
                     Button(
                         onClick = {
@@ -320,9 +405,9 @@ fun ProductFormScreen(
                         enabled = name.isNotBlank() && price.isNotBlank() && !isLoading
                     ) {
                         if (isLoading) CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
-                        else Text("Guardar Cambios", fontWeight = FontWeight.ExtraBold, style = MaterialTheme.typography.titleMedium)
+                        else Text(if (product == null) "Crear Producto" else "Guardar Cambios", fontWeight = FontWeight.ExtraBold, style = MaterialTheme.typography.titleMedium)
                     }
-                    
+
                     Spacer(modifier = Modifier.height(48.dp))
                 }
             }

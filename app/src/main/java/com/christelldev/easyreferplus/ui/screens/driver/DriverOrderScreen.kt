@@ -61,9 +61,10 @@ fun DriverOrderScreen(
     var showPhotoDialog by remember { mutableStateOf(false) }
     var isUploadingPhoto by remember { mutableStateOf(false) }
     var arrivedPickupSent by remember { mutableStateOf(false) }
+    var pendingCameraLaunch by remember { mutableStateOf(false) }
 
     // Camera photo capture
-    val photoFile = remember { File(context.cacheDir, "delivery_photo_${System.currentTimeMillis()}.jpg") }
+    var photoFile by remember { mutableStateOf(File(context.cacheDir, "delivery_photo_${System.currentTimeMillis()}.jpg")) }
     var photoUri by remember { mutableStateOf<Uri?>(null) }
 
     val cameraLauncher = rememberLauncherForActivityResult(
@@ -97,6 +98,19 @@ fun DriverOrderScreen(
                 }
             )
         }
+    }
+
+    val cameraPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted && pendingCameraLaunch) {
+            val newFile = File(context.cacheDir, "delivery_photo_${System.currentTimeMillis()}.jpg")
+            photoFile = newFile
+            val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", newFile)
+            photoUri = uri
+            cameraLauncher.launch(uri)
+        }
+        pendingCameraLaunch = false
     }
 
     val hasLocationPermission = remember {
@@ -196,11 +210,19 @@ fun DriverOrderScreen(
             confirmButton = {
                 Button(onClick = {
                     showPhotoDialog = false
-                    val newFile = File(context.cacheDir, "delivery_photo_${System.currentTimeMillis()}.jpg")
-                    val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", newFile)
-                    photoUri = uri
-                    // Update photoFile reference
-                    cameraLauncher.launch(uri)
+                    val hasCameraPermission = ContextCompat.checkSelfPermission(
+                        context, Manifest.permission.CAMERA
+                    ) == PackageManager.PERMISSION_GRANTED
+                    if (hasCameraPermission) {
+                        val newFile = File(context.cacheDir, "delivery_photo_${System.currentTimeMillis()}.jpg")
+                        photoFile = newFile
+                        val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", newFile)
+                        photoUri = uri
+                        cameraLauncher.launch(uri)
+                    } else {
+                        pendingCameraLaunch = true
+                        cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+                    }
                 }) { Text("Tomar foto") }
             },
             dismissButton = {

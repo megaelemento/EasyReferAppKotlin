@@ -11,6 +11,7 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -19,13 +20,16 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -51,14 +55,15 @@ private enum class CheckoutStep {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CheckoutFlowSheet(
+fun CheckoutFlowScreen(
     cartItems: List<CartItem>,
     cartTotal: Double,
     orderViewModel: OrderViewModel,
     addressViewModel: AddressViewModel? = null,
-    onDismiss: () -> Unit,
+    onBack: () -> Unit,
     onSuccess: (orderId: Int) -> Unit
 ) {
+    val isDark = isSystemInDarkTheme()
     val checkoutState by orderViewModel.checkoutState.collectAsState()
     val savedAddresses = addressViewModel?.let {
         val addrs by it.addresses.collectAsState()
@@ -76,7 +81,6 @@ fun CheckoutFlowSheet(
     // Load saved addresses when opening
     LaunchedEffect(Unit) { addressViewModel?.loadAddresses() }
 
-    // Launcher para pedir permiso de ubicación
     val locationLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { granted ->
@@ -110,12 +114,10 @@ fun CheckoutFlowSheet(
         }
     }
 
-    // Auto-centrar en la ubicación al entrar al paso de dirección
     LaunchedEffect(step) {
         if (step == CheckoutStep.ADDRESS_INPUT) requestGps()
     }
 
-    // Observar estado de checkout para Processing/Success/Error
     LaunchedEffect(checkoutState) {
         when (checkoutState) {
             is CheckoutFlowState.Success -> {
@@ -127,86 +129,131 @@ fun CheckoutFlowSheet(
         }
     }
 
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
-        shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
-    ) {
-        Box(modifier = Modifier.fillMaxWidth()) {
-            // Contenido según estado/step
-            when {
-                checkoutState is CheckoutFlowState.Processing -> ProcessingContent()
+    Scaffold(
+        containerColor = MaterialTheme.colorScheme.background
+    ) { paddingValues ->
+        Box(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
+            // Gradiente superior sutil
+            Box(
+                modifier = Modifier.fillMaxWidth().height(200.dp)
+                    .background(Brush.verticalGradient(listOf(MaterialTheme.colorScheme.primary.copy(alpha = 0.8f), Color.Transparent)))
+            )
 
-                checkoutState is CheckoutFlowState.Error -> ErrorContent(
-                    message = (checkoutState as CheckoutFlowState.Error).message,
-                    onRetry = { orderViewModel.resetCheckout() }
-                )
+            Column(modifier = Modifier.fillMaxSize()) {
+                // TopAppBar con botón atrás y título dinámico
+                val topTitle = when {
+                    checkoutState is CheckoutFlowState.Processing -> "Procesando…"
+                    checkoutState is CheckoutFlowState.Error -> "Error"
+                    step == CheckoutStep.DELIVERY_QUESTION -> "Finalizar Compra"
+                    step == CheckoutStep.ADDRESS_INPUT -> "Dirección de entrega"
+                    step == CheckoutStep.DELIVERY_SELECTION -> "Empresa de delivery"
+                    step == CheckoutStep.ORDER_SUMMARY -> "Confirmar pedido"
+                    else -> "Checkout"
+                }
 
-                step == CheckoutStep.DELIVERY_QUESTION -> DeliveryQuestionContent(
-                    onNo = {
-                        needsDelivery = false
-                        step = CheckoutStep.ORDER_SUMMARY
-                    },
-                    onYes = {
-                        needsDelivery = true
-                        step = CheckoutStep.ADDRESS_INPUT
-                    },
-                    onDismiss = onDismiss
-                )
-
-                step == CheckoutStep.ADDRESS_INPUT -> AddressInputContent(
-                    address = dropoffAddress,
-                    onAddressChange = { dropoffAddress = it },
-                    lat = dropoffLat,
-                    lng = dropoffLng,
-                    savedAddresses = savedAddresses,
-                    onSelectSavedAddress = { addr ->
-                        dropoffAddress = addr.address
-                        dropoffLat = addr.lat
-                        dropoffLng = addr.lng
-                    },
-                    onUseGps = { requestGps() },
-                    onPinChange = { lat, lng -> dropoffLat = lat; dropoffLng = lng },
-                    onBack = { step = CheckoutStep.DELIVERY_QUESTION },
-                    onNext = {
-                        step = CheckoutStep.DELIVERY_SELECTION
-                        val lat = dropoffLat ?: -0.22
-                        val lng = dropoffLng ?: -78.51
-                        orderViewModel.loadDeliveryOptions(lat, lng)
-                    }
-                )
-
-                step == CheckoutStep.DELIVERY_SELECTION -> DeliverySelectionContent(
-                    checkoutState = checkoutState,
-                    selectedDelivery = selectedDelivery,
-                    onSelect = { selectedDelivery = it },
-                    onBack = { step = CheckoutStep.ADDRESS_INPUT },
-                    onNext = { step = CheckoutStep.ORDER_SUMMARY }
-                )
-
-                step == CheckoutStep.ORDER_SUMMARY -> OrderSummaryContent(
-                    cartItems = cartItems,
-                    subtotal = cartTotal,
-                    needsDelivery = needsDelivery,
-                    selectedDelivery = selectedDelivery,
-                    dropoffAddress = dropoffAddress,
-                    tipAmount = tipAmount,
-                    onTipChange = { tipAmount = it },
-                    onBack = {
-                        step = if (needsDelivery) CheckoutStep.DELIVERY_SELECTION
-                               else CheckoutStep.DELIVERY_QUESTION
-                    },
-                    onConfirm = {
-                        orderViewModel.createAndPayOrder(
-                            deliveryRequired = needsDelivery,
-                            deliveryCompanyId = selectedDelivery?.companyId,
-                            dropoffAddress = dropoffAddress.ifBlank { null },
-                            dropoffLat = dropoffLat,
-                            dropoffLng = dropoffLng,
-                            observations = null
+                TopAppBar(
+                    title = {
+                        Text(
+                            text = topTitle,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = if (isDark) MaterialTheme.colorScheme.onBackground else Color.White
                         )
-                    }
+                    },
+                    navigationIcon = {
+                        IconButton(onClick = {
+                            when {
+                                checkoutState is CheckoutFlowState.Processing -> {}
+                                step == CheckoutStep.DELIVERY_QUESTION -> onBack()
+                                step == CheckoutStep.ADDRESS_INPUT -> step = CheckoutStep.DELIVERY_QUESTION
+                                step == CheckoutStep.DELIVERY_SELECTION -> step = CheckoutStep.ADDRESS_INPUT
+                                step == CheckoutStep.ORDER_SUMMARY -> {
+                                    step = if (needsDelivery) CheckoutStep.DELIVERY_SELECTION
+                                           else CheckoutStep.DELIVERY_QUESTION
+                                }
+                                else -> onBack()
+                            }
+                        }) {
+                            Icon(
+                                Icons.AutoMirrored.Filled.ArrowBack,
+                                null,
+                                tint = if (isDark) MaterialTheme.colorScheme.onBackground else Color.White
+                            )
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
                 )
+
+                // Contenido según estado/step
+                when {
+                    checkoutState is CheckoutFlowState.Processing -> ProcessingContent()
+
+                    checkoutState is CheckoutFlowState.Error -> ErrorContent(
+                        message = (checkoutState as CheckoutFlowState.Error).message,
+                        onRetry = { orderViewModel.resetCheckout() }
+                    )
+
+                    step == CheckoutStep.DELIVERY_QUESTION -> DeliveryQuestionContent(
+                        onNo = {
+                            needsDelivery = false
+                            step = CheckoutStep.ORDER_SUMMARY
+                        },
+                        onYes = {
+                            needsDelivery = true
+                            step = CheckoutStep.ADDRESS_INPUT
+                        }
+                    )
+
+                    step == CheckoutStep.ADDRESS_INPUT -> AddressInputContent(
+                        address = dropoffAddress,
+                        onAddressChange = { dropoffAddress = it },
+                        lat = dropoffLat,
+                        lng = dropoffLng,
+                        savedAddresses = savedAddresses,
+                        onSelectSavedAddress = { addr ->
+                            dropoffAddress = addr.address
+                            dropoffLat = addr.lat
+                            dropoffLng = addr.lng
+                        },
+                        onSaveAddress = { label, addr, lat, lng ->
+                            addressViewModel?.createAddress(label, addr, lat, lng, false)
+                        },
+                        onUseGps = { requestGps() },
+                        onPinChange = { lat, lng -> dropoffLat = lat; dropoffLng = lng },
+                        onNext = {
+                            step = CheckoutStep.DELIVERY_SELECTION
+                            val lat = dropoffLat ?: -0.22
+                            val lng = dropoffLng ?: -78.51
+                            orderViewModel.loadDeliveryOptions(lat, lng)
+                        }
+                    )
+
+                    step == CheckoutStep.DELIVERY_SELECTION -> DeliverySelectionContent(
+                        checkoutState = checkoutState,
+                        selectedDelivery = selectedDelivery,
+                        onSelect = { selectedDelivery = it },
+                        onNext = { step = CheckoutStep.ORDER_SUMMARY }
+                    )
+
+                    step == CheckoutStep.ORDER_SUMMARY -> OrderSummaryContent(
+                        cartItems = cartItems,
+                        subtotal = cartTotal,
+                        needsDelivery = needsDelivery,
+                        selectedDelivery = selectedDelivery,
+                        dropoffAddress = dropoffAddress,
+                        tipAmount = tipAmount,
+                        onTipChange = { tipAmount = it },
+                        onConfirm = {
+                            orderViewModel.createAndPayOrder(
+                                deliveryRequired = needsDelivery,
+                                deliveryCompanyId = selectedDelivery?.companyId,
+                                dropoffAddress = dropoffAddress.ifBlank { null },
+                                dropoffLat = dropoffLat,
+                                dropoffLng = dropoffLng,
+                                observations = null
+                            )
+                        }
+                    )
+                }
             }
         }
     }
@@ -217,20 +264,20 @@ fun CheckoutFlowSheet(
 @Composable
 private fun DeliveryQuestionContent(
     onNo: () -> Unit,
-    onYes: () -> Unit,
-    onDismiss: () -> Unit
+    onYes: () -> Unit
 ) {
     Column(
-        modifier = Modifier.fillMaxWidth().padding(24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
+        modifier = Modifier.fillMaxSize().padding(24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
     ) {
         Icon(
             Icons.Default.ShoppingBag,
             contentDescription = null,
-            modifier = Modifier.size(56.dp),
-            tint = MaterialTheme.colorScheme.primary
+            modifier = Modifier.size(72.dp),
+            tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f)
         )
-        Spacer(Modifier.height(16.dp))
+        Spacer(Modifier.height(24.dp))
         Text(
             "¿Tu compra necesita delivery?",
             style = MaterialTheme.typography.titleLarge,
@@ -244,12 +291,12 @@ private fun DeliveryQuestionContent(
             textAlign = TextAlign.Center,
             modifier = Modifier.padding(top = 8.dp)
         )
-        Spacer(Modifier.height(32.dp))
+        Spacer(Modifier.height(48.dp))
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             OutlinedButton(
                 onClick = onNo,
-                modifier = Modifier.weight(1f).height(52.dp),
-                shape = RoundedCornerShape(14.dp)
+                modifier = Modifier.weight(1f).height(56.dp),
+                shape = RoundedCornerShape(16.dp)
             ) {
                 Icon(Icons.Default.Store, null, modifier = Modifier.size(18.dp))
                 Spacer(Modifier.width(8.dp))
@@ -257,20 +304,20 @@ private fun DeliveryQuestionContent(
             }
             Button(
                 onClick = onYes,
-                modifier = Modifier.weight(1f).height(52.dp),
-                shape = RoundedCornerShape(14.dp)
+                modifier = Modifier.weight(1f).height(56.dp),
+                shape = RoundedCornerShape(16.dp)
             ) {
                 Icon(Icons.Default.LocalShipping, null, modifier = Modifier.size(18.dp))
                 Spacer(Modifier.width(8.dp))
                 Text("Con delivery", fontWeight = FontWeight.Bold)
             }
         }
-        Spacer(Modifier.navigationBarsPadding())
     }
 }
 
 // ─── Step 2: Dirección ────────────────────────────────────────────────────────
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun AddressInputContent(
     address: String,
@@ -279,9 +326,9 @@ private fun AddressInputContent(
     lng: Double?,
     savedAddresses: List<SavedAddress> = emptyList(),
     onSelectSavedAddress: (SavedAddress) -> Unit = {},
+    onSaveAddress: ((label: String, address: String, lat: Double, lng: Double) -> Unit)? = null,
     onUseGps: () -> Unit,
     onPinChange: (Double, Double) -> Unit,
-    onBack: () -> Unit,
     onNext: () -> Unit
 ) {
     val hasCoords = lat != null && lng != null
@@ -291,7 +338,56 @@ private fun AddressInputContent(
         )
     }
 
-    // Sincronizar cámara cuando cambian las coordenadas
+    var showSaveDialog by remember { mutableStateOf(false) }
+    var saveLabel by remember { mutableStateOf("") }
+
+    if (showSaveDialog) {
+        AlertDialog(
+            onDismissRequest = { showSaveDialog = false; saveLabel = "" },
+            icon = { Icon(Icons.Default.BookmarkAdd, null, tint = MaterialTheme.colorScheme.primary) },
+            title = { Text("Guardar dirección", fontWeight = FontWeight.Bold) },
+            text = {
+                Column {
+                    Text(
+                        "Escribe un nombre para identificar esta dirección (ej: Casa, Trabajo, Gimnasio)",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(Modifier.height(12.dp))
+                    OutlinedTextField(
+                        value = saveLabel,
+                        onValueChange = { saveLabel = it },
+                        label = { Text("Nombre de la dirección") },
+                        singleLine = true,
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        if (saveLabel.isNotBlank() && lat != null && lng != null) {
+                            onSaveAddress?.invoke(saveLabel.trim(), address, lat, lng)
+                        }
+                        showSaveDialog = false
+                        saveLabel = ""
+                    },
+                    enabled = saveLabel.isNotBlank() && hasCoords && address.isNotBlank(),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Text("Guardar", fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showSaveDialog = false; saveLabel = "" }) {
+                    Text("Cancelar")
+                }
+            },
+            shape = RoundedCornerShape(20.dp)
+        )
+    }
+
     LaunchedEffect(lat, lng) {
         if (lat != null && lng != null) {
             cameraState.animate(
@@ -300,126 +396,193 @@ private fun AddressInputContent(
         }
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .verticalScroll(rememberScrollState())
-            .padding(horizontal = 24.dp)
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(horizontal = 20.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        SheetHeader(title = "Dirección de entrega", onBack = onBack)
-        Spacer(Modifier.height(12.dp))
-
-        // Saved address chips
+        // Ubicaciones guardadas
         if (savedAddresses.isNotEmpty()) {
-            Text(
-                "Mis direcciones",
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                fontWeight = FontWeight.Bold
-            )
-            Spacer(Modifier.height(6.dp))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                savedAddresses.take(3).forEach { addr ->
-                    val icon = when (addr.label.lowercase()) {
-                        "casa", "home" -> Icons.Default.Home
-                        "trabajo", "work", "oficina" -> Icons.Default.Work
-                        else -> Icons.Default.Place
-                    }
-                    val isActive = lat == addr.lat && lng == addr.lng
-                    FilterChip(
-                        selected = isActive,
-                        onClick = { onSelectSavedAddress(addr) },
-                        label = { Text(addr.label, maxLines = 1) },
-                        leadingIcon = { Icon(icon, null, modifier = Modifier.size(16.dp)) }
-                    )
-                }
+            item {
+                Text(
+                    "Mis ubicaciones guardadas",
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.Black,
+                    color = MaterialTheme.colorScheme.primary
+                )
             }
-            Spacer(Modifier.height(12.dp))
-        }
-
-        OutlinedTextField(
-            value = address,
-            onValueChange = onAddressChange,
-            label = { Text("Referencias (ej: Calle principal, casa azul)") },
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(12.dp),
-            maxLines = 3,
-            leadingIcon = { Icon(Icons.Default.Home, null) }
-        )
-
-        Spacer(Modifier.height(12.dp))
-
-        // Mapa para confirmar/ajustar pin
-        Text(
-            "Toca el mapa para ajustar el pin de entrega",
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        Spacer(Modifier.height(6.dp))
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(240.dp)
-                .clip(RoundedCornerShape(16.dp))
-                .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f), RoundedCornerShape(16.dp))
-        ) {
-            GoogleMap(
-                modifier = Modifier.fillMaxSize(),
-                cameraPositionState = cameraState,
-                onMapClick = { latLng -> onPinChange(latLng.latitude, latLng.longitude) },
-                uiSettings = MapUiSettings(zoomControlsEnabled = false, myLocationButtonEnabled = false)
-            ) {
-                if (hasCoords) {
-                    Marker(
-                        state = MarkerState(position = LatLng(lat!!, lng!!)),
-                        title = "Punto de entrega"
-                    )
+            items(savedAddresses) { addr ->
+                val icon: ImageVector = when (addr.label.lowercase()) {
+                    "casa", "home" -> Icons.Default.Home
+                    "trabajo", "work", "oficina" -> Icons.Default.Work
+                    "gimnasio" -> Icons.Default.FitnessCenter
+                    else -> Icons.Default.Place
                 }
-            }
-            if (!hasCoords) {
-                Box(
-                    modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.15f)),
-                    contentAlignment = Alignment.Center
+                val isSelected = lat == addr.lat && lng == addr.lng
+                Surface(
+                    modifier = Modifier.fillMaxWidth().clickable { onSelectSavedAddress(addr) },
+                    shape = RoundedCornerShape(16.dp),
+                    color = if (isSelected) MaterialTheme.colorScheme.primaryContainer
+                            else MaterialTheme.colorScheme.surface,
+                    tonalElevation = if (isSelected) 4.dp else 1.dp,
+                    border = if (isSelected) androidx.compose.foundation.BorderStroke(
+                        2.dp, MaterialTheme.colorScheme.primary
+                    ) else null
                 ) {
-                    Text(
-                        "Obteniendo ubicación…",
-                        color = Color.White,
-                        fontWeight = FontWeight.Bold,
-                        style = MaterialTheme.typography.bodyMedium
-                    )
+                    Row(
+                        modifier = Modifier.padding(14.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(
+                            Modifier.size(40.dp).clip(CircleShape)
+                                .background(
+                                    if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
+                                    else MaterialTheme.colorScheme.surfaceVariant
+                                ),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                icon, null,
+                                tint = if (isSelected) MaterialTheme.colorScheme.primary
+                                       else MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                        Spacer(Modifier.width(12.dp))
+                        Column(Modifier.weight(1f)) {
+                            Text(
+                                addr.label,
+                                fontWeight = FontWeight.Bold,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = if (isSelected) MaterialTheme.colorScheme.primary
+                                        else MaterialTheme.colorScheme.onSurface
+                            )
+                            Text(
+                                addr.address,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 2
+                            )
+                        }
+                        if (isSelected) {
+                            Icon(
+                                Icons.Default.CheckCircle, null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(22.dp)
+                            )
+                        }
+                    }
                 }
             }
-            // Botón centrar en mi ubicación (dentro del mapa)
-            SmallFloatingActionButton(
-                onClick = onUseGps,
+            item { Divider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)) }
+        }
+
+        // Campo de referencias
+        item {
+            Text(
+                "Nueva dirección",
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.Black,
+                color = MaterialTheme.colorScheme.primary
+            )
+        }
+        item {
+            OutlinedTextField(
+                value = address,
+                onValueChange = onAddressChange,
+                label = { Text("Referencias (ej: Calle principal, casa azul)") },
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp),
+                maxLines = 3,
+                leadingIcon = { Icon(Icons.Default.Home, null) }
+            )
+        }
+
+        // Mapa
+        item {
+            Text(
+                "Toca el mapa para ajustar el pin de entrega",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        item {
+            Box(
                 modifier = Modifier
-                    .align(Alignment.BottomEnd)
-                    .padding(10.dp),
-                containerColor = MaterialTheme.colorScheme.surface,
-                contentColor = MaterialTheme.colorScheme.primary,
-                elevation = FloatingActionButtonDefaults.elevation(4.dp)
+                    .fillMaxWidth()
+                    .height(260.dp)
+                    .clip(RoundedCornerShape(16.dp))
+                    .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f), RoundedCornerShape(16.dp))
             ) {
-                Icon(Icons.Default.MyLocation, contentDescription = "Centrar en mi ubicación",
-                    modifier = Modifier.size(20.dp))
+                GoogleMap(
+                    modifier = Modifier.fillMaxSize(),
+                    cameraPositionState = cameraState,
+                    onMapClick = { latLng -> onPinChange(latLng.latitude, latLng.longitude) },
+                    uiSettings = MapUiSettings(zoomControlsEnabled = false, myLocationButtonEnabled = false)
+                ) {
+                    if (hasCoords) {
+                        Marker(
+                            state = MarkerState(position = LatLng(lat!!, lng!!)),
+                            title = "Punto de entrega"
+                        )
+                    }
+                }
+                if (!hasCoords) {
+                    Box(
+                        modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.15f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            "Obteniendo ubicación…",
+                            color = Color.White,
+                            fontWeight = FontWeight.Bold,
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
+                }
+                SmallFloatingActionButton(
+                    onClick = onUseGps,
+                    modifier = Modifier.align(Alignment.BottomEnd).padding(10.dp),
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    contentColor = MaterialTheme.colorScheme.primary,
+                    elevation = FloatingActionButtonDefaults.elevation(4.dp)
+                ) {
+                    Icon(Icons.Default.MyLocation, contentDescription = "Centrar en mi ubicación",
+                        modifier = Modifier.size(20.dp))
+                }
             }
         }
 
-        Spacer(Modifier.height(20.dp))
-
-        Button(
-            onClick = onNext,
-            modifier = Modifier.fillMaxWidth().height(52.dp),
-            shape = RoundedCornerShape(14.dp),
-            enabled = address.isNotBlank() && hasCoords
-        ) {
-            Text("Ver empresas de delivery", fontWeight = FontWeight.Bold)
-            Spacer(Modifier.width(8.dp))
-            Icon(Icons.Default.ArrowForward, null)
+        // Botón guardar como favorito
+        if (address.isNotBlank() && hasCoords && onSaveAddress != null) {
+            item {
+                OutlinedButton(
+                    onClick = { showSaveDialog = true },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary)
+                ) {
+                    Icon(Icons.Default.BookmarkAdd, null, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text("Guardar como favorito", fontWeight = FontWeight.Bold)
+                }
+            }
         }
-        Spacer(Modifier.navigationBarsPadding().padding(bottom = 8.dp))
+
+        // Botón continuar
+        item {
+            Button(
+                onClick = onNext,
+                modifier = Modifier.fillMaxWidth().height(52.dp),
+                shape = RoundedCornerShape(14.dp),
+                enabled = address.isNotBlank() && hasCoords
+            ) {
+                Text("Ver empresas de delivery", fontWeight = FontWeight.Bold)
+                Spacer(Modifier.width(8.dp))
+                Icon(Icons.Default.ArrowForward, null)
+            }
+        }
+        item { Spacer(Modifier.navigationBarsPadding()) }
     }
 }
 
@@ -430,16 +593,14 @@ private fun DeliverySelectionContent(
     checkoutState: CheckoutFlowState,
     selectedDelivery: DeliveryOption?,
     onSelect: (DeliveryOption) -> Unit,
-    onBack: () -> Unit,
     onNext: () -> Unit
 ) {
-    Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp)) {
-        SheetHeader(title = "Elige empresa de entrega", onBack = onBack)
-        Spacer(Modifier.height(12.dp))
+    Column(modifier = Modifier.fillMaxSize().padding(horizontal = 24.dp)) {
+        Spacer(Modifier.height(8.dp))
 
         when (checkoutState) {
             is CheckoutFlowState.LoadingOptions -> {
-                Box(Modifier.fillMaxWidth().height(180.dp), contentAlignment = Alignment.Center) {
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         CircularProgressIndicator()
                         Spacer(Modifier.height(12.dp))
@@ -450,18 +611,17 @@ private fun DeliverySelectionContent(
             is CheckoutFlowState.OptionsLoaded -> {
                 val options = checkoutState.options
                 if (options.isEmpty()) {
-                    Box(Modifier.fillMaxWidth().height(160.dp), contentAlignment = Alignment.Center) {
+                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Icon(Icons.Default.LocalShipping, null, modifier = Modifier.size(48.dp),
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f))
-                            Spacer(Modifier.height(12.dp))
+                            Icon(Icons.Default.LocalShipping, null, modifier = Modifier.size(64.dp),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f))
+                            Spacer(Modifier.height(16.dp))
                             Text("No hay empresas disponibles en tu zona.",
                                 textAlign = TextAlign.Center,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
                 } else {
-                    // Determine badges
                     val availableOpts = options.filter { it.available }
                     val cheapestId = availableOpts.minByOrNull { it.deliveryFee }?.companyId
                     val fastestId = if (availableOpts.size > 1) {
@@ -469,8 +629,9 @@ private fun DeliverySelectionContent(
                     } else null
 
                     LazyColumn(
-                        modifier = Modifier.heightIn(max = 320.dp),
-                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                        modifier = Modifier.weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(10.dp),
+                        contentPadding = PaddingValues(vertical = 8.dp)
                     ) {
                         items(options) { option ->
                             val badge = when (option.companyId) {
@@ -497,12 +658,13 @@ private fun DeliverySelectionContent(
                         Spacer(Modifier.width(8.dp))
                         Icon(Icons.Default.ArrowForward, null)
                     }
+                    Spacer(Modifier.navigationBarsPadding().padding(bottom = 8.dp))
                 }
             }
             is CheckoutFlowState.Error -> {
-                Box(Modifier.fillMaxWidth().height(160.dp), contentAlignment = Alignment.Center) {
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Icon(Icons.Default.ErrorOutline, null, modifier = Modifier.size(48.dp),
+                        Icon(Icons.Default.ErrorOutline, null, modifier = Modifier.size(56.dp),
                             tint = MaterialTheme.colorScheme.error)
                         Spacer(Modifier.height(8.dp))
                         Text(checkoutState.message, color = MaterialTheme.colorScheme.error, textAlign = TextAlign.Center)
@@ -511,7 +673,6 @@ private fun DeliverySelectionContent(
             }
             else -> {}
         }
-        Spacer(Modifier.navigationBarsPadding().padding(bottom = 8.dp))
     }
 }
 
@@ -609,17 +770,15 @@ private fun OrderSummaryContent(
     dropoffAddress: String,
     tipAmount: Double = 0.0,
     onTipChange: (Double) -> Unit = {},
-    onBack: () -> Unit,
     onConfirm: () -> Unit
 ) {
     val deliveryFee = selectedDelivery?.deliveryFee ?: 0.0
     val total = subtotal + deliveryFee + tipAmount
 
     Column(
-        modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = 24.dp)
+        modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 24.dp)
     ) {
-        SheetHeader(title = "Confirmar pedido", onBack = onBack)
-        Spacer(Modifier.height(16.dp))
+        Spacer(Modifier.height(8.dp))
 
         // Artículos
         Surface(
@@ -748,7 +907,7 @@ private fun OrderSummaryContent(
             Text("Confirmar y Pagar", fontWeight = FontWeight.ExtraBold,
                 style = MaterialTheme.typography.titleMedium)
         }
-        Spacer(Modifier.navigationBarsPadding().padding(bottom = 8.dp))
+        Spacer(Modifier.navigationBarsPadding().padding(bottom = 24.dp))
     }
 }
 
@@ -764,7 +923,7 @@ private fun SummaryRow(label: String, amount: Double) {
 
 @Composable
 private fun ProcessingContent() {
-    Box(Modifier.fillMaxWidth().height(200.dp), contentAlignment = Alignment.Center) {
+    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             CircularProgressIndicator(modifier = Modifier.size(52.dp), strokeWidth = 4.dp)
             Spacer(Modifier.height(16.dp))
@@ -778,32 +937,21 @@ private fun ProcessingContent() {
 
 @Composable
 private fun ErrorContent(message: String, onRetry: () -> Unit) {
-    Column(
-        modifier = Modifier.fillMaxWidth().padding(24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Icon(Icons.Default.ErrorOutline, null, modifier = Modifier.size(56.dp),
-            tint = MaterialTheme.colorScheme.error)
-        Spacer(Modifier.height(12.dp))
-        Text("Ocurrió un error", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
-        Text(message, textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.onSurfaceVariant,
-            style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(top = 8.dp))
-        Spacer(Modifier.height(20.dp))
-        Button(onClick = onRetry, shape = RoundedCornerShape(12.dp)) {
-            Text("Volver a intentar", fontWeight = FontWeight.Bold)
+    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        Column(
+            modifier = Modifier.padding(24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Icon(Icons.Default.ErrorOutline, null, modifier = Modifier.size(64.dp),
+                tint = MaterialTheme.colorScheme.error)
+            Spacer(Modifier.height(12.dp))
+            Text("Ocurrió un error", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
+            Text(message, textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(top = 8.dp))
+            Spacer(Modifier.height(20.dp))
+            Button(onClick = onRetry, shape = RoundedCornerShape(12.dp)) {
+                Text("Volver a intentar", fontWeight = FontWeight.Bold)
+            }
         }
-        Spacer(Modifier.navigationBarsPadding())
-    }
-}
-
-// ─── Header reutilizable ──────────────────────────────────────────────────────
-
-@Composable
-private fun SheetHeader(title: String, onBack: () -> Unit) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        IconButton(onClick = onBack) {
-            Icon(Icons.Default.ArrowBack, contentDescription = "Atrás")
-        }
-        Text(title, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
     }
 }
