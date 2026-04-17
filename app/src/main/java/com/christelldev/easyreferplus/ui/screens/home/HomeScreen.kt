@@ -165,6 +165,7 @@ fun HomeScreen(
     onNavigateToAdminLiveMap: () -> Unit = {},
     onNavigateToAdminOrders: () -> Unit = {},
     onNavigateToAdminReports: () -> Unit = {},
+    onNavigateToSearchAliases: () -> Unit = {},
     onNavigateToMisCompras: () -> Unit = {},
     onNavigateToMisVentas: () -> Unit = {},
     onNavigateToOrderTracking: (Int) -> Unit = {},
@@ -210,6 +211,7 @@ fun HomeScreen(
     val drawerNavToDriverHistory = remember { { scope.launch { drawerState.close() }; onNavigateToDriverHistory() } }
     val drawerNavToDriverInvitations = remember { { scope.launch { drawerState.close() }; onNavigateToDriverInvitations() } }
     val drawerNavToAdminLiveMap = remember { { scope.launch { drawerState.close() }; onNavigateToAdminLiveMap() } }
+    val drawerNavToSearchAliases = remember { { scope.launch { drawerState.close() }; onNavigateToSearchAliases() } }
     val drawerNavToMisCompras = remember { { scope.launch { drawerState.close() }; onNavigateToMisCompras() } }
     val drawerOnLogout = remember { { scope.launch { drawerState.close() }; showLogoutDialog = true } }
 
@@ -246,6 +248,7 @@ fun HomeScreen(
                 onNavigateToDriverHistory = drawerNavToDriverHistory,
                 onNavigateToDriverInvitations = drawerNavToDriverInvitations,
                 onNavigateToAdminLiveMap = drawerNavToAdminLiveMap,
+                onNavigateToSearchAliases = drawerNavToSearchAliases,
                 onNavigateToMisCompras = drawerNavToMisCompras,
                 onLogout = drawerOnLogout
             )
@@ -1119,6 +1122,7 @@ private fun ModernDrawerContent(
     onNavigateToWallet: () -> Unit, onNavigateToWalletTransfer: () -> Unit,
     onNavigateToDriverPanel: () -> Unit = {}, onNavigateToDriverHistory: () -> Unit = {},
     onNavigateToDriverInvitations: () -> Unit = {}, onNavigateToAdminLiveMap: () -> Unit = {},
+    onNavigateToSearchAliases: () -> Unit = {},
     onNavigateToMisCompras: () -> Unit = {},
     onLogout: () -> Unit
 ) {
@@ -1174,6 +1178,7 @@ private fun ModernDrawerContent(
                 DrawerSectionLabel("Admin")
                 DrawerItem(Icons.Default.AttachMoney, "Ganancias Admin", onNavigateToAdminEarnings)
                 DrawerItem(Icons.Default.Map, "Conductores en Vivo", onNavigateToAdminLiveMap)
+                DrawerItem(Icons.Default.Search, "Alias de Búsqueda", onNavigateToSearchAliases)
             }
 
             if (isMotorizado || pendingInvitationsCount > 0) {

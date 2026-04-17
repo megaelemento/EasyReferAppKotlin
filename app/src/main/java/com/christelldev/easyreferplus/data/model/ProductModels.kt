@@ -55,6 +55,8 @@ data class Product(
     val weight: String? = null,
     @SerializedName("dimensions")
     val dimensions: String? = null,
+    @SerializedName("keywords")
+    val keywords: String? = null,
     @SerializedName("quantity")
     val quantity: Int = 0,
     @SerializedName("price")
@@ -237,6 +239,8 @@ data class CreateProductRequest(
     val weight: String? = null,
     @SerializedName("dimensions")
     val dimensions: String? = null,
+    @SerializedName("keywords")
+    val keywords: String? = null,
     @SerializedName("quantity")
     val quantity: Int = 0,
     @SerializedName("price")
@@ -277,7 +281,9 @@ data class UpdateProductRequest(
     @SerializedName("status")
     val status: String? = null,
     @SerializedName("is_active")
-    val isActive: Boolean? = null
+    val isActive: Boolean? = null,
+    @SerializedName("keywords")
+    val keywords: String? = null
 )
 
 // ==================== IMAGE UPLOAD RESPONSE ====================
@@ -327,4 +333,27 @@ data class ProductSearchResponse(
     @SerializedName("total") val total: Int,
     @SerializedName("page") val page: Int,
     @SerializedName("per_page") val perPage: Int
+)
+
+// ==================== SEARCH ALIASES ====================
+
+data class SearchAlias(
+    @SerializedName("id") val id: Int,
+    @SerializedName("alias") val alias: String,
+    @SerializedName("term") val term: String,
+    @SerializedName("created_at") val createdAt: String? = null
+)
+
+data class CreateAliasRequest(
+    @SerializedName("alias") val alias: String,
+    @SerializedName("term") val term: String
+)
+
+data class AliasListResponse(
+    @SerializedName("success") val success: Boolean,
+    @SerializedName("aliases") val aliases: List<SearchAlias>
+)
+
+data class UpdateKeywordsRequest(
+    @SerializedName("keywords") val keywords: String?
 )

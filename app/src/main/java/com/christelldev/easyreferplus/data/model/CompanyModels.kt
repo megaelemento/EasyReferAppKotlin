@@ -130,7 +130,9 @@ data class CompanyProduct(
     @SerializedName("dimensions")
     val dimensions: String? = null,
     @SerializedName("product_category_id")
-    val productCategoryId: Int? = null
+    val productCategoryId: Int? = null,
+    @SerializedName("keywords")
+    val keywords: String? = null
 )
 
 data class RegisterCompanyResponse(

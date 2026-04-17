@@ -245,7 +245,7 @@ fun ProductFormScreen(
     categories: List<ProductCategory> = emptyList(),
     isLoading: Boolean = false,
     successMessage: String? = null,
-    onSave: (name: String, description: String?, categoryId: Int?, size: String?, weight: String?, dimensions: String?, quantity: Int, price: Double, offerPrice: Double?, commission: Double?, useCompanyDefault: Boolean, status: String) -> Unit,
+    onSave: (name: String, description: String?, categoryId: Int?, size: String?, weight: String?, dimensions: String?, quantity: Int, price: Double, offerPrice: Double?, commission: Double?, useCompanyDefault: Boolean, status: String, keywords: String?) -> Unit,
     onUploadImage: (Int) -> Unit,
     onDeleteImage: (Int) -> Unit,
     onNavigateBack: () -> Unit
@@ -261,6 +261,7 @@ fun ProductFormScreen(
     var offerPrice by remember { mutableStateOf(product?.offerPrice?.toString() ?: "") }
     var useCompanyDefault by remember { mutableStateOf(product?.useCompanyDefault ?: true) }
     var status by remember { mutableStateOf(product?.status ?: "active") }
+    var keywords by remember { mutableStateOf(product?.keywords ?: "") }
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background
@@ -309,6 +310,7 @@ fun ProductFormScreen(
                                 ProductTextField(value = offerPrice, onValueChange = { offerPrice = it }, label = "Oferta", modifier = Modifier.weight(1f), keyboardType = KeyboardType.Decimal, prefix = "$")
                             }
                             ProductTextField(value = quantity, onValueChange = { quantity = it }, label = "Stock", keyboardType = KeyboardType.Number)
+                            ProductTextField(value = keywords, onValueChange = { keywords = it }, label = "Palabras clave (separadas por coma)", maxLines = 2)
                         }
                     }
 
@@ -316,7 +318,7 @@ fun ProductFormScreen(
 
                     Button(
                         onClick = {
-                            onSave(name, description.ifBlank { null }, selectedCategoryId, null, null, null, quantity.toIntOrNull() ?: 0, price.toDoubleOrNull() ?: 0.0, offerPrice.toDoubleOrNull(), null, useCompanyDefault, status)
+                            onSave(name, description.ifBlank { null }, selectedCategoryId, null, null, null, quantity.toIntOrNull() ?: 0, price.toDoubleOrNull() ?: 0.0, offerPrice.toDoubleOrNull(), null, useCompanyDefault, status, keywords.ifBlank { null })
                         },
                         modifier = Modifier.fillMaxWidth().height(60.dp),
                         shape = RoundedCornerShape(20.dp),

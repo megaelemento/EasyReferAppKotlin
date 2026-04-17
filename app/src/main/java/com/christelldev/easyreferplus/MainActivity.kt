@@ -131,6 +131,7 @@ import com.christelldev.easyreferplus.ui.screens.driver.DriverOrderScreen
 import com.christelldev.easyreferplus.service.DriverForegroundService
 import com.christelldev.easyreferplus.ui.screens.admin.AdminLiveMapScreen
 import com.christelldev.easyreferplus.ui.screens.admin.AdminOrdersScreen
+import com.christelldev.easyreferplus.ui.screens.admin.SearchAliasesScreen
 import com.christelldev.easyreferplus.ui.viewmodel.DriverViewModel
 import com.christelldev.easyreferplus.ui.viewmodel.AdminDeliveryViewModel
 import com.christelldev.easyreferplus.ui.viewmodel.OrderListState
@@ -282,6 +283,7 @@ sealed class Screen(val route: String) {
     data object AdminLiveMap : Screen("admin_live_map")
     data object AdminOrders : Screen("admin_orders")
     data object AdminReports : Screen("admin_reports")
+    data object SearchAliases : Screen("search_aliases")
     // Compras del usuario
     data object MisCompras : Screen("mis_compras")
     // Ventas del establecimiento
@@ -970,6 +972,9 @@ fun MainNavigation(
                     onNavigateToAdminReports = {
                         navController.navigate(Screen.AdminReports.route)
                     },
+                    onNavigateToSearchAliases = {
+                        navController.navigate(Screen.SearchAliases.route)
+                    },
                     onNavigateToMisCompras = {
                         navController.navigate(Screen.MisCompras.route)
                     },
@@ -1406,7 +1411,7 @@ fun MainNavigation(
                     categories = categories,
                     isLoading = uiState is com.christelldev.easyreferplus.ui.viewmodel.ProductUiState.Loading,
                     successMessage = imageUploadSuccessMessage,
-                    onSave = { name, description, categoryId, size, weight, dimensions, quantity, price, offerPrice, commission, useCompanyDefault, status ->
+                    onSave = { name, description, categoryId, size, weight, dimensions, quantity, price, offerPrice, commission, useCompanyDefault, status, keywords ->
                         if (productId != null) {
                             productViewModel.updateProduct(
                                 productId = productId,
@@ -1421,7 +1426,8 @@ fun MainNavigation(
                                 offerPrice = offerPrice,
                                 specificCommissionPercentage = commission,
                                 useCompanyDefault = useCompanyDefault,
-                                status = status
+                                status = status,
+                                keywords = keywords
                             )
                         } else {
                             productViewModel.createProduct(
@@ -1436,7 +1442,8 @@ fun MainNavigation(
                                 offerPrice = offerPrice,
                                 specificCommissionPercentage = commission,
                                 useCompanyDefault = useCompanyDefault,
-                                status = status
+                                status = status,
+                                keywords = keywords
                             )
                             // Navegar de vuelta a la lista de productos
                             navController.popBackStack()
@@ -1937,6 +1944,13 @@ fun MainNavigation(
             composable(Screen.AdminOrders.route) {
                 AdminOrdersScreen(
                     viewModel = adminDeliveryViewModel,
+                    onNavigateBack = { navController.popBackStack() }
+                )
+            }
+
+            composable(Screen.SearchAliases.route) {
+                SearchAliasesScreen(
+                    productViewModel = productViewModel,
                     onNavigateBack = { navController.popBackStack() }
                 )
             }

@@ -80,6 +80,18 @@ sealed class CartCountResult {
     data class Error(val message: String) : CartCountResult()
 }
 
+// ==================== SEARCH ALIASES ====================
+
+sealed class AliasListResult {
+    data class Success(val aliases: List<com.christelldev.easyreferplus.data.model.SearchAlias>) : AliasListResult()
+    data class Error(val message: String) : AliasListResult()
+}
+
+sealed class AliasActionResult {
+    data class Success(val message: String) : AliasActionResult()
+    data class Error(val message: String) : AliasActionResult()
+}
+
 // ==================== REPOSITORY ====================
 
 class ProductRepository(
@@ -418,6 +430,70 @@ class ProductRepository(
             }
         } catch (e: Exception) {
             CartCountResult.Error("Error de conexión: ${e.message}")
+        }
+    }
+
+    // =====================================================
+    // KEYWORDS & SEARCH ALIASES
+    // =====================================================
+
+    suspend fun updateProductKeywords(authorization: String, companyId: Int, productId: Int, keywords: String?): ProductResult {
+        return try {
+            val request = com.christelldev.easyreferplus.data.model.UpdateKeywordsRequest(keywords)
+            val response = apiService.updateProductKeywords(authorization, companyId, productId, request)
+            if (response.isSuccessful && response.body() != null) {
+                val body = response.body()!!
+                if (body.success) ProductResult.Success(body.message ?: "Keywords actualizados")
+                else ProductResult.Error(body.message ?: "Error")
+            } else {
+                ProductResult.Error("Error al actualizar keywords: ${response.message()}")
+            }
+        } catch (e: Exception) {
+            ProductResult.Error("Error de conexión: ${e.message}")
+        }
+    }
+
+    suspend fun getSearchAliases(authorization: String): AliasListResult {
+        return try {
+            val response = apiService.getSearchAliases(authorization)
+            if (response.isSuccessful && response.body() != null) {
+                AliasListResult.Success(response.body()!!.aliases)
+            } else {
+                AliasListResult.Error("Error al obtener alias: ${response.message()}")
+            }
+        } catch (e: Exception) {
+            AliasListResult.Error("Error de conexión: ${e.message}")
+        }
+    }
+
+    suspend fun createSearchAlias(authorization: String, alias: String, term: String): AliasActionResult {
+        return try {
+            val request = com.christelldev.easyreferplus.data.model.CreateAliasRequest(alias, term)
+            val response = apiService.createSearchAlias(authorization, request)
+            if (response.isSuccessful && response.body() != null) {
+                val body = response.body()!!
+                if (body.success) AliasActionResult.Success(body.message ?: "Alias creado")
+                else AliasActionResult.Error(body.message ?: "Error")
+            } else {
+                AliasActionResult.Error("Error al crear alias: ${response.message()}")
+            }
+        } catch (e: Exception) {
+            AliasActionResult.Error("Error de conexión: ${e.message}")
+        }
+    }
+
+    suspend fun deleteSearchAlias(authorization: String, aliasId: Int): AliasActionResult {
+        return try {
+            val response = apiService.deleteSearchAlias(authorization, aliasId)
+            if (response.isSuccessful && response.body() != null) {
+                val body = response.body()!!
+                if (body.success) AliasActionResult.Success(body.message ?: "Alias eliminado")
+                else AliasActionResult.Error(body.message ?: "Error")
+            } else {
+                AliasActionResult.Error("Error al eliminar alias: ${response.message()}")
+            }
+        } catch (e: Exception) {
+            AliasActionResult.Error("Error de conexión: ${e.message}")
         }
     }
 

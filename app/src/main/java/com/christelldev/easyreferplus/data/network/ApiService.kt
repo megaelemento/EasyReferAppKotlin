@@ -88,6 +88,7 @@ import retrofit2.http.DELETE
 import retrofit2.http.GET
 import retrofit2.http.Header
 import retrofit2.http.Multipart
+import retrofit2.http.PATCH
 import retrofit2.http.POST
 import retrofit2.http.PUT
 import retrofit2.http.Part
@@ -772,6 +773,35 @@ interface ApiService {
         @Header("Authorization") authorization: String,
         @Path("orderId") orderId: Int
     ): Response<com.christelldev.easyreferplus.data.model.SimpleSuccessResponse>
+
+    // =====================================================
+    // KEYWORDS & SEARCH ALIASES
+    // =====================================================
+
+    @PATCH("api/companies/{companyId}/products/{productId}/keywords")
+    suspend fun updateProductKeywords(
+        @Header("Authorization") authorization: String,
+        @Path("companyId") companyId: Int,
+        @Path("productId") productId: Int,
+        @Body request: com.christelldev.easyreferplus.data.model.UpdateKeywordsRequest
+    ): Response<com.christelldev.easyreferplus.data.model.ProductResponse>
+
+    @GET("api/search/aliases")
+    suspend fun getSearchAliases(
+        @Header("Authorization") authorization: String
+    ): Response<com.christelldev.easyreferplus.data.model.AliasListResponse>
+
+    @POST("api/search/aliases")
+    suspend fun createSearchAlias(
+        @Header("Authorization") authorization: String,
+        @Body request: com.christelldev.easyreferplus.data.model.CreateAliasRequest
+    ): Response<com.christelldev.easyreferplus.data.model.ProductResponse>
+
+    @DELETE("api/search/aliases/{aliasId}")
+    suspend fun deleteSearchAlias(
+        @Header("Authorization") authorization: String,
+        @Path("aliasId") aliasId: Int
+    ): Response<com.christelldev.easyreferplus.data.model.ProductResponse>
 
     // Comprador cancela el pedido (solo mientras busca conductor)
     @PUT("api/orders/{orderId}/cancel")

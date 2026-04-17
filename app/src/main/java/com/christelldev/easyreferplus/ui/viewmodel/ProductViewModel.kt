@@ -49,6 +49,9 @@ class ProductViewModel(
     private val _cartCount = MutableStateFlow(0)
     val cartCount: StateFlow<Int> = _cartCount.asStateFlow()
 
+    private val _aliases = MutableStateFlow<List<com.christelldev.easyreferplus.data.model.SearchAlias>>(emptyList())
+    val aliases: StateFlow<List<com.christelldev.easyreferplus.data.model.SearchAlias>> = _aliases.asStateFlow()
+
     // Estado de checkout
     private val _checkoutState = MutableStateFlow<CheckoutState>(CheckoutState.Idle)
     val checkoutState: StateFlow<CheckoutState> = _checkoutState.asStateFlow()
@@ -134,7 +137,8 @@ class ProductViewModel(
         offerPrice: Double?,
         specificCommissionPercentage: Double?,
         useCompanyDefault: Boolean = true,
-        status: String = "active"
+        status: String = "active",
+        keywords: String? = null
     ) {
         viewModelScope.launch {
             _uiState.value = ProductUiState.Loading
@@ -146,6 +150,7 @@ class ProductViewModel(
                 size = size,
                 weight = weight,
                 dimensions = dimensions,
+                keywords = keywords,
                 quantity = quantity,
                 price = price,
                 offerPrice = offerPrice,
@@ -179,7 +184,8 @@ class ProductViewModel(
         offerPrice: Double?,
         specificCommissionPercentage: Double?,
         useCompanyDefault: Boolean?,
-        status: String?
+        status: String?,
+        keywords: String? = null
     ) {
         viewModelScope.launch {
             _uiState.value = ProductUiState.Loading
@@ -191,6 +197,7 @@ class ProductViewModel(
                 size = size,
                 weight = weight,
                 dimensions = dimensions,
+                keywords = keywords,
                 quantity = quantity,
                 price = price,
                 offerPrice = offerPrice,
@@ -404,6 +411,45 @@ class ProductViewModel(
                 is CartCountResult.Error -> {
                     // Silently fail for cart count
                 }
+            }
+        }
+    }
+
+    // =====================================================
+    // SEARCH ALIASES
+    // =====================================================
+
+    fun loadAliases() {
+        viewModelScope.launch {
+            when (val result = repository.getSearchAliases(authorization)) {
+                is com.christelldev.easyreferplus.data.network.AliasListResult.Success -> _aliases.value = result.aliases
+                is com.christelldev.easyreferplus.data.network.AliasListResult.Error -> _uiState.value = ProductUiState.Error(result.message)
+            }
+        }
+    }
+
+    fun createAlias(alias: String, term: String) {
+        viewModelScope.launch {
+            _uiState.value = ProductUiState.Loading
+            when (val result = repository.createSearchAlias(authorization, alias, term)) {
+                is com.christelldev.easyreferplus.data.network.AliasActionResult.Success -> {
+                    _uiState.value = ProductUiState.Success(result.message)
+                    loadAliases()
+                }
+                is com.christelldev.easyreferplus.data.network.AliasActionResult.Error -> _uiState.value = ProductUiState.Error(result.message)
+            }
+        }
+    }
+
+    fun deleteAlias(aliasId: Int) {
+        viewModelScope.launch {
+            _uiState.value = ProductUiState.Loading
+            when (val result = repository.deleteSearchAlias(authorization, aliasId)) {
+                is com.christelldev.easyreferplus.data.network.AliasActionResult.Success -> {
+                    _uiState.value = ProductUiState.Success(result.message)
+                    loadAliases()
+                }
+                is com.christelldev.easyreferplus.data.network.AliasActionResult.Error -> _uiState.value = ProductUiState.Error(result.message)
             }
         }
     }
