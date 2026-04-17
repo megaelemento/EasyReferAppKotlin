@@ -244,6 +244,16 @@ class AuthRepository(
             if (response.isSuccessful) {
                 val body = response.body()
                 if (body?.valid == true) {
+                    // Save newly refreshed tokens if middleware auto-renewed them
+                    if (body.tokensRenewed == true && body.newAccessToken != null && body.newRefreshToken != null) {
+                        val expiresIn = body.expiresIn ?: 3600L
+                        sharedPreferences.edit().apply {
+                            putString(KEY_ACCESS_TOKEN, body.newAccessToken)
+                            putString(KEY_REFRESH_TOKEN, body.newRefreshToken)
+                            putLong(KEY_TOKEN_EXPIRY, System.currentTimeMillis() + (expiresIn * 1000))
+                            apply()
+                        }
+                    }
                     if (body.needsRefresh == true) refreshToken() else true
                 } else {
                     clearAllData()
@@ -251,8 +261,10 @@ class AuthRepository(
                 }
             } else {
                 if (response.code() == 401 || response.code() == 403) {
-                    clearAllData()
-                    false
+                    // Try to refresh before logging out (handles expired access tokens with valid refresh token)
+                    val refreshed = try { refreshToken(forceRefresh = true) } catch (_: Exception) { false }
+                    if (!refreshed) clearAllData()
+                    refreshed
                 } else true
             }
         } catch (e: Exception) {

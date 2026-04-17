@@ -76,7 +76,15 @@ data class ValidateSessionResponse(
     @SerializedName("active_sessions")
     val activeSessions: Int?,
     @SerializedName("account_status")
-    val accountStatus: AccountStatus?
+    val accountStatus: AccountStatus?,
+    @SerializedName("tokens_renewed")
+    val tokensRenewed: Boolean? = null,
+    @SerializedName("new_access_token")
+    val newAccessToken: String? = null,
+    @SerializedName("new_refresh_token")
+    val newRefreshToken: String? = null,
+    @SerializedName("expires_in")
+    val expiresIn: Long? = null
 )
 
 data class SessionValidationInfo(
