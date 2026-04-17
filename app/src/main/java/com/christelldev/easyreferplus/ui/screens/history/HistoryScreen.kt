@@ -231,8 +231,9 @@ private fun HistoryTransactionCardPremium(
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
+                val formattedDate = remember(transaction.transactionDate) { formatDate(transaction.transactionDate ?: "") }
                 Text(
-                    text = formatDate(transaction.transactionDate ?: ""),
+                    text = formattedDate,
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.outline
                 )
@@ -240,8 +241,11 @@ private fun HistoryTransactionCardPremium(
 
             // Monto y Tipo
             Column(horizontalAlignment = Alignment.End) {
+                val formattedAmount = remember(transaction.amount, transaction.currency) {
+                    "${transaction.currency} ${String.format(java.util.Locale.US, "%.2f", transaction.amount)}"
+                }
                 Text(
-                    text = "${transaction.currency} ${String.format(java.util.Locale.US, "%.2f", transaction.amount)}",
+                    text = formattedAmount,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Black,
                     color = accentColor

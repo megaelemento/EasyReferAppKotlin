@@ -305,3 +305,26 @@ data class ProductResponse(
     @SerializedName("product_id")
     val productId: Int? = null
 )
+
+// ==================== PRODUCT SEARCH ====================
+
+data class ProductSearchResult(
+    @SerializedName("product_id") val productId: Int,
+    @SerializedName("product_name") val productName: String,
+    @SerializedName("product_description") val productDescription: String? = null,
+    @SerializedName("price") val price: Double,
+    @SerializedName("offer_price") val offerPrice: Double? = null,
+    @SerializedName("company_id") val companyId: Int,
+    @SerializedName("company_name") val companyName: String,
+    @SerializedName("company_logo_url") val companyLogoUrl: String? = null,
+    @SerializedName("primary_image_url") val primaryImageUrl: String? = null,
+    @SerializedName("category_id") val categoryId: Int? = null
+)
+
+data class ProductSearchResponse(
+    @SerializedName("success") val success: Boolean,
+    @SerializedName("products") val products: List<ProductSearchResult>,
+    @SerializedName("total") val total: Int,
+    @SerializedName("page") val page: Int,
+    @SerializedName("per_page") val perPage: Int
+)

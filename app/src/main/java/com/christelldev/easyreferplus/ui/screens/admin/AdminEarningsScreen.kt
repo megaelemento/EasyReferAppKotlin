@@ -2,6 +2,7 @@ package com.christelldev.easyreferplus.ui.screens.admin
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -94,6 +95,8 @@ fun AdminEarningsScreen(
 
     val primaryColor = MaterialTheme.colorScheme.primary
     val backgroundColor = MaterialTheme.colorScheme.background
+    val isDark = isSystemInDarkTheme()
+    val contentTint = if (isDark) MaterialTheme.colorScheme.onBackground else Color.White
 
     LaunchedEffect(uiState.errorMessage) {
         uiState.errorMessage?.let { error ->
@@ -104,58 +107,66 @@ fun AdminEarningsScreen(
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        text = stringResource(R.string.admin_earnings),
-                        color = MaterialTheme.colorScheme.surface,
-                        fontWeight = FontWeight.Bold
-                    )
-                },
-                navigationIcon = {
-                    IconButton(onClick = {
-                        if (uiState.isViewingUserDetail) {
-                            viewModel.closeUserDetail()
-                        } else {
-                            onBack()
-                        }
-                    }) {
-                        Icon(
-                            imageVector = if (uiState.isViewingUserDetail) Icons.AutoMirrored.Filled.ArrowBack else Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = stringResource(R.string.back),
-                            tint = MaterialTheme.colorScheme.onSurface
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = primaryColor
-                ),
-                modifier = Modifier.windowInsetsPadding(WindowInsets.statusBars)
-            )
-        }
+        containerColor = MaterialTheme.colorScheme.background
     ) { paddingValues ->
-        if (uiState.isLoading && !uiState.isViewingUserDetail) {
+        Box(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
             Box(
                 modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues),
-                contentAlignment = Alignment.Center
-            ) {
-                CircularProgressIndicator(color = primaryColor)
+                    .fillMaxWidth()
+                    .height(200.dp)
+                    .background(
+                        Brush.verticalGradient(
+                            listOf(MaterialTheme.colorScheme.primary.copy(alpha = 0.8f), Color.Transparent)
+                        )
+                    )
+            )
+            Column(modifier = Modifier.fillMaxSize()) {
+                TopAppBar(
+                    title = {
+                        Text(
+                            text = stringResource(R.string.admin_earnings),
+                            color = contentTint,
+                            fontWeight = FontWeight.Bold
+                        )
+                    },
+                    navigationIcon = {
+                        IconButton(onClick = {
+                            if (uiState.isViewingUserDetail) {
+                                viewModel.closeUserDetail()
+                            } else {
+                                onBack()
+                            }
+                        }) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = stringResource(R.string.back),
+                                tint = contentTint
+                            )
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
+                )
+                if (uiState.isLoading && !uiState.isViewingUserDetail) {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator(color = primaryColor)
+                    }
+                } else if (uiState.isViewingUserDetail) {
+                    UserEarningsContent(
+                        uiState = uiState,
+                        viewModel = viewModel,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                } else {
+                    MainEarningsContent(
+                        uiState = uiState,
+                        viewModel = viewModel,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                }
             }
-        } else if (uiState.isViewingUserDetail) {
-            UserEarningsContent(
-                uiState = uiState,
-                viewModel = viewModel,
-                modifier = Modifier.padding(paddingValues)
-            )
-        } else {
-            MainEarningsContent(
-                uiState = uiState,
-                viewModel = viewModel,
-                modifier = Modifier.padding(paddingValues)
-            )
         }
     }
 }

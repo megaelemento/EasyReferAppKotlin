@@ -67,7 +67,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.foundation.layout.statusBarsPadding
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.christelldev.easyreferplus.R
@@ -104,16 +103,16 @@ fun CompanyDetailScreen(
     }
 
     Scaffold(
-        containerColor = if (isDark) DesignConstants.BackgroundDark else DesignConstants.BackgroundLight
+        containerColor = MaterialTheme.colorScheme.background
     ) { paddingValues ->
-        Box(modifier = Modifier.fillMaxSize()) {
+        Box(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
             if (uiState.isLoading) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator(color = DesignConstants.PrimaryColor)
+                    CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
                 }
             } else if (uiState.errorMessage != null) {
                 Box(modifier = Modifier.fillMaxSize().padding(24.dp), contentAlignment = Alignment.Center) {
-                    Text(text = uiState.errorMessage ?: "Error", color = DesignConstants.ErrorColor, textAlign = TextAlign.Center)
+                    Text(text = uiState.errorMessage ?: "Error", color = MaterialTheme.colorScheme.error, textAlign = TextAlign.Center)
                 }
             } else {
                 uiState.company?.let { company ->
@@ -130,6 +129,7 @@ fun CompanyDetailScreen(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun CompanyDetailContent(
     company: UserCompanyResponse,
@@ -140,6 +140,7 @@ private fun CompanyDetailContent(
 ) {
     val context = LocalContext.current
     val scrollState = rememberScrollState()
+    val contentTint = if (isDark) MaterialTheme.colorScheme.onBackground else Color.White
 
     Box(modifier = Modifier.fillMaxSize()) {
         // Fondo de Header con Gradiente
@@ -149,22 +150,27 @@ private fun CompanyDetailContent(
                 .height(260.dp)
                 .background(
                     brush = Brush.verticalGradient(
-                        colors = if (isDark) {
-                            listOf(DesignConstants.PrimaryDark.copy(alpha = 0.6f), Color.Transparent)
-                        } else {
-                            DesignConstants.GradientPrimary
-                        }
+                        listOf(MaterialTheme.colorScheme.primary.copy(alpha = 0.8f), Color.Transparent)
                     )
                 )
         )
 
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .verticalScroll(scrollState)
-        ) {
-            // Espacio para que el contenido empiece debajo del TopBar simulado
-            Spacer(modifier = Modifier.height(60.dp))
+        Column(modifier = Modifier.fillMaxSize()) {
+            TopAppBar(
+                title = { Text("Detalles", fontWeight = FontWeight.Bold, color = contentTint) },
+                navigationIcon = {
+                    IconButton(onClick = onNavigateBack) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null, tint = contentTint)
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
+            )
+
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .verticalScroll(scrollState)
+            ) {
 
             // Logo y Nombre (Header Flotante)
             Column(
@@ -357,36 +363,7 @@ private fun CompanyDetailContent(
                 }
             }
             Spacer(modifier = Modifier.height(40.dp))
-        }
-
-        // Custom Top Bar (Floating)
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .statusBarsPadding()
-                .padding(horizontal = 16.dp, vertical = 8.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Surface(
-                modifier = Modifier.size(40.dp),
-                shape = CircleShape,
-                color = Color.Black.copy(alpha = 0.3f),
-                onClick = onNavigateBack
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = Color.White, modifier = Modifier.size(20.dp))
-                }
             }
-            
-            Text(
-                text = "Detalles",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = Color.White
-            )
-
-            Box(modifier = Modifier.size(40.dp)) // Placeholder para balance
         }
     }
 }

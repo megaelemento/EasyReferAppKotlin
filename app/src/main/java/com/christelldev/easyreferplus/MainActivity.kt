@@ -978,6 +978,9 @@ fun MainNavigation(
                     },
                     onNavigateToOrderTracking = { orderId ->
                         navController.navigate(Screen.OrderTracking.createRoute(orderId))
+                    },
+                    onNavigateToProduct = { productId ->
+                        navController.navigate(Screen.ProductDetail.createRoute(productId))
                     }
                 )
             }
@@ -1211,10 +1214,16 @@ fun MainNavigation(
                 val product = publicCompanies.flatMap { it.products ?: emptyList() }.find { it.id == productId }
                 val cartCount by productViewModel.cartCount.collectAsState()
 
+                // Si el producto no está en publicCompanies (p.ej. se llegó desde búsqueda),
+                // cargamos las empresas públicas y mostramos un spinner mientras tanto.
+                LaunchedEffect(productId) {
+                    if (product == null) {
+                        loadPublicCompanies()
+                    }
+                }
+
                 if (product != null) {
-                    // Obtener el companyId del usuario actual
                     val userCompanyId = homeViewModel.uiState.value.paymentCompanyId
-                    // Verificar si el producto pertenece a la empresa del usuario
                     val isProductOwner = userCompanyId != null && product.companyId == userCompanyId
 
                     ProductDetailScreen(
@@ -1222,7 +1231,6 @@ fun MainNavigation(
                         cartCount = cartCount,
                         isProductOwner = isProductOwner,
                         onAddToCart = { quantity ->
-                            // Agregar al carrito usando el ViewModel
                             productViewModel.addToCart(product.id ?: 0, quantity)
                             navController.popBackStack()
                         },
@@ -1233,6 +1241,10 @@ fun MainNavigation(
                             navController.popBackStack()
                         }
                     )
+                } else {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator()
+                    }
                 }
             }
 

@@ -32,6 +32,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.graphics.painter.ColorPainter
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.christelldev.easyreferplus.R
@@ -268,7 +269,9 @@ fun PublicCompanyCardPremium(
                 if (company.logoUrl != null && company.hasLogo) {
                     AsyncImage(
                         model = ImageRequest.Builder(LocalContext.current).data(company.logoUrl).crossfade(true).build(),
-                        contentDescription = null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop
+                        contentDescription = null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop,
+                        placeholder = ColorPainter(Color(0xFFE0E0E0)),
+                        error = ColorPainter(Color(0xFFEEEEEE))
                     )
                 } else {
                     Box(contentAlignment = Alignment.Center) {

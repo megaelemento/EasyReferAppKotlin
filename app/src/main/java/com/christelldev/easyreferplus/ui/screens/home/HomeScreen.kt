@@ -24,12 +24,14 @@ import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.AccountBalanceWallet
@@ -54,10 +56,39 @@ import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.MailOutline
 import androidx.compose.material.icons.filled.LocalShipping
 import androidx.compose.material.icons.filled.Map
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.ui.draw.rotate
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.filled.FilterList
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.ui.text.input.KeyboardType
+import com.christelldev.easyreferplus.data.model.ProductCategory
 import androidx.compose.material.icons.filled.Store
 import androidx.compose.material.icons.filled.Storefront
 import androidx.compose.material.icons.filled.Verified
 import androidx.compose.material.icons.filled.WorkspacePremium
+import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.graphics.painter.ColorPainter
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
+import com.christelldev.easyreferplus.data.model.ProductSearchResult
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -82,6 +113,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -89,7 +121,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -97,8 +128,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import coil.compose.AsyncImage
-import coil.request.ImageRequest
 import com.christelldev.easyreferplus.R
 import com.christelldev.easyreferplus.data.network.AppConfig
 import com.christelldev.easyreferplus.ui.theme.DesignConstants
@@ -139,6 +168,7 @@ fun HomeScreen(
     onNavigateToMisCompras: () -> Unit = {},
     onNavigateToMisVentas: () -> Unit = {},
     onNavigateToOrderTracking: (Int) -> Unit = {},
+    onNavigateToProduct: (Int) -> Unit = {},
     onLogout: () -> Unit = {}
 ) {
     val context = LocalContext.current
@@ -161,6 +191,28 @@ fun HomeScreen(
         )
     }
 
+    val hasCompanyState = rememberUpdatedState(uiState.hasCompany)
+    val drawerNavToProfile = remember { { scope.launch { drawerState.close() }; onNavigateToProfile() } }
+    val drawerNavToReferrals = remember { { scope.launch { drawerState.close() }; onNavigateToReferrals() } }
+    val drawerNavToCompany = remember { { scope.launch { drawerState.close() }; if (hasCompanyState.value) onNavigateToCompaniesList() else onNavigateToCompany() } }
+    val drawerNavToQR = remember { { scope.launch { drawerState.close() }; onNavigateToQR() } }
+    val drawerNavToAdminEarnings = remember { { scope.launch { drawerState.close() }; onNavigateToAdminEarnings() } }
+    val drawerNavToAdminWithdrawals = remember { { scope.launch { drawerState.close() }; onNavigateToAdminWithdrawals() } }
+    val drawerNavToMyProducts = remember { { scope.launch { drawerState.close() }; onNavigateToMyProducts() } }
+    val drawerNavToCart = remember { { scope.launch { drawerState.close() }; onNavigateToCart() } }
+    val drawerNavToHistory = remember { { scope.launch { drawerState.close() }; onNavigateToHistory() } }
+    val drawerNavToPayments = remember { { scope.launch { drawerState.close() }; onNavigateToPayments() } }
+    val drawerNavToEarnings = remember { { scope.launch { drawerState.close() }; onNavigateToEarnings() } }
+    val drawerNavToWithdrawal = remember { { scope.launch { drawerState.close() }; onNavigateToWithdrawal() } }
+    val drawerNavToWallet = remember { { scope.launch { drawerState.close() }; onNavigateToWallet() } }
+    val drawerNavToWalletTransfer = remember { { scope.launch { drawerState.close() }; onNavigateToWalletTransfer() } }
+    val drawerNavToDriverPanel = remember { { scope.launch { drawerState.close() }; onNavigateToDriverPanel() } }
+    val drawerNavToDriverHistory = remember { { scope.launch { drawerState.close() }; onNavigateToDriverHistory() } }
+    val drawerNavToDriverInvitations = remember { { scope.launch { drawerState.close() }; onNavigateToDriverInvitations() } }
+    val drawerNavToAdminLiveMap = remember { { scope.launch { drawerState.close() }; onNavigateToAdminLiveMap() } }
+    val drawerNavToMisCompras = remember { { scope.launch { drawerState.close() }; onNavigateToMisCompras() } }
+    val drawerOnLogout = remember { { scope.launch { drawerState.close() }; showLogoutDialog = true } }
+
     ModalNavigationDrawer(
         drawerState = drawerState,
         gesturesEnabled = true,
@@ -176,90 +228,30 @@ fun HomeScreen(
                 selfieUrl = uiState.selfieUrl,
                 isMotorizado = isMotorizado,
                 pendingInvitationsCount = pendingInvitationsCount,
-                onNavigateToProfile = {
-                    scope.launch { drawerState.close() }
-                    onNavigateToProfile()
-                },
-                onNavigateToReferrals = {
-                    scope.launch { drawerState.close() }
-                    onNavigateToReferrals()
-                },
-                onNavigateToCompany = {
-                    scope.launch { drawerState.close() }
-                    if (uiState.hasCompany) onNavigateToCompaniesList() else onNavigateToCompany()
-                },
-                onNavigateToQR = {
-                    scope.launch { drawerState.close() }
-                    onNavigateToQR()
-                },
-                onNavigateToAdminEarnings = {
-                    scope.launch { drawerState.close() }
-                    onNavigateToAdminEarnings()
-                },
-                onNavigateToAdminWithdrawals = {
-                    scope.launch { drawerState.close() }
-                    onNavigateToAdminWithdrawals()
-                },
-                onNavigateToMyProducts = {
-                    scope.launch { drawerState.close() }
-                    onNavigateToMyProducts()
-                },
-                onNavigateToCart = {
-                    scope.launch { drawerState.close() }
-                    onNavigateToCart()
-                },
-                onNavigateToHistory = {
-                    scope.launch { drawerState.close() }
-                    onNavigateToHistory()
-                },
-                onNavigateToPayments = {
-                    scope.launch { drawerState.close() }
-                    onNavigateToPayments()
-                },
-                onNavigateToEarnings = {
-                    scope.launch { drawerState.close() }
-                    onNavigateToEarnings()
-                },
-                onNavigateToWithdrawal = {
-                    scope.launch { drawerState.close() }
-                    onNavigateToWithdrawal()
-                },
-                onNavigateToWallet = {
-                    scope.launch { drawerState.close() }
-                    onNavigateToWallet()
-                },
-                onNavigateToWalletTransfer = {
-                    scope.launch { drawerState.close() }
-                    onNavigateToWalletTransfer()
-                },
-                onNavigateToDriverPanel = {
-                    scope.launch { drawerState.close() }
-                    onNavigateToDriverPanel()
-                },
-                onNavigateToDriverHistory = {
-                    scope.launch { drawerState.close() }
-                    onNavigateToDriverHistory()
-                },
-                onNavigateToDriverInvitations = {
-                    scope.launch { drawerState.close() }
-                    onNavigateToDriverInvitations()
-                },
-                onNavigateToAdminLiveMap = {
-                    scope.launch { drawerState.close() }
-                    onNavigateToAdminLiveMap()
-                },
-                onNavigateToMisCompras = {
-                    scope.launch { drawerState.close() }
-                    onNavigateToMisCompras()
-                },
-                onLogout = {
-                    scope.launch { drawerState.close() }
-                    showLogoutDialog = true
-                }
+                onNavigateToProfile = drawerNavToProfile,
+                onNavigateToReferrals = drawerNavToReferrals,
+                onNavigateToCompany = drawerNavToCompany,
+                onNavigateToQR = drawerNavToQR,
+                onNavigateToAdminEarnings = drawerNavToAdminEarnings,
+                onNavigateToAdminWithdrawals = drawerNavToAdminWithdrawals,
+                onNavigateToMyProducts = drawerNavToMyProducts,
+                onNavigateToCart = drawerNavToCart,
+                onNavigateToHistory = drawerNavToHistory,
+                onNavigateToPayments = drawerNavToPayments,
+                onNavigateToEarnings = drawerNavToEarnings,
+                onNavigateToWithdrawal = drawerNavToWithdrawal,
+                onNavigateToWallet = drawerNavToWallet,
+                onNavigateToWalletTransfer = drawerNavToWalletTransfer,
+                onNavigateToDriverPanel = drawerNavToDriverPanel,
+                onNavigateToDriverHistory = drawerNavToDriverHistory,
+                onNavigateToDriverInvitations = drawerNavToDriverInvitations,
+                onNavigateToAdminLiveMap = drawerNavToAdminLiveMap,
+                onNavigateToMisCompras = drawerNavToMisCompras,
+                onLogout = drawerOnLogout
             )
         }
     ) {
-        Scaffold { paddingValues ->
+        Scaffold(contentWindowInsets = WindowInsets(0, 0, 0, 0)) { paddingValues ->
             if (uiState.isLoading) {
                 Box(
                     modifier = Modifier.fillMaxSize().padding(paddingValues),
@@ -280,93 +272,197 @@ fun HomeScreen(
                         )
                     }
 
-                    if (cartCount > 0) {
-                        item {
-                            CartNotificationBanner(
-                                cartCount = cartCount,
-                                onClick = onNavigateToCart
-                            )
-                        }
-                        item { Spacer(modifier = Modifier.height(12.dp)) }
-                    }
-
-                    if (activeOrderId != null) {
-                        item {
-                            ActiveOrderBanner(
-                                orderId = activeOrderId,
-                                status = activeOrderStatus ?: "",
-                                onClick = { onNavigateToOrderTracking(activeOrderId) }
-                            )
-                        }
-                        item { Spacer(modifier = Modifier.height(12.dp)) }
-                    }
-
-                    if (uiState.canGenerateQR) {
-                        item {
-                            GenerateQRCard(
-                                companyName = uiState.empresaNombre ?: "",
-                                onClick = onNavigateToQR
-                            )
-                        }
-                        item { Spacer(modifier = Modifier.height(16.dp)) }
-                    }
-
+                    // ── BUSCADOR GLOBAL ──────────────────────────────────────
                     item {
-                        QuickActionsSection(
-                            hasCompany = uiState.hasCompany,
-                            onQRClick = onNavigateToQR,
-                            onCompanyClick = { onNavigateToCompaniesList() },
-                            onReferralsClick = onNavigateToReferrals,
-                            onProfileClick = onNavigateToProfile,
-                            onHistoryClick = onNavigateToHistory,
-                            onPaymentsClick = onNavigateToPayments,
-                            onEarningsClick = onNavigateToEarnings,
-                            onWithdrawClick = onNavigateToWithdrawal,
-                            onCartClick = onNavigateToCart,
-                            onMyProductsClick = onNavigateToMyProducts,
-                            onWalletClick = onNavigateToWallet,
-                            onWalletTransferClick = onNavigateToWalletTransfer,
-                            onMisComprasClick = onNavigateToMisCompras,
-                            onMisVentasClick = onNavigateToMisVentas
+                        GlobalSearchBar(
+                            query = uiState.searchQuery,
+                            onQueryChange = { viewModel.searchProducts(it) },
+                            onClear = { viewModel.clearSearch() },
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
                         )
                     }
 
-                    item { Spacer(modifier = Modifier.height(24.dp)) }
-
+                    // ── FILA DE FILTROS ──────────────────────────────────────
                     item {
-                        ReferralCodeCard(
-                            referralCode = uiState.referralCode,
-                            onCopy = { copyToClipboard(context, it) },
-                            onShare = { shareReferralCode(context, it) }
+                        FiltersRow(
+                            activeFilterCount = uiState.activeFilterCount,
+                            showFilters = uiState.showFilters,
+                            onToggle = { viewModel.toggleFilters() },
+                            modifier = Modifier.padding(horizontal = 20.dp)
                         )
                     }
 
-                    item { Spacer(modifier = Modifier.height(24.dp)) }
-
+                    // ── PANEL DE FILTROS (EXPANSIBLE) ────────────────────────
                     item {
-                        StatsSection(
-                            totalReferrals = uiState.totalReferrals,
-                            level1Referrals = uiState.level1Referrals,
-                            level2Referrals = uiState.level2Referrals,
-                            level3Referrals = uiState.level3Referrals
-                        )
+                        AnimatedVisibility(
+                            visible = uiState.showFilters,
+                            enter = expandVertically(),
+                            exit = shrinkVertically()
+                        ) {
+                            FiltersPanel(
+                                categories = uiState.categories,
+                                selectedCategoryId = uiState.selectedCategoryId,
+                                minPrice = uiState.minPrice,
+                                maxPrice = uiState.maxPrice,
+                                sortBy = uiState.sortBy,
+                                hasActiveFilters = uiState.hasActiveFilters,
+                                onApply = { catId, minP, maxP, sort ->
+                                    viewModel.applyFilters(catId, minP, maxP, sort)
+                                },
+                                onClear = { viewModel.clearFilters() },
+                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
+                            )
+                        }
                     }
 
-                    item { Spacer(modifier = Modifier.height(24.dp)) }
-
-                    item {
-                        PublicCompaniesCard(onClick = onNavigateToPublicCompanies)
+                    // ── RESULTADOS DE BÚSQUEDA ───────────────────────────────
+                    if (uiState.showSearchResults) {
+                        if (uiState.isSearching) {
+                            item {
+                                Box(
+                                    modifier = Modifier.fillMaxWidth().padding(24.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    CircularProgressIndicator(
+                                        color = Color(0xFF03A9F4),
+                                        modifier = Modifier.size(32.dp)
+                                    )
+                                }
+                            }
+                        } else if (uiState.searchResults.isEmpty()) {
+                            item {
+                                Box(
+                                    modifier = Modifier.fillMaxWidth().padding(24.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = "Sin resultados para \"${uiState.searchQuery}\"",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                                    )
+                                }
+                            }
+                        } else {
+                            item {
+                                Text(
+                                    text = "${uiState.searchResults.size} resultado(s) para \"${uiState.searchQuery}\"",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp)
+                                )
+                            }
+                            items(uiState.searchResults, key = { it.productId }) { product ->
+                                SearchResultItem(
+                                    product = product,
+                                    onClick = { onNavigateToProduct(product.productId) },
+                                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
+                                )
+                            }
+                            if (uiState.searchHasMore) {
+                                item(key = "load_more_trigger") {
+                                    LaunchedEffect(Unit) { viewModel.loadMoreSearchResults() }
+                                    Box(
+                                        modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
+                                    }
+                                }
+                            }
+                            item { Spacer(modifier = Modifier.height(8.dp)) }
+                        }
                     }
 
-                    if (uiState.hasCompany && !uiState.canGenerateQR) {
+                    // ── CONTENIDO NORMAL (oculto al buscar) ──────────────────
+                    if (!uiState.showSearchResults) {
+                        if (cartCount > 0) {
+                            item {
+                                CartNotificationBanner(
+                                    cartCount = cartCount,
+                                    onClick = onNavigateToCart
+                                )
+                            }
+                            item { Spacer(modifier = Modifier.height(12.dp)) }
+                        }
+
+                        if (activeOrderId != null) {
+                            item {
+                                ActiveOrderBanner(
+                                    orderId = activeOrderId,
+                                    status = activeOrderStatus ?: "",
+                                    onClick = { onNavigateToOrderTracking(activeOrderId) }
+                                )
+                            }
+                            item { Spacer(modifier = Modifier.height(12.dp)) }
+                        }
+
+                        if (uiState.canGenerateQR) {
+                            item {
+                                GenerateQRCard(
+                                    companyName = uiState.empresaNombre ?: "",
+                                    onClick = onNavigateToQR
+                                )
+                            }
+                            item { Spacer(modifier = Modifier.height(16.dp)) }
+                        }
+
+                        item {
+                            QuickActionsSection(
+                                hasCompany = uiState.hasCompany,
+                                onQRClick = onNavigateToQR,
+                                onCompanyClick = { onNavigateToCompaniesList() },
+                                onReferralsClick = onNavigateToReferrals,
+                                onProfileClick = onNavigateToProfile,
+                                onHistoryClick = onNavigateToHistory,
+                                onPaymentsClick = onNavigateToPayments,
+                                onEarningsClick = onNavigateToEarnings,
+                                onWithdrawClick = onNavigateToWithdrawal,
+                                onCartClick = onNavigateToCart,
+                                onMyProductsClick = onNavigateToMyProducts,
+                                onWalletClick = onNavigateToWallet,
+                                onWalletTransferClick = onNavigateToWalletTransfer,
+                                onMisComprasClick = onNavigateToMisCompras,
+                                onMisVentasClick = onNavigateToMisVentas
+                            )
+                        }
+
                         item { Spacer(modifier = Modifier.height(24.dp)) }
+
                         item {
-                            CompanyInfoCard(
-                                companyName = uiState.empresaNombre ?: "",
-                                isActive = uiState.empresaActiva ?: false,
-                                status = uiState.empresaStatus ?: "",
-                                onClick = onNavigateToCompaniesList
+                            ReferralCodeCard(
+                                referralCode = uiState.referralCode,
+                                onCopy = { copyToClipboard(context, it) },
+                                onShare = { shareReferralCode(context, it) }
                             )
+                        }
+
+                        item { Spacer(modifier = Modifier.height(24.dp)) }
+
+                        item {
+                            StatsSection(
+                                totalReferrals = uiState.totalReferrals,
+                                level1Referrals = uiState.level1Referrals,
+                                level2Referrals = uiState.level2Referrals,
+                                level3Referrals = uiState.level3Referrals
+                            )
+                        }
+
+                        item { Spacer(modifier = Modifier.height(24.dp)) }
+
+                        item {
+                            PublicCompaniesCard(onClick = onNavigateToPublicCompanies)
+                        }
+
+                        if (uiState.hasCompany && !uiState.canGenerateQR) {
+                            item { Spacer(modifier = Modifier.height(24.dp)) }
+                            item {
+                                CompanyInfoCard(
+                                    companyName = uiState.empresaNombre ?: "",
+                                    isActive = uiState.empresaActiva ?: false,
+                                    status = uiState.empresaStatus ?: "",
+                                    onClick = onNavigateToCompaniesList
+                                )
+                            }
                         }
                     }
                 }
@@ -386,8 +482,7 @@ private fun ModernHeader(userName: String, isVerified: Boolean, onMenuClick: () 
         // Gradiente superior sutil
         Box(
             modifier = Modifier
-                .fillMaxWidth()
-                .height(140.dp)
+                .matchParentSize()
                 .background(
                     brush = Brush.verticalGradient(
                         colors = listOf(
@@ -648,6 +743,9 @@ private fun GenerateQRCard(companyName: String, onClick: () -> Unit) {
 @Composable
 private fun QuickActionsSection(
     hasCompany: Boolean,
+    // Future use: reorder pinned shortcuts by ID (e.g. sorted by usage frequency).
+    // Empty = show first 4 of the default list.
+    pinnedActionIds: List<String> = emptyList(),
     onQRClick: () -> Unit,
     onCompanyClick: () -> Unit,
     onReferralsClick: () -> Unit,
@@ -663,6 +761,49 @@ private fun QuickActionsSection(
     onMisComprasClick: () -> Unit = {},
     onMisVentasClick: () -> Unit = {}
 ) {
+    var expanded by remember { mutableStateOf(false) }
+    val arrowRotation by animateFloatAsState(
+        targetValue = if (expanded) 180f else 0f,
+        animationSpec = tween(durationMillis = 250),
+        label = "arrowRotation"
+    )
+
+    val strQRPayments = stringResource(R.string.qr_payments)
+    val allItems = remember(hasCompany) {
+        buildList {
+            add(ActionItem("qr", Icons.Default.QrCode2, strQRPayments, Color(0xFF03A9F4), onQRClick))
+            add(ActionItem("company", if (hasCompany) Icons.Default.QrCode else Icons.Default.Add, if (hasCompany) "Mi Empresa" else "Registrar", Color(0xFF10B981), onCompanyClick))
+            add(ActionItem("referrals", Icons.Default.Group, "Referidos", Color(0xFFF59E0B), onReferralsClick))
+            add(ActionItem("wallet", Icons.Default.AccountBalanceWallet, "Billetera", Color(0xFF8B5CF6), onWalletClick))
+            add(ActionItem("earnings", Icons.AutoMirrored.Filled.TrendingUp, "Ganancias", Color(0xFFEC4899), onEarningsClick))
+            add(ActionItem("withdraw", Icons.Default.Money, "Retiros", Color(0xFF06B6D4), onWithdrawClick))
+            add(ActionItem("transfer", Icons.AutoMirrored.Filled.Send, "Enviar", Color(0xFF3B82F6), onWalletTransferClick))
+            add(ActionItem("profile", Icons.Default.Person, "Perfil", Color(0xFF64748B), onProfileClick))
+            add(ActionItem("purchases", Icons.Default.ShoppingBag, "Mis Compras", Color(0xFFFF6B35), onMisComprasClick))
+            add(ActionItem("cart", Icons.Default.ShoppingCart, "Carrito", Color(0xFFF43F5E), onCartClick))
+            if (hasCompany) {
+                add(ActionItem("products", Icons.Default.Storefront, "Productos", Color(0xFF795548), onMyProductsClick))
+                add(ActionItem("sales", Icons.Default.Store, "Mis Ventas", Color(0xFF059669), onMisVentasClick))
+                add(ActionItem("history", Icons.Default.History, "Historial", Color(0xFF14B8A6), onHistoryClick))
+                add(ActionItem("payments", Icons.Default.Payments, "Pagos", Color(0xFF6366F1), onPaymentsClick))
+            }
+        }
+    }
+
+    // Pinned = first 4 by default; if pinnedActionIds provided, reorder those to front
+    val pinnedItems = remember(allItems, pinnedActionIds) {
+        if (pinnedActionIds.isEmpty()) {
+            allItems.take(4)
+        } else {
+            val pinned = pinnedActionIds.mapNotNull { id -> allItems.find { it.id == id } }
+            val rest = allItems.filter { it.id !in pinnedActionIds }
+            (pinned + rest).take(4)
+        }
+    }
+    val extraItems = remember(allItems, pinnedItems) {
+        allItems.filter { it !in pinnedItems }
+    }
+
     Column(modifier = Modifier.padding(horizontal = 16.dp)) {
         Text(
             text = stringResource(R.string.quick_actions),
@@ -673,49 +814,67 @@ private fun QuickActionsSection(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        val actionItems = buildList {
-            add(ActionItem(Icons.Default.QrCode2, stringResource(R.string.qr_payments), Color(0xFF03A9F4), onQRClick))
-            add(ActionItem(if (hasCompany) Icons.Default.QrCode else Icons.Default.Add, if (hasCompany) "Mi Empresa" else "Registrar", Color(0xFF10B981), onCompanyClick))
-            add(ActionItem(Icons.Default.Group, "Referidos", Color(0xFFF59E0B), onReferralsClick))
-            add(ActionItem(Icons.Default.AccountBalanceWallet, "Billetera", Color(0xFF8B5CF6), onWalletClick))
-            add(ActionItem(Icons.AutoMirrored.Filled.TrendingUp, "Ganancias", Color(0xFFEC4899), onEarningsClick))
-            add(ActionItem(Icons.Default.Money, "Retiros", Color(0xFF06B6D4), onWithdrawClick))
-            add(ActionItem(Icons.AutoMirrored.Filled.Send, "Enviar", Color(0xFF3B82F6), onWalletTransferClick))
-            add(ActionItem(Icons.Default.Person, "Perfil", Color(0xFF64748B), onProfileClick))
+        // First row — always visible (pinned 4)
+        ActionRow(items = pinnedItems)
 
-            add(ActionItem(Icons.Default.ShoppingBag, "Mis Compras", Color(0xFFFF6B35), onMisComprasClick))
-            add(ActionItem(Icons.Default.ShoppingCart, "Carrito", Color(0xFFF43F5E), onCartClick))
-            if (hasCompany) {
-                add(ActionItem(Icons.Default.Storefront, "Productos", Color(0xFF795548), onMyProductsClick))
-                add(ActionItem(Icons.Default.Store, "Mis Ventas", Color(0xFF059669), onMisVentasClick))
-                add(ActionItem(Icons.Default.History, "Historial", Color(0xFF14B8A6), onHistoryClick))
-                add(ActionItem(Icons.Default.Payments, "Pagos", Color(0xFF6366F1), onPaymentsClick))
+        // Extra rows — shown when expanded
+        AnimatedVisibility(
+            visible = expanded,
+            enter = expandVertically(animationSpec = tween(300)) + fadeIn(animationSpec = tween(300)),
+            exit = shrinkVertically(animationSpec = tween(250)) + fadeOut(animationSpec = tween(200))
+        ) {
+            Column {
+                extraItems.chunked(4).forEach { rowItems ->
+                    Spacer(modifier = Modifier.height(12.dp))
+                    ActionRow(items = rowItems)
+                }
             }
         }
 
-        val rows = actionItems.chunked(4)
-        rows.forEachIndexed { rowIndex, rowItems ->
-            if (rowIndex > 0) Spacer(modifier = Modifier.height(12.dp))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
+        // Toggle button — only shown if there are extra items
+        if (extraItems.isNotEmpty()) {
+            TextButton(
+                onClick = { expanded = !expanded },
+                modifier = Modifier.fillMaxWidth()
             ) {
-                rowItems.forEach { item ->
-                    ModernQuickActionButton(
-                        icon = item.icon,
-                        label = item.label,
-                        color = item.color,
-                        onClick = item.onClick,
-                        modifier = Modifier.weight(1f)
-                    )
-                }
-                repeat(4 - rowItems.size) { Spacer(modifier = Modifier.weight(1f)) }
+                Text(
+                    text = if (expanded) "Mostrar menos" else "Mostrar más",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(modifier = Modifier.width(4.dp))
+                Icon(
+                    imageVector = Icons.Default.KeyboardArrowDown,
+                    contentDescription = null,
+                    modifier = Modifier.size(16.dp).rotate(arrowRotation),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
         }
     }
 }
 
+@Composable
+private fun ActionRow(items: List<ActionItem>) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        items.forEach { item ->
+            ModernQuickActionButton(
+                icon = item.icon,
+                label = item.label,
+                color = item.color,
+                onClick = item.onClick,
+                modifier = Modifier.weight(1f)
+            )
+        }
+        repeat(4 - items.size) { Spacer(modifier = Modifier.weight(1f)) }
+    }
+}
+
 private data class ActionItem(
+    val id: String,
     val icon: ImageVector,
     val label: String,
     val color: Color,
@@ -976,7 +1135,9 @@ private fun ModernDrawerContent(
                             if (selfieUrl != null) {
                                 AsyncImage(
                                     model = ImageRequest.Builder(LocalContext.current).data(selfieUrl).crossfade(true).build(),
-                                    contentDescription = null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop
+                                    contentDescription = null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop,
+                                    placeholder = remember { ColorPainter(Color(0xFFE0E0E0)) },
+                                    error = remember { ColorPainter(Color(0xFFEEEEEE)) }
                                 )
                             } else {
                                 Text(userName.take(1), style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.ExtraBold, color = MaterialTheme.colorScheme.primary)
@@ -1070,6 +1231,334 @@ private fun LogoutConfirmationDialog(onConfirm: () -> Unit, onDismiss: () -> Uni
         dismissButton = { TextButton(onClick = onDismiss) { Text("Cancelar") } },
         shape = RoundedCornerShape(24.dp)
     )
+}
+
+@Composable
+private fun GlobalSearchBar(
+    query: String,
+    onQueryChange: (String) -> Unit,
+    onClear: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant,
+        tonalElevation = 2.dp
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 12.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = Icons.Default.Search,
+                contentDescription = null,
+                tint = Color(0xFF03A9F4),
+                modifier = Modifier.size(22.dp)
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            BasicTextField(
+                value = query,
+                onValueChange = onQueryChange,
+                modifier = Modifier.weight(1f),
+                singleLine = true,
+                textStyle = MaterialTheme.typography.bodyMedium.copy(
+                    color = MaterialTheme.colorScheme.onSurface
+                ),
+                decorationBox = { innerTextField ->
+                    Box {
+                        if (query.isEmpty()) {
+                            Text(
+                                text = "Buscar productos y servicios...",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                            )
+                        }
+                        innerTextField()
+                    }
+                }
+            )
+            if (query.isNotEmpty()) {
+                Spacer(modifier = Modifier.width(4.dp))
+                IconButton(
+                    onClick = onClear,
+                    modifier = Modifier.size(32.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Clear,
+                        contentDescription = "Limpiar",
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SearchResultItem(
+    product: ProductSearchResult,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        modifier = modifier.fillMaxWidth().clickable(onClick = onClick),
+        shape = RoundedCornerShape(16.dp),
+        color = MaterialTheme.colorScheme.surface,
+        tonalElevation = 2.dp
+    ) {
+        Row(
+            modifier = Modifier.padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier.size(64.dp).clip(RoundedCornerShape(12.dp)),
+                contentAlignment = Alignment.Center
+            ) {
+                if (!product.primaryImageUrl.isNullOrEmpty()) {
+                    AsyncImage(
+                        model = ImageRequest.Builder(LocalContext.current)
+                            .data(product.primaryImageUrl)
+                            .crossfade(true)
+                            .build(),
+                        contentDescription = null,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop,
+                        placeholder = remember { ColorPainter(Color(0xFFE0E0E0)) },
+                        error = remember { ColorPainter(Color(0xFFEEEEEE)) }
+                    )
+                } else {
+                    Surface(
+                        modifier = Modifier.fillMaxSize(),
+                        color = Color(0xFF03A9F4).copy(alpha = 0.12f),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                imageVector = Icons.Default.ShoppingBag,
+                                contentDescription = null,
+                                tint = Color(0xFF03A9F4),
+                                modifier = Modifier.size(28.dp)
+                            )
+                        }
+                    }
+                }
+            }
+            Spacer(modifier = Modifier.width(12.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = product.productName,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Text(
+                    text = product.companyName,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                val formattedPrice = remember(product.price) { "$${"%.2f".format(product.price)}" }
+                val formattedOfferPrice = remember(product.offerPrice) { product.offerPrice?.let { "$${"%.2f".format(it)}" } }
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    if (formattedOfferPrice != null) {
+                        Text(
+                            text = formattedOfferPrice,
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = Color(0xFF03A9F4)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = formattedPrice,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
+                            textDecoration = TextDecoration.LineThrough
+                        )
+                    } else {
+                        Text(
+                            text = formattedPrice,
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = Color(0xFF03A9F4)
+                        )
+                    }
+                }
+            }
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)
+            )
+        }
+    }
+}
+
+@Composable
+private fun FiltersRow(
+    activeFilterCount: Int,
+    showFilters: Boolean,
+    onToggle: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier
+            .clickable(onClick = onToggle)
+            .padding(vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        Icon(
+            imageVector = Icons.Default.FilterList,
+            contentDescription = null,
+            tint = if (activeFilterCount > 0) Color(0xFF03A9F4) else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+            modifier = Modifier.size(16.dp)
+        )
+        Text(
+            text = if (activeFilterCount > 0) "Filtros ($activeFilterCount)" else "Filtros",
+            style = MaterialTheme.typography.labelSmall,
+            color = if (activeFilterCount > 0) Color(0xFF03A9F4) else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+        )
+        Icon(
+            imageVector = if (showFilters) Icons.AutoMirrored.Filled.KeyboardArrowRight else Icons.AutoMirrored.Filled.KeyboardArrowRight,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f),
+            modifier = Modifier.size(14.dp)
+        )
+    }
+}
+
+@Composable
+private fun FiltersPanel(
+    categories: List<ProductCategory>,
+    selectedCategoryId: Int?,
+    minPrice: String,
+    maxPrice: String,
+    sortBy: String,
+    hasActiveFilters: Boolean,
+    onApply: (categoryId: Int?, minPrice: String, maxPrice: String, sortBy: String) -> Unit,
+    onClear: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    var localCategoryId by remember(selectedCategoryId) { mutableStateOf(selectedCategoryId) }
+    var localMinPrice by remember(minPrice) { mutableStateOf(minPrice) }
+    var localMaxPrice by remember(maxPrice) { mutableStateOf(maxPrice) }
+    var localSortBy by remember(sortBy) { mutableStateOf(sortBy) }
+
+    val blueColor = Color(0xFF03A9F4)
+
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant,
+        tonalElevation = 2.dp
+    ) {
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+
+            // ── CATEGORÍAS ──
+            if (categories.isNotEmpty()) {
+                Text("Categoría", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
+                Row(
+                    modifier = Modifier.horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    FilterChip(
+                        selected = localCategoryId == null,
+                        onClick = { localCategoryId = null },
+                        label = { Text("Todas", style = MaterialTheme.typography.labelSmall) },
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = blueColor,
+                            selectedLabelColor = Color.White
+                        )
+                    )
+                    categories.forEach { cat ->
+                        FilterChip(
+                            selected = localCategoryId == cat.id,
+                            onClick = { localCategoryId = if (localCategoryId == cat.id) null else cat.id },
+                            label = { Text(cat.name, style = MaterialTheme.typography.labelSmall) },
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = blueColor,
+                                selectedLabelColor = Color.White
+                            )
+                        )
+                    }
+                }
+            }
+
+            // ── PRECIO ──
+            Text("Precio ($)", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedTextField(
+                    value = localMinPrice,
+                    onValueChange = { localMinPrice = it },
+                    modifier = Modifier.weight(1f),
+                    label = { Text("Mínimo", style = MaterialTheme.typography.labelSmall) },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    singleLine = true,
+                    colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = blueColor),
+                    shape = RoundedCornerShape(12.dp)
+                )
+                OutlinedTextField(
+                    value = localMaxPrice,
+                    onValueChange = { localMaxPrice = it },
+                    modifier = Modifier.weight(1f),
+                    label = { Text("Máximo", style = MaterialTheme.typography.labelSmall) },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    singleLine = true,
+                    colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = blueColor),
+                    shape = RoundedCornerShape(12.dp)
+                )
+            }
+
+            // ── ORDENAR ──
+            Text("Ordenar por", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
+            Row(
+                modifier = Modifier.horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                val sortOptions = listOf(
+                    "" to "Relevancia",
+                    "price_asc" to "Precio ↑",
+                    "price_desc" to "Precio ↓",
+                    "name_asc" to "Nombre A-Z"
+                )
+                sortOptions.forEach { (value, label) ->
+                    FilterChip(
+                        selected = localSortBy == value,
+                        onClick = { localSortBy = value },
+                        label = { Text(label, style = MaterialTheme.typography.labelSmall) },
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = blueColor,
+                            selectedLabelColor = Color.White
+                        )
+                    )
+                }
+            }
+
+            // ── BOTONES ──
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                if (hasActiveFilters) {
+                    TextButton(
+                        onClick = onClear,
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text("Limpiar", color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
+                    }
+                }
+                Button(
+                    onClick = { onApply(localCategoryId, localMinPrice, localMaxPrice, localSortBy) },
+                    modifier = Modifier.weight(1f),
+                    colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = blueColor),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Text("Aplicar", color = Color.White)
+                }
+            }
+        }
+    }
 }
 
 private fun copyToClipboard(context: Context, text: String) {

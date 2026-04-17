@@ -36,6 +36,8 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.runtime.remember
+import androidx.compose.ui.graphics.painter.ColorPainter
 import coil.compose.AsyncImage
 import com.christelldev.easyreferplus.R
 import com.christelldev.easyreferplus.data.model.Product
@@ -156,7 +158,9 @@ fun ProductCardPremium(
                         model = product.primaryImage?.imageUrl,
                         contentDescription = null,
                         modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Crop
+                        contentScale = ContentScale.Crop,
+                        placeholder = remember { ColorPainter(Color(0xFFE0E0E0)) },
+                        error = remember { ColorPainter(Color(0xFFEEEEEE)) }
                     )
                 } else {
                     Box(contentAlignment = Alignment.Center) {

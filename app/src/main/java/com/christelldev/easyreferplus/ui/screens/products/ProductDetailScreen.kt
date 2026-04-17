@@ -22,20 +22,11 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.christelldev.easyreferplus.data.model.CompanyProduct
-import com.christelldev.easyreferplus.ui.theme.AppBlue
-import com.christelldev.easyreferplus.ui.theme.DesignConstants
-
-// Constantes de diseño elegante
-private val CARD_CORNER_RADIUS = DesignConstants.CARD_CORNER_RADIUS
-private val CARD_ELEVATION = DesignConstants.CARD_ELEVATION
-private val CARD_MARGIN_HORIZONTAL = DesignConstants.CARD_MARGIN_HORIZONTAL
-private val GradientPrimary = DesignConstants.GradientPrimary
-private val GradientSuccess = DesignConstants.GradientSuccess
-private val GradientPurple = DesignConstants.GradientPurple
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -49,100 +40,273 @@ fun ProductDetailScreen(
 ) {
     var quantity by remember { mutableIntStateOf(1) }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        product.productName ?: "Producto",
-                        fontWeight = FontWeight.Bold,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+    ) {
+        Column(modifier = Modifier.fillMaxSize()) {
+
+            // Header con gradiente
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(
+                        Brush.verticalGradient(
+                            colors = listOf(
+                                MaterialTheme.colorScheme.primary,
+                                MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)
+                            )
+                        )
                     )
-                },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Box(
-                            modifier = Modifier
-                                .background(
-                                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.2f),
-                                    shape = CircleShape
-                                )
-                                .padding(8.dp)
-                        ) {
+                    .statusBarsPadding()
+                    .padding(bottom = 16.dp)
+            ) {
+                TopAppBar(
+                    title = {
+                        Text(
+                            text = product.productName ?: "Producto",
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            color = MaterialTheme.colorScheme.onPrimary
+                        )
+                    },
+                    navigationIcon = {
+                        IconButton(onClick = onNavigateBack) {
                             Icon(
                                 Icons.AutoMirrored.Filled.ArrowBack,
                                 contentDescription = "Volver",
-                                tint = MaterialTheme.colorScheme.onSurface
+                                tint = MaterialTheme.colorScheme.onPrimary
                             )
                         }
-                    }
-                },
-                actions = {
-                    // Botón del carrito con badge
-                    BadgedBox(
-                        badge = {
-                            if (cartCount > 0) {
-                                Badge(
-                                    containerColor = Color(0xFFF44336)
+                    },
+                    actions = {
+                        BadgedBox(
+                            badge = {
+                                if (cartCount > 0) {
+                                    Badge(
+                                        containerColor = MaterialTheme.colorScheme.error,
+                                        contentColor = MaterialTheme.colorScheme.onError
+                                    ) {
+                                        Text(if (cartCount > 99) "99+" else cartCount.toString())
+                                    }
+                                }
+                            }
+                        ) {
+                            IconButton(onClick = onNavigateToCart) {
+                                Icon(
+                                    Icons.Default.ShoppingCart,
+                                    contentDescription = "Ver carrito",
+                                    tint = MaterialTheme.colorScheme.onPrimary
+                                )
+                            }
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
+                )
+            }
+
+            // Contenido scrollable
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth()
+                    .background(MaterialTheme.colorScheme.background)
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .verticalScroll(rememberScrollState())
+                ) {
+                    // Imagen del producto
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(320.dp)
+                            .background(MaterialTheme.colorScheme.surfaceVariant),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        if (!product.images.isNullOrEmpty()) {
+                            AsyncImage(
+                                model = product.images?.firstOrNull { it.isPrimary }?.imageUrl
+                                    ?: product.images?.firstOrNull()?.imageUrl,
+                                contentDescription = product.productName,
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .padding(16.dp)
+                                    .clip(RoundedCornerShape(20.dp)),
+                                contentScale = ContentScale.Crop
+                            )
+                        } else {
+                            Surface(
+                                modifier = Modifier.size(160.dp),
+                                shape = CircleShape,
+                                color = MaterialTheme.colorScheme.surface,
+                                tonalElevation = 4.dp
+                            ) {
+                                Box(
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentAlignment = Alignment.Center
                                 ) {
-                                    Text(
-                                        text = if (cartCount > 99) "99+" else cartCount.toString(),
-                                        color = MaterialTheme.colorScheme.surface
+                                    Icon(
+                                        Icons.Default.Image,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(80.dp),
+                                        tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
                                     )
                                 }
                             }
                         }
-                    ) {
-                        IconButton(onClick = onNavigateToCart) {
-                            Box(
+                    }
+
+                    Column(modifier = Modifier.padding(16.dp)) {
+
+                        // Nombre
+                        Text(
+                            text = product.productName ?: "Producto",
+                            style = MaterialTheme.typography.headlineSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onBackground
+                        )
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        // Precio
+                        Surface(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .shadow(2.dp, RoundedCornerShape(12.dp)),
+                            shape = RoundedCornerShape(12.dp),
+                            color = MaterialTheme.colorScheme.surface,
+                            tonalElevation = 2.dp
+                        ) {
+                            Row(
                                 modifier = Modifier
-                                    .background(
-                                        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.2f),
-                                        shape = CircleShape
-                                    )
-                                    .padding(8.dp)
+                                    .fillMaxWidth()
+                                    .padding(16.dp),
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Icon(
-                                    Icons.Default.ShoppingCart,
-                                    contentDescription = "Ver carrito",
-                                    tint = MaterialTheme.colorScheme.onSurface
-                                )
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = "Precio",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Text(
+                                            text = "$${String.format("%.2f", product.currentPrice ?: product.price ?: 0.0)}",
+                                            style = MaterialTheme.typography.headlineMedium,
+                                            color = MaterialTheme.colorScheme.primary,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                        if (product.offerPrice != null && product.offerPrice!! < (product.price ?: 0.0)) {
+                                            Spacer(modifier = Modifier.width(12.dp))
+                                            Text(
+                                                text = "$${String.format("%.2f", product.price ?: 0.0)}",
+                                                style = MaterialTheme.typography.titleMedium,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                textDecoration = TextDecoration.LineThrough
+                                            )
+                                        }
+                                    }
+                                }
+                                if (product.offerPrice != null && product.offerPrice!! < (product.price ?: 0.0)) {
+                                    val discount = ((1 - (product.offerPrice!! / (product.price ?: 1.0))) * 100).toInt()
+                                    Surface(
+                                        shape = RoundedCornerShape(12.dp),
+                                        color = MaterialTheme.colorScheme.secondaryContainer
+                                    ) {
+                                        Text(
+                                            text = "-$discount%",
+                                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                                            style = MaterialTheme.typography.titleMedium,
+                                            fontWeight = FontWeight.Bold,
+                                            color = MaterialTheme.colorScheme.onSecondaryContainer
+                                        )
+                                    }
+                                }
                             }
                         }
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        // Descripción
+                        if (!product.productDescription.isNullOrBlank()) {
+                            Text(
+                                text = "Descripción",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onBackground
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = product.productDescription,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Spacer(modifier = Modifier.height(16.dp))
+                        }
+
+                        // Detalles del producto
+                        if (!product.size.isNullOrBlank() || !product.weight.isNullOrBlank() || !product.dimensions.isNullOrBlank()) {
+                            Text(
+                                text = "Detalles del Producto",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onBackground
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Surface(
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(20.dp),
+                                color = MaterialTheme.colorScheme.surface,
+                                tonalElevation = 2.dp
+                            ) {
+                                Column(modifier = Modifier.padding(16.dp)) {
+                                    if (!product.size.isNullOrBlank()) {
+                                        DetailRow("Tamaño", product.size ?: "")
+                                    }
+                                    if (!product.weight.isNullOrBlank()) {
+                                        DetailRow("Peso", product.weight ?: "")
+                                    }
+                                    if (!product.dimensions.isNullOrBlank()) {
+                                        DetailRow("Dimensiones", product.dimensions ?: "")
+                                    }
+                                    if (product.quantity != null && product.quantity!! > 0) {
+                                        DetailRow("Stock", "${product.quantity} unidades", isStock = true)
+                                    }
+                                }
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(16.dp))
                     }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.Transparent,
-                    titleContentColor = MaterialTheme.colorScheme.surface,
-                    navigationIconContentColor = MaterialTheme.colorScheme.surface,
-                    actionIconContentColor = Color.White
-                ),
-                modifier = Modifier.background(
-                    brush = Brush.horizontalGradient(colors = GradientPrimary)
-                )
-            )
-        },
-        bottomBar = {
-            Card(
+                }
+            }
+
+            // Bottom bar — cantidad + botón agregar al carrito
+            Surface(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .shadow(elevation = CARD_ELEVATION, shape = RoundedCornerShape(topStart = CARD_CORNER_RADIUS, topEnd = CARD_CORNER_RADIUS)),
-                shape = RoundedCornerShape(topStart = CARD_CORNER_RADIUS, topEnd = CARD_CORNER_RADIUS),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                    .shadow(8.dp, RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp)),
+                shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp),
+                color = MaterialTheme.colorScheme.surface,
+                tonalElevation = 4.dp
             ) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(16.dp),
+                        .padding(16.dp)
+                        .navigationBarsPadding(),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // Quantity selector con estilo mejorado
+                    // Selector de cantidad
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier
                             .background(
-                                color = Color(0xFFF1F5F9),
+                                color = MaterialTheme.colorScheme.surfaceVariant,
                                 shape = RoundedCornerShape(12.dp)
                             )
                             .padding(4.dp)
@@ -153,14 +317,20 @@ fun ProductDetailScreen(
                             modifier = Modifier
                                 .size(36.dp)
                                 .background(
-                                    color = if (quantity > 1) Color(0xFF03A9F4) else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f).copy(alpha = 0.3f),
+                                    color = if (quantity > 1)
+                                        MaterialTheme.colorScheme.primary
+                                    else
+                                        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f),
                                     shape = CircleShape
                                 )
                         ) {
                             Icon(
                                 Icons.Default.Remove,
                                 contentDescription = "Disminuir",
-                                tint = MaterialTheme.colorScheme.surface,
+                                tint = if (quantity > 1)
+                                    MaterialTheme.colorScheme.onPrimary
+                                else
+                                    MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f),
                                 modifier = Modifier.size(18.dp)
                             )
                         }
@@ -169,21 +339,21 @@ fun ProductDetailScreen(
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                             modifier = Modifier.padding(horizontal = 20.dp),
-                            color = Color(0xFF1E293B)
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                         IconButton(
                             onClick = { quantity++ },
                             modifier = Modifier
                                 .size(36.dp)
                                 .background(
-                                    brush = Brush.linearGradient(colors = GradientPrimary),
+                                    color = MaterialTheme.colorScheme.primary,
                                     shape = CircleShape
                                 )
                         ) {
                             Icon(
                                 Icons.Default.Add,
                                 contentDescription = "Aumentar",
-                                tint = MaterialTheme.colorScheme.surface,
+                                tint = MaterialTheme.colorScheme.onPrimary,
                                 modifier = Modifier.size(18.dp)
                             )
                         }
@@ -191,236 +361,33 @@ fun ProductDetailScreen(
 
                     Spacer(modifier = Modifier.width(16.dp))
 
-                    // Add to cart button - disable if user is the product owner
+                    // Botón agregar al carrito
                     Button(
                         onClick = { onAddToCart(quantity) },
                         enabled = !isProductOwner,
                         modifier = Modifier
                             .height(48.dp)
-                            .weight(1f)
-                            .background(
-                                brush = if (!isProductOwner)
-                                    Brush.horizontalGradient(colors = GradientPrimary)
-                                else
-                                    Brush.horizontalGradient(colors = listOf(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f), MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))),
-                                shape = RoundedCornerShape(12.dp)
-                            ),
+                            .weight(1f),
+                        shape = RoundedCornerShape(12.dp),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = Color.Transparent,
-                            disabledContainerColor = Color.Transparent
-                        ),
-                        shape = RoundedCornerShape(12.dp)
+                            containerColor = MaterialTheme.colorScheme.primary,
+                            contentColor = MaterialTheme.colorScheme.onPrimary,
+                            disabledContainerColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f),
+                            disabledContentColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+                        )
                     ) {
                         Icon(
                             Icons.Default.ShoppingCart,
                             contentDescription = null,
-                            tint = MaterialTheme.colorScheme.surface,
                             modifier = Modifier.size(20.dp)
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            if (isProductOwner) "No puedes comprar" else "Agregar al Carrito",
-                            color = MaterialTheme.colorScheme.surface,
+                            text = if (isProductOwner) "No puedes comprar" else "Agregar al Carrito",
                             fontWeight = FontWeight.Bold
                         )
                     }
                 }
-            }
-        }
-    ) { paddingValues ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .verticalScroll(rememberScrollState())
-        ) {
-            // Product images con gradiente de fondo
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(320.dp)
-                    .background(
-                        brush = Brush.verticalGradient(
-                            colors = listOf(
-                                Color(0xFFE3F2FD),
-                                Color(0xFFBBDEFB)
-                            )
-                        )
-                    ),
-                contentAlignment = Alignment.Center
-            ) {
-                if (!product.images.isNullOrEmpty()) {
-                    AsyncImage(
-                        model = product.images?.firstOrNull { it.isPrimary }?.imageUrl
-                            ?: product.images?.firstOrNull()?.imageUrl,
-                        contentDescription = product.productName,
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(16.dp)
-                            .clip(RoundedCornerShape(CARD_CORNER_RADIUS)),
-                        contentScale = ContentScale.Crop
-                    )
-                } else {
-                    Card(
-                        modifier = Modifier
-                            .size(160.dp)
-                            .shadow(elevation = CARD_ELEVATION, shape = CircleShape),
-                        shape = CircleShape,
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.surface
-                        )
-                    ) {
-                        Box(
-                            modifier = Modifier.fillMaxSize(),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                Icons.Default.Image,
-                                contentDescription = null,
-                                modifier = Modifier.size(80.dp),
-                                tint = Color(0xFF03A9F4)
-                            )
-                        }
-                    }
-                }
-            }
-
-            // Product info
-            Column(
-                modifier = Modifier.padding(16.dp)
-            ) {
-                // Name
-                Text(
-                    text = product.productName ?: "Producto",
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.Bold,
-                    color = Color(0xFF1E293B)
-                )
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                // Price con tarjeta
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .shadow(elevation = 2.dp, shape = RoundedCornerShape(12.dp)),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surface
-                    )
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = "Precio",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = Color(0xFF64748B)
-                            )
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text(
-                                    text = "$${String.format("%.2f", product.currentPrice ?: product.price ?: 0.0)}",
-                                    style = MaterialTheme.typography.headlineMedium,
-                                    color = Color(0xFF03A9F4),
-                                    fontWeight = FontWeight.Bold
-                                )
-
-                                if (product.offerPrice != null && product.offerPrice!! < (product.price ?: 0.0)) {
-                                    Spacer(modifier = Modifier.width(12.dp))
-                                    Text(
-                                        text = "$${String.format("%.2f", product.price ?: 0.0)}",
-                                        style = MaterialTheme.typography.titleMedium,
-                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
-                                        textDecoration = androidx.compose.ui.text.style.TextDecoration.LineThrough
-                                    )
-                                }
-                            }
-                        }
-
-                        // Badge de descuento si hay oferta
-                        if (product.offerPrice != null && product.offerPrice!! < (product.price ?: 0.0)) {
-                            val discount = ((1 - (product.offerPrice!! / (product.price ?: 1.0))) * 100).toInt()
-                            Box(
-                                modifier = Modifier
-                                    .background(
-                                        brush = Brush.linearGradient(colors = GradientSuccess),
-                                        shape = RoundedCornerShape(12.dp)
-                                    )
-                                    .padding(horizontal = 16.dp, vertical = 8.dp)
-                            ) {
-                                Text(
-                                    text = "-$discount%",
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.surface
-                                )
-                            }
-                        }
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // Description
-                if (!product.productDescription.isNullOrBlank()) {
-                    Text(
-                        text = "Descripción",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = Color(0xFF1E293B)
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = product.productDescription,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                    )
-                    Spacer(modifier = Modifier.height(16.dp))
-                }
-
-                // Product details
-                if (!product.size.isNullOrBlank() || !product.weight.isNullOrBlank() || !product.dimensions.isNullOrBlank()) {
-                    Text(
-                        text = "Detalles del Producto",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = Color(0xFF1E293B)
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .shadow(elevation = CARD_ELEVATION, shape = RoundedCornerShape(CARD_CORNER_RADIUS)),
-                        shape = RoundedCornerShape(CARD_CORNER_RADIUS),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-                    ) {
-                        Column(modifier = Modifier.padding(16.dp)) {
-                            if (!product.size.isNullOrBlank()) {
-                                DetailRow("Tamaño", product.size)
-                            }
-                            if (!product.weight.isNullOrBlank()) {
-                                DetailRow("Peso", product.weight)
-                            }
-                            if (!product.dimensions.isNullOrBlank()) {
-                                DetailRow("Dimensiones", product.dimensions)
-                            }
-                            if (product.quantity != null && product.quantity > 0) {
-                                DetailRow("Stock", "${product.quantity} unidades", isStock = true)
-                            }
-                        }
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // Commission info
             }
         }
     }
@@ -428,17 +395,15 @@ fun ProductDetailScreen(
 
 @Composable
 private fun DetailRow(label: String, value: String, isStock: Boolean = false) {
-    Card(
+    Surface(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 4.dp),
         shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = if (isStock)
-                Color(0xFF10B981).copy(alpha = 0.1f)
-            else
-                Color(0xFFF1F5F9)
-        )
+        color = if (isStock)
+            MaterialTheme.colorScheme.tertiaryContainer
+        else
+            MaterialTheme.colorScheme.surfaceVariant
     ) {
         Row(
             modifier = Modifier
@@ -451,13 +416,16 @@ private fun DetailRow(label: String, value: String, isStock: Boolean = false) {
                 text = label,
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.Medium,
-                color = Color(0xFF64748B)
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Text(
                 text = value,
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.Bold,
-                color = Color(0xFF1E293B)
+                color = if (isStock)
+                    MaterialTheme.colorScheme.onTertiaryContainer
+                else
+                    MaterialTheme.colorScheme.onSurface
             )
         }
     }

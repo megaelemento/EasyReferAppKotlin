@@ -9,9 +9,13 @@ import com.christelldev.easyreferplus.data.model.UserBalance
 import com.christelldev.easyreferplus.data.model.UserProfile
 import com.christelldev.easyreferplus.data.model.ProfileResponse
 import com.christelldev.easyreferplus.data.model.PaymentAccessResponse
+import com.christelldev.easyreferplus.data.model.ProductCategory
+import com.christelldev.easyreferplus.data.model.ProductSearchResult
 import com.christelldev.easyreferplus.data.network.ApiService
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -52,11 +56,38 @@ data class HomeUiState(
     val hasEarnings: Boolean = false,
     val hasPendingWithdrawals: Boolean = false,
 
+    // Search
+    val searchQuery: String = "",
+    val searchResults: List<ProductSearchResult> = emptyList(),
+    val isSearching: Boolean = false,
+    val showSearchResults: Boolean = false,
+    val searchPage: Int = 1,
+    val searchHasMore: Boolean = false,
+    val isLoadingMore: Boolean = false,
+
+    // Filters
+    val showFilters: Boolean = false,
+    val categories: List<ProductCategory> = emptyList(),
+    val selectedCategoryId: Int? = null,
+    val minPrice: String = "",
+    val maxPrice: String = "",
+    val sortBy: String = "",
+
     // Loading states
     val isLoading: Boolean = false,
     val isRefreshing: Boolean = false,
     val errorMessage: String? = null
 ) {
+    val activeFilterCount: Int
+        get() = listOfNotNull(
+            selectedCategoryId,
+            minPrice.takeIf { it.isNotEmpty() },
+            maxPrice.takeIf { it.isNotEmpty() },
+            sortBy.takeIf { it.isNotEmpty() }
+        ).size
+
+    val hasActiveFilters: Boolean get() = activeFilterCount > 0
+
     // Helper to check if company is validated and active
     val canGenerateQR: Boolean
         get() = hasCompany && (empresaActiva == true || empresaStatus?.lowercase() == "validated")
@@ -88,10 +119,16 @@ class HomeViewModel(
 
     private val authorization: String get() = "Bearer ${getAccessToken()}"
 
-    fun loadHomeData() {
+    private var lastLoadTime: Long = 0L
+
+    fun loadHomeData(forceRefresh: Boolean = false) {
+        val now = System.currentTimeMillis()
+        val dataExists = _uiState.value.nombres.isNotBlank()
+        if (!forceRefresh && dataExists && (now - lastLoadTime < 60_000L)) return
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isLoading = true, errorMessage = null)
+            _uiState.value = _uiState.value.copy(isLoading = !dataExists, errorMessage = null)
             loadAll()
+            lastLoadTime = System.currentTimeMillis()
             _uiState.value = _uiState.value.copy(isLoading = false)
         }
     }
@@ -174,6 +211,131 @@ class HomeViewModel(
 
     fun clearError() {
         _uiState.value = _uiState.value.copy(errorMessage = null)
+    }
+
+    private var searchJob: Job? = null
+
+    fun searchProducts(query: String) {
+        val state = _uiState.value
+        val hasFilters = state.selectedCategoryId != null || state.minPrice.isNotEmpty() ||
+                state.maxPrice.isNotEmpty() || state.sortBy.isNotEmpty()
+        _uiState.value = state.copy(
+            searchQuery = query,
+            showSearchResults = query.isNotEmpty() || hasFilters
+        )
+        searchJob?.cancel()
+        if (query.length < 2 && !hasFilters) {
+            _uiState.value = _uiState.value.copy(searchResults = emptyList(), isSearching = false)
+            return
+        }
+        triggerSearch()
+    }
+
+    fun applyFilters(categoryId: Int?, minPrice: String, maxPrice: String, sortBy: String) {
+        val state = _uiState.value
+        val hasFilters = categoryId != null || minPrice.isNotEmpty() || maxPrice.isNotEmpty() || sortBy.isNotEmpty()
+        _uiState.value = state.copy(
+            selectedCategoryId = categoryId,
+            minPrice = minPrice,
+            maxPrice = maxPrice,
+            sortBy = sortBy,
+            showSearchResults = state.searchQuery.isNotEmpty() || hasFilters
+        )
+        triggerSearch()
+    }
+
+    fun toggleFilters() {
+        val state = _uiState.value
+        _uiState.value = state.copy(showFilters = !state.showFilters)
+        if (state.categories.isEmpty()) loadCategories()
+    }
+
+    fun clearFilters() {
+        val state = _uiState.value
+        _uiState.value = state.copy(
+            selectedCategoryId = null,
+            minPrice = "",
+            maxPrice = "",
+            sortBy = "",
+            showSearchResults = state.searchQuery.isNotEmpty()
+        )
+        triggerSearch()
+    }
+
+    fun loadCategories() {
+        viewModelScope.launch {
+            try {
+                val response = apiService.getProductCategories(authorization)
+                if (response.isSuccessful) {
+                    _uiState.value = _uiState.value.copy(categories = response.body() ?: emptyList())
+                }
+            } catch (e: Exception) { /* silencioso */ }
+        }
+    }
+
+    private fun triggerSearch(resetPagination: Boolean = true) {
+        val state = _uiState.value
+        searchJob?.cancel()
+        searchJob = viewModelScope.launch {
+            if (resetPagination) delay(300)
+            val page = if (resetPagination) 1 else state.searchPage + 1
+            _uiState.value = _uiState.value.copy(
+                isSearching = resetPagination,
+                isLoadingMore = !resetPagination
+            )
+            try {
+                val response = apiService.searchProducts(
+                    authorization,
+                    query = state.searchQuery.takeIf { it.length >= 2 },
+                    categoryId = state.selectedCategoryId,
+                    minPrice = state.minPrice.toDoubleOrNull(),
+                    maxPrice = state.maxPrice.toDoubleOrNull(),
+                    sortBy = state.sortBy.takeIf { it.isNotEmpty() },
+                    page = page,
+                    perPage = 20
+                )
+                if (response.isSuccessful && response.body()?.success == true) {
+                    val body = response.body()!!
+                    val newResults = if (resetPagination) body.products
+                                     else state.searchResults + body.products
+                    _uiState.value = _uiState.value.copy(
+                        searchResults = newResults,
+                        searchPage = page,
+                        searchHasMore = body.products.size >= 20,
+                        isSearching = false,
+                        isLoadingMore = false
+                    )
+                } else {
+                    _uiState.value = _uiState.value.copy(isSearching = false, isLoadingMore = false)
+                }
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(isSearching = false, isLoadingMore = false)
+            }
+        }
+    }
+
+    fun loadMoreSearchResults() {
+        val state = _uiState.value
+        if (state.isLoadingMore || !state.searchHasMore || state.isSearching) return
+        triggerSearch(resetPagination = false)
+    }
+
+    fun clearSearch() {
+        searchJob?.cancel()
+        _uiState.value = _uiState.value.copy(
+            searchQuery = "",
+            searchResults = emptyList(),
+            isSearching = false,
+            showSearchResults = _uiState.value.hasActiveFilters,
+            showFilters = false,
+            selectedCategoryId = null,
+            minPrice = "",
+            maxPrice = "",
+            sortBy = "",
+            searchPage = 1,
+            searchHasMore = false,
+            isLoadingMore = false
+        )
     }
 
     class Factory(

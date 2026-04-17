@@ -2,6 +2,7 @@ package com.christelldev.easyreferplus.ui.screens.admin
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -95,6 +96,8 @@ fun AdminWithdrawalsScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
+    val isDark = isSystemInDarkTheme()
+    val contentTint = if (isDark) MaterialTheme.colorScheme.onBackground else Color.White
 
     // Mostrar mensajes de éxito/error
     LaunchedEffect(uiState.successMessage, uiState.errorMessage) {
@@ -109,90 +112,96 @@ fun AdminWithdrawalsScreen(
     }
 
     Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        stringResource(R.string.admin_withdrawals),
-                        fontWeight = FontWeight.Bold
-                    )
-                },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Volver"
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    titleContentColor = MaterialTheme.colorScheme.onPrimary,
-                    navigationIconContentColor = MaterialTheme.colorScheme.onPrimary
-                )
-            )
-        },
-        snackbarHost = { SnackbarHost(snackbarHostState) }
+        snackbarHost = { SnackbarHost(snackbarHostState) },
+        containerColor = MaterialTheme.colorScheme.background
     ) { paddingValues ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-        ) {
-            // Stats Cards
-            WithdrawalsStatsRow(uiState = uiState)
-
-            // Filter Chips
-            FilterChipsRow(
-                selectedFilter = uiState.selectedFilter,
-                onFilterSelected = viewModel::setFilter,
-                pendingCount = uiState.pendingCount,
-                approvedCount = uiState.approvedCount,
-                rejectedCount = uiState.rejectedCount,
-                postponedCount = uiState.postponedCount
+        Box(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(200.dp)
+                    .background(
+                        Brush.verticalGradient(
+                            listOf(MaterialTheme.colorScheme.primary.copy(alpha = 0.8f), Color.Transparent)
+                        )
+                    )
             )
-
-            // Withdrawals List
-            if (uiState.isLoading) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator()
-                }
-            } else if (uiState.withdrawals.isEmpty()) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Icon(
-                            imageVector = Icons.Default.Schedule,
-                            contentDescription = null,
-                            modifier = Modifier.size(64.dp),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-                        )
-                        Spacer(modifier = Modifier.height(16.dp))
+            Column(modifier = Modifier.fillMaxSize()) {
+                TopAppBar(
+                    title = {
                         Text(
-                            text = stringResource(R.string.no_withdrawals),
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            stringResource(R.string.admin_withdrawals),
+                            fontWeight = FontWeight.Bold,
+                            color = contentTint
                         )
+                    },
+                    navigationIcon = {
+                        IconButton(onClick = onNavigateBack) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = "Volver",
+                                tint = contentTint
+                            )
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
+                )
+
+                // Stats Cards
+                WithdrawalsStatsRow(uiState = uiState)
+
+                // Filter Chips
+                FilterChipsRow(
+                    selectedFilter = uiState.selectedFilter,
+                    onFilterSelected = viewModel::setFilter,
+                    pendingCount = uiState.pendingCount,
+                    approvedCount = uiState.approvedCount,
+                    rejectedCount = uiState.rejectedCount,
+                    postponedCount = uiState.postponedCount
+                )
+
+                // Withdrawals List
+                if (uiState.isLoading) {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator()
                     }
-                }
-            } else {
-                LazyColumn(
-                    contentPadding = PaddingValues(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    items(uiState.withdrawals) { withdrawal ->
-                        WithdrawalCard(
-                            withdrawal = withdrawal,
-                            isProcessing = uiState.isProcessingAction,
-                            onApprove = { notes, ref -> viewModel.approveWithdrawal(withdrawal.id, notes, ref) },
-                            onReject = { notes -> viewModel.rejectWithdrawal(withdrawal.id, notes) },
-                            onPostpone = { notes -> viewModel.postponeWithdrawal(withdrawal.id, notes) }
-                        )
+                } else if (uiState.withdrawals.isEmpty()) {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Icon(
+                                imageVector = Icons.Default.Schedule,
+                                contentDescription = null,
+                                modifier = Modifier.size(64.dp),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                            )
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Text(
+                                text = stringResource(R.string.no_withdrawals),
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                } else {
+                    LazyColumn(
+                        contentPadding = PaddingValues(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        items(uiState.withdrawals) { withdrawal ->
+                            WithdrawalCard(
+                                withdrawal = withdrawal,
+                                isProcessing = uiState.isProcessingAction,
+                                onApprove = { notes, ref -> viewModel.approveWithdrawal(withdrawal.id, notes, ref) },
+                                onReject = { notes -> viewModel.rejectWithdrawal(withdrawal.id, notes) },
+                                onPostpone = { notes -> viewModel.postponeWithdrawal(withdrawal.id, notes) }
+                            )
+                        }
                     }
                 }
             }

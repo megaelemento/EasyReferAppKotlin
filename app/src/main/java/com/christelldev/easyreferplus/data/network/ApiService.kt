@@ -72,6 +72,7 @@ import com.christelldev.easyreferplus.data.model.CreateProductRequest
 import com.christelldev.easyreferplus.data.model.UpdateProductRequest
 import com.christelldev.easyreferplus.data.model.ImageUploadResponse
 import com.christelldev.easyreferplus.data.model.ProductResponse
+import com.christelldev.easyreferplus.data.model.ProductSearchResponse
 import com.christelldev.easyreferplus.data.model.WalletBalanceResponse
 import com.christelldev.easyreferplus.data.model.WalletApiResponse
 import com.christelldev.easyreferplus.data.model.SetPinRequest
@@ -244,6 +245,20 @@ interface ApiService {
         @Header("Authorization") authorization: String,
         @Path("transactionId") transactionId: String
     ): Response<ReceiptResponse>
+
+    // ==================== PRODUCT SEARCH ====================
+
+    @GET("api/companies/search-products")
+    suspend fun searchProducts(
+        @Header("Authorization") authorization: String,
+        @Query("q") query: String? = null,
+        @Query("category_id") categoryId: Int? = null,
+        @Query("min_price") minPrice: Double? = null,
+        @Query("max_price") maxPrice: Double? = null,
+        @Query("sort_by") sortBy: String? = null,
+        @Query("page") page: Int = 1,
+        @Query("per_page") perPage: Int = 20
+    ): Response<ProductSearchResponse>
 
     // ==================== PUBLIC COMPANIES ====================
 

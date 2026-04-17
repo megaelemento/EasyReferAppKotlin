@@ -434,7 +434,6 @@ fun PhoneStepContent(
             OutlinedTextField(
                 value = phone,
                 onValueChange = onPhoneChange,
-                label = { Text(stringResource(R.string.phone_label)) },
                 placeholder = { Text(stringResource(R.string.phone_placeholder)) },
                 leadingIcon = {
                     Icon(
@@ -450,7 +449,6 @@ fun PhoneStepContent(
                 keyboardActions = KeyboardActions(onDone = { onSubmit() }),
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedBorderColor = MaterialTheme.colorScheme.primary,
-                    focusedLabelColor = MaterialTheme.colorScheme.primary,
                     cursorColor = MaterialTheme.colorScheme.primary,
                     focusedContainerColor = MaterialTheme.colorScheme.surface,
                     unfocusedContainerColor = MaterialTheme.colorScheme.surface
@@ -873,7 +871,7 @@ fun RegistrationTextField(
     label: String,
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     error: String?,
-    placeholder: String? = null,
+    placeholder: String? = null, // if null, uses label as placeholder
     isPassword: Boolean = false,
     passwordVisible: Boolean = false,
     onTogglePassword: (() -> Unit)? = null,
@@ -884,8 +882,7 @@ fun RegistrationTextField(
         OutlinedTextField(
             value = value,
             onValueChange = onValueChange,
-            label = { Text(label) },
-            placeholder = placeholder?.let { { Text(it) } },
+            placeholder = { Text(placeholder ?: label) },
             leadingIcon = { Icon(icon, null, tint = MaterialTheme.colorScheme.primary) },
             trailingIcon = if (isPassword && onTogglePassword != null) {
                 {
@@ -906,7 +903,6 @@ fun RegistrationTextField(
             keyboardActions = keyboardActions,
             colors = OutlinedTextFieldDefaults.colors(
                 focusedBorderColor = MaterialTheme.colorScheme.primary,
-                focusedLabelColor = MaterialTheme.colorScheme.primary,
                 cursorColor = MaterialTheme.colorScheme.primary,
                 focusedContainerColor = MaterialTheme.colorScheme.surface,
                 unfocusedContainerColor = MaterialTheme.colorScheme.surface

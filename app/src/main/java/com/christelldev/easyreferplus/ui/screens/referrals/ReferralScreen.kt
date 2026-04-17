@@ -12,10 +12,10 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
@@ -46,12 +46,12 @@ fun ReferralScreen(
 ) {
     val context = LocalContext.current
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val scrollState = rememberScrollState()
     val snackbarHostState = remember { SnackbarHostState() }
 
     LaunchedEffect(Unit) {
+        viewModel.loadReferrals()          // Carga datos por REST inmediatamente
         viewModel.initWebSocketManager(context)
-        viewModel.connectWebSocket()
+        viewModel.connectWebSocket()       // WebSocket actualiza en tiempo real
     }
 
     DisposableEffect(Unit) {
@@ -101,75 +101,88 @@ fun ReferralScreen(
                     colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
                 )
 
-                Column(
-                    modifier = Modifier.fillMaxSize().padding(horizontal = 24.dp).verticalScroll(scrollState).imePadding()
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize().padding(horizontal = 24.dp).imePadding(),
+                    contentPadding = PaddingValues(bottom = 32.dp)
                 ) {
-                    Spacer(modifier = Modifier.height(8.dp))
+                    item { Spacer(modifier = Modifier.height(8.dp)) }
 
                     // Tarjeta de Código Central
-                    YourReferralCodeCard(
-                        code = uiState.userReferralCode,
-                        onCopy = { copyToClipboard(uiState.userReferralCode) },
-                        onShare = { shareCode(uiState.userReferralCode) }
-                    )
+                    item {
+                        YourReferralCodeCard(
+                            code = uiState.userReferralCode,
+                            onCopy = { copyToClipboard(uiState.userReferralCode) },
+                            onShare = { shareCode(uiState.userReferralCode) }
+                        )
+                    }
 
-                    Spacer(modifier = Modifier.height(24.dp))
+                    item { Spacer(modifier = Modifier.height(24.dp)) }
 
                     // Dashboard de Estadísticas
-                    StatsDashboard(
-                        level1 = uiState.level1Count,
-                        level2 = uiState.level2Count,
-                        level3 = uiState.level3Count,
-                        total = uiState.totalCount
-                    )
+                    item {
+                        StatsDashboard(
+                            level1 = uiState.level1Count,
+                            level2 = uiState.level2Count,
+                            level3 = uiState.level3Count,
+                            total = uiState.totalCount
+                        )
+                    }
 
-                    Spacer(modifier = Modifier.height(24.dp))
+                    item { Spacer(modifier = Modifier.height(24.dp)) }
 
                     // Buscador Integrado
-                    SearchSection(
-                        searchCode = uiState.searchCode,
-                        isSearching = uiState.isSearching,
-                        searchResult = uiState.searchResult,
-                        onSearchChange = viewModel::updateSearchCode,
-                        onSearch = viewModel::searchReferral
-                    )
+                    item {
+                        SearchSection(
+                            searchCode = uiState.searchCode,
+                            isSearching = uiState.isSearching,
+                            searchResult = uiState.searchResult,
+                            onSearchChange = viewModel::updateSearchCode,
+                            onSearch = viewModel::searchReferral
+                        )
+                    }
 
-                    Spacer(modifier = Modifier.height(24.dp))
+                    item { Spacer(modifier = Modifier.height(24.dp)) }
 
                     // Árbol de Red Moderno
                     if (uiState.totalCount > 0) {
-                        Text(
-                            text = "Estructura de Red",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.ExtraBold,
-                            modifier = Modifier.padding(bottom = 16.dp)
-                        )
-                        
-                        ReferralLevelList(
-                            title = "Nivel 1 (Directos)",
-                            codes = uiState.level1Codes,
-                            color = Color(0xFF10B981),
-                            onCopy = { copyToClipboard(it) }
-                        )
-                        Spacer(modifier = Modifier.height(12.dp))
-                        ReferralLevelList(
-                            title = "Nivel 2",
-                            codes = uiState.level2Codes,
-                            color = Color(0xFFF59E0B),
-                            onCopy = { copyToClipboard(it) }
-                        )
-                        Spacer(modifier = Modifier.height(12.dp))
-                        ReferralLevelList(
-                            title = "Nivel 3",
-                            codes = uiState.level3Codes,
-                            color = Color(0xFF8B5CF6),
-                            onCopy = { copyToClipboard(it) }
-                        )
+                        item {
+                            Text(
+                                text = "Estructura de Red",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.ExtraBold,
+                                modifier = Modifier.padding(bottom = 16.dp)
+                            )
+                        }
+
+                        item(key = "level1") {
+                            ReferralLevelList(
+                                title = "Nivel 1 (Directos)",
+                                codes = uiState.level1Codes,
+                                color = Color(0xFF10B981),
+                                onCopy = { copyToClipboard(it) }
+                            )
+                        }
+                        item { Spacer(modifier = Modifier.height(12.dp)) }
+                        item(key = "level2") {
+                            ReferralLevelList(
+                                title = "Nivel 2",
+                                codes = uiState.level2Codes,
+                                color = Color(0xFFF59E0B),
+                                onCopy = { copyToClipboard(it) }
+                            )
+                        }
+                        item { Spacer(modifier = Modifier.height(12.dp)) }
+                        item(key = "level3") {
+                            ReferralLevelList(
+                                title = "Nivel 3",
+                                codes = uiState.level3Codes,
+                                color = Color(0xFF8B5CF6),
+                                onCopy = { copyToClipboard(it) }
+                            )
+                        }
                     } else {
-                        EmptyReferralState()
+                        item { EmptyReferralState() }
                     }
-                    
-                    Spacer(modifier = Modifier.height(32.dp))
                 }
             }
         }
@@ -352,21 +365,23 @@ fun ReferralLevelList(title: String, codes: List<String>, color: Color, onCopy: 
             }
             Spacer(modifier = Modifier.height(16.dp))
             codes.forEachIndexed { index, code ->
-                Row(
-                    modifier = Modifier.fillMaxWidth().clickable { onCopy(code) }.padding(vertical = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Surface(modifier = Modifier.size(36.dp), shape = CircleShape, color = color.copy(alpha = 0.1f)) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Text(code.take(1).uppercase(), fontWeight = FontWeight.Bold, color = color)
+                key(code) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().clickable { onCopy(code) }.padding(vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Surface(modifier = Modifier.size(36.dp), shape = CircleShape, color = color.copy(alpha = 0.1f)) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Text(code.take(1).uppercase(), fontWeight = FontWeight.Bold, color = color)
+                            }
                         }
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Text(code, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+                        Spacer(modifier = Modifier.weight(1f))
+                        Icon(Icons.Default.ContentCopy, null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f))
                     }
-                    Spacer(modifier = Modifier.width(12.dp))
-                    Text(code, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
-                    Spacer(modifier = Modifier.weight(1f))
-                    Icon(Icons.Default.ContentCopy, null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f))
+                    if (index < codes.size - 1) HorizontalDivider(modifier = Modifier.padding(start = 48.dp), color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f))
                 }
-                if (index < codes.size - 1) HorizontalDivider(modifier = Modifier.padding(start = 48.dp), color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f))
             }
         }
     }

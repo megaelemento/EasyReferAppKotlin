@@ -3,6 +3,7 @@ package com.christelldev.easyreferplus.ui.screens.orders
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -85,140 +86,155 @@ fun MisComprasScreen(
         label = "liveDot"
     )
 
+    val isDark = isSystemInDarkTheme()
+    val contentTint = if (isDark) MaterialTheme.colorScheme.onBackground else Color.White
+
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
-        topBar = {
-            TopAppBar(
-                title = { Text("Mis Compras", fontWeight = FontWeight.Bold) },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Atrás")
-                    }
-                },
-                actions = {
-                    if (wsConnected) {
-                        Box(
-                            modifier = Modifier
-                                .padding(end = 4.dp)
-                                .size(28.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(10.dp)
-                                    .scale(liveDotScale)
-                                    .background(Color(0xFF4CAF50), CircleShape)
-                            )
-                        }
-                    }
-                    IconButton(onClick = { viewModel.loadMyOrders() }) {
-                        Icon(Icons.Default.Refresh, contentDescription = "Actualizar")
-                    }
-                }
-            )
-        }
+        containerColor = MaterialTheme.colorScheme.background
     ) { padding ->
         Box(modifier = Modifier.fillMaxSize().padding(padding)) {
-            when (state) {
-                is OrderListState.Loading -> {
-                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator()
-                    }
-                }
-                is OrderListState.Error -> {
-                    val msg = (state as OrderListState.Error).message
-                    Column(
-                        Modifier.fillMaxSize().padding(32.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center
-                    ) {
-                        Icon(Icons.Default.ErrorOutline, null,
-                            modifier = Modifier.size(64.dp),
-                            tint = MaterialTheme.colorScheme.error.copy(alpha = 0.6f))
-                        Spacer(Modifier.height(16.dp))
-                        Text(msg, textAlign = TextAlign.Center,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Spacer(Modifier.height(20.dp))
-                        Button(onClick = { viewModel.loadMyOrders() }) { Text("Reintentar") }
-                    }
-                }
-                is OrderListState.Success -> {
-                    val orders = (state as OrderListState.Success).orders
-                    if (orders.isEmpty()) {
-                        EmptyOrders()
-                    } else {
-                        val activeStatuses = setOf("pending_payment", "paid_pending_driver", "driver_assigned", "ready_for_pickup", "picked_up")
-                        val activeOrders = orders.filter { it.status in activeStatuses }
-                        val pastOrders = orders.filter { it.status !in activeStatuses }
-                        var selectedTab by remember { mutableIntStateOf(if (activeOrders.isNotEmpty()) 0 else 1) }
-
-                        Column {
-                            TabRow(
-                                selectedTabIndex = selectedTab,
-                                containerColor = MaterialTheme.colorScheme.surface,
-                                modifier = Modifier.padding(horizontal = 16.dp)
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(200.dp)
+                    .background(
+                        Brush.verticalGradient(
+                            listOf(MaterialTheme.colorScheme.primary.copy(alpha = 0.8f), Color.Transparent)
+                        )
+                    )
+            )
+            Column(modifier = Modifier.fillMaxSize()) {
+                TopAppBar(
+                    title = { Text("Mis Compras", fontWeight = FontWeight.Bold, color = contentTint) },
+                    navigationIcon = {
+                        IconButton(onClick = onNavigateBack) {
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Atrás", tint = contentTint)
+                        }
+                    },
+                    actions = {
+                        if (wsConnected) {
+                            Box(
+                                modifier = Modifier
+                                    .padding(end = 4.dp)
+                                    .size(28.dp),
+                                contentAlignment = Alignment.Center
                             ) {
-                                Tab(
-                                    selected = selectedTab == 0,
-                                    onClick = { selectedTab = 0 },
-                                    text = {
-                                        Row(verticalAlignment = Alignment.CenterVertically) {
-                                            if (activeOrders.isNotEmpty()) {
-                                                Box(
-                                                    modifier = Modifier
-                                                        .size(8.dp)
-                                                        .background(Color(0xFF4CAF50), CircleShape)
-                                                )
-                                                Spacer(Modifier.width(6.dp))
-                                            }
-                                            Text("Activos (${activeOrders.size})", fontWeight = FontWeight.Bold)
-                                        }
-                                    }
-                                )
-                                Tab(
-                                    selected = selectedTab == 1,
-                                    onClick = { selectedTab = 1 },
-                                    text = { Text("Historial (${pastOrders.size})", fontWeight = FontWeight.Bold) }
+                                Box(
+                                    modifier = Modifier
+                                        .size(10.dp)
+                                        .scale(liveDotScale)
+                                        .background(Color(0xFF4CAF50), CircleShape)
                                 )
                             }
+                        }
+                        IconButton(onClick = { viewModel.loadMyOrders() }) {
+                            Icon(Icons.Default.Refresh, contentDescription = "Actualizar", tint = contentTint)
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
+                )
+                when (state) {
+                    is OrderListState.Loading -> {
+                        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            CircularProgressIndicator()
+                        }
+                    }
+                    is OrderListState.Error -> {
+                        val msg = (state as OrderListState.Error).message
+                        Column(
+                            Modifier.fillMaxSize().padding(32.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center
+                        ) {
+                            Icon(Icons.Default.ErrorOutline, null,
+                                modifier = Modifier.size(64.dp),
+                                tint = MaterialTheme.colorScheme.error.copy(alpha = 0.6f))
+                            Spacer(Modifier.height(16.dp))
+                            Text(msg, textAlign = TextAlign.Center,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Spacer(Modifier.height(20.dp))
+                            Button(onClick = { viewModel.loadMyOrders() }) { Text("Reintentar") }
+                        }
+                    }
+                    is OrderListState.Success -> {
+                        val orders = (state as OrderListState.Success).orders
+                        if (orders.isEmpty()) {
+                            EmptyOrders()
+                        } else {
+                            val activeStatuses = setOf("pending_payment", "paid_pending_driver", "driver_assigned", "ready_for_pickup", "picked_up")
+                            val activeOrders = orders.filter { it.status in activeStatuses }
+                            val pastOrders = orders.filter { it.status !in activeStatuses }
+                            var selectedTab by remember { mutableIntStateOf(if (activeOrders.isNotEmpty()) 0 else 1) }
 
-                            val displayOrders = if (selectedTab == 0) activeOrders else pastOrders
-
-                            if (displayOrders.isEmpty()) {
-                                Box(
-                                    Modifier.fillMaxSize().padding(32.dp),
-                                    contentAlignment = Alignment.Center
+                            Column(modifier = Modifier.fillMaxSize()) {
+                                TabRow(
+                                    selectedTabIndex = selectedTab,
+                                    containerColor = MaterialTheme.colorScheme.surface,
+                                    modifier = Modifier.padding(horizontal = 16.dp)
                                 ) {
-                                    Text(
-                                        if (selectedTab == 0) "No tienes pedidos activos"
-                                        else "No tienes pedidos anteriores",
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        textAlign = TextAlign.Center
+                                    Tab(
+                                        selected = selectedTab == 0,
+                                        onClick = { selectedTab = 0 },
+                                        text = {
+                                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                                if (activeOrders.isNotEmpty()) {
+                                                    Box(
+                                                        modifier = Modifier
+                                                            .size(8.dp)
+                                                            .background(Color(0xFF4CAF50), CircleShape)
+                                                    )
+                                                    Spacer(Modifier.width(6.dp))
+                                                }
+                                                Text("Activos (${activeOrders.size})", fontWeight = FontWeight.Bold)
+                                            }
+                                        }
+                                    )
+                                    Tab(
+                                        selected = selectedTab == 1,
+                                        onClick = { selectedTab = 1 },
+                                        text = { Text("Historial (${pastOrders.size})", fontWeight = FontWeight.Bold) }
                                     )
                                 }
-                            } else {
-                                LazyColumn(
-                                    contentPadding = PaddingValues(16.dp),
-                                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                                ) {
-                                    items(displayOrders, key = { it.id }) { order ->
-                                        OrderCard(
-                                            order = order,
-                                            onClick = { selectedOrder = order },
-                                            onTrack = if (order.status in trackableStatuses) {
-                                                { onNavigateToTracking(order.id) }
-                                            } else null,
-                                            onRate = if (order.status in setOf("delivered", "completed")) {
-                                                { onNavigateToRating(order.id) }
-                                            } else null
+
+                                val displayOrders = if (selectedTab == 0) activeOrders else pastOrders
+
+                                if (displayOrders.isEmpty()) {
+                                    Box(
+                                        Modifier.fillMaxSize().padding(32.dp),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text(
+                                            if (selectedTab == 0) "No tienes pedidos activos"
+                                            else "No tienes pedidos anteriores",
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            textAlign = TextAlign.Center
                                         )
+                                    }
+                                } else {
+                                    LazyColumn(
+                                        contentPadding = PaddingValues(16.dp),
+                                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                                    ) {
+                                        items(displayOrders, key = { it.id }) { order ->
+                                            OrderCard(
+                                                order = order,
+                                                onClick = { selectedOrder = order },
+                                                onTrack = if (order.status in trackableStatuses) {
+                                                    { onNavigateToTracking(order.id) }
+                                                } else null,
+                                                onRate = if (order.status in setOf("delivered", "completed")) {
+                                                    { onNavigateToRating(order.id) }
+                                                } else null
+                                            )
+                                        }
                                     }
                                 }
                             }
                         }
                     }
+                    else -> {}
                 }
-                else -> {}
             }
         }
     }

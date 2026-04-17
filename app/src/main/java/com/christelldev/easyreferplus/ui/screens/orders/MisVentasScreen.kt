@@ -2,6 +2,7 @@ package com.christelldev.easyreferplus.ui.screens.orders
 
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -15,6 +16,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -67,39 +69,53 @@ fun MisVentasScreen(
         label = "pulse"
     )
 
+    val isDark = isSystemInDarkTheme()
+    val contentTint = if (isDark) MaterialTheme.colorScheme.onBackground else Color.White
+
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
-        topBar = {
-            TopAppBar(
-                title = { Text("Mis Ventas", fontWeight = FontWeight.Bold) },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Volver")
-                    }
-                },
-                actions = {
-                    if (wsConnected) {
-                        Box(
-                            modifier = Modifier
-                                .padding(end = 8.dp)
-                                .scale(pulseScale)
-                                .size(10.dp)
-                                .background(Color(0xFF22C55E), CircleShape)
-                        )
-                    }
-                    IconButton(onClick = { viewModel.load(selectedFilter) }) {
-                        Icon(Icons.Default.Refresh, "Actualizar")
-                    }
-                }
-            )
-        }
+        containerColor = MaterialTheme.colorScheme.background
     ) { padding ->
-        Column(Modifier.fillMaxSize().padding(padding)) {
+        Box(modifier = Modifier.fillMaxSize().padding(padding)) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(200.dp)
+                    .background(
+                        Brush.verticalGradient(
+                            listOf(MaterialTheme.colorScheme.primary.copy(alpha = 0.8f), Color.Transparent)
+                        )
+                    )
+            )
+            Column(modifier = Modifier.fillMaxSize()) {
+                TopAppBar(
+                    title = { Text("Mis Ventas", fontWeight = FontWeight.Bold, color = contentTint) },
+                    navigationIcon = {
+                        IconButton(onClick = onNavigateBack) {
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, "Volver", tint = contentTint)
+                        }
+                    },
+                    actions = {
+                        if (wsConnected) {
+                            Box(
+                                modifier = Modifier
+                                    .padding(end = 8.dp)
+                                    .scale(pulseScale)
+                                    .size(10.dp)
+                                    .background(Color(0xFF22C55E), CircleShape)
+                            )
+                        }
+                        IconButton(onClick = { viewModel.load(selectedFilter) }) {
+                            Icon(Icons.Default.Refresh, "Actualizar", tint = contentTint)
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
+                )
 
-            // Filtros
-            StoreFilterRow(selected = selectedFilter, onSelect = { selectedFilter = if (it == selectedFilter) null else it })
+                // Filtros
+                StoreFilterRow(selected = selectedFilter, onSelect = { selectedFilter = if (it == selectedFilter) null else it })
 
-            when (val s = state) {
+                when (val s = state) {
                 is StoreOrdersState.Loading -> {
                     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         CircularProgressIndicator()
@@ -158,6 +174,7 @@ fun MisVentasScreen(
                     }
                 }
                 else -> {}
+            }
             }
         }
     }

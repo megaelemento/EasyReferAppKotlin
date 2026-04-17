@@ -1,5 +1,7 @@
 package com.christelldev.easyreferplus.ui.screens.admin
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -12,6 +14,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -32,6 +35,8 @@ fun AdminOrdersScreen(
 
     var selectedFilter by remember { mutableStateOf<String?>(null) }
     val listState = rememberLazyListState()
+    val isDark = isSystemInDarkTheme()
+    val contentTint = if (isDark) MaterialTheme.colorScheme.onBackground else Color.White
 
     LaunchedEffect(selectedFilter) {
         viewModel.loadCompanyOrders(page = 1, status = selectedFilter)
@@ -52,56 +57,68 @@ fun AdminOrdersScreen(
     }
 
     Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Historial de Pedidos", fontWeight = FontWeight.Bold) },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver")
-                    }
-                },
-                actions = {
-                    IconButton(onClick = { viewModel.loadCompanyOrders(1, selectedFilter) }) {
-                        Icon(Icons.Default.Refresh, contentDescription = "Actualizar")
-                    }
-                }
-            )
-        }
+        containerColor = MaterialTheme.colorScheme.background
     ) { padding ->
-        Column(Modifier.fillMaxSize().padding(padding)) {
-
-            // Filtros de estado
-            StatusFilterRow(selected = selectedFilter, onSelect = { selectedFilter = it })
-
-            // Contador
-            if (total > 0) {
-                Text(
-                    "$total pedido(s) en total",
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+        Box(modifier = Modifier.fillMaxSize().padding(padding)) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(200.dp)
+                    .background(
+                        Brush.verticalGradient(
+                            listOf(MaterialTheme.colorScheme.primary.copy(alpha = 0.8f), Color.Transparent)
+                        )
+                    )
+            )
+            Column(modifier = Modifier.fillMaxSize()) {
+                TopAppBar(
+                    title = { Text("Historial de Pedidos", fontWeight = FontWeight.Bold, color = contentTint) },
+                    navigationIcon = {
+                        IconButton(onClick = onNavigateBack) {
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver", tint = contentTint)
+                        }
+                    },
+                    actions = {
+                        IconButton(onClick = { viewModel.loadCompanyOrders(1, selectedFilter) }) {
+                            Icon(Icons.Default.Refresh, contentDescription = "Actualizar", tint = contentTint)
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
                 )
-            }
 
-            if (isLoading && orders.isEmpty()) {
-                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator()
+                // Filtros de estado
+                StatusFilterRow(selected = selectedFilter, onSelect = { selectedFilter = it })
+
+                // Contador
+                if (total > 0) {
+                    Text(
+                        "$total pedido(s) en total",
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
-            } else if (orders.isEmpty()) {
-                EmptyOrdersState()
-            } else {
-                LazyColumn(
-                    state = listState,
-                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    items(orders, key = { it.id }) { order ->
-                        CompanyOrderCard(order = order)
+
+                if (isLoading && orders.isEmpty()) {
+                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator()
                     }
-                    if (isLoading) {
-                        item {
-                            Box(Modifier.fillMaxWidth().padding(16.dp), contentAlignment = Alignment.Center) {
-                                CircularProgressIndicator(modifier = Modifier.size(28.dp))
+                } else if (orders.isEmpty()) {
+                    EmptyOrdersState()
+                } else {
+                    LazyColumn(
+                        state = listState,
+                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        items(orders, key = { it.id }) { order ->
+                            CompanyOrderCard(order = order)
+                        }
+                        if (isLoading) {
+                            item {
+                                Box(Modifier.fillMaxWidth().padding(16.dp), contentAlignment = Alignment.Center) {
+                                    CircularProgressIndicator(modifier = Modifier.size(28.dp))
+                                }
                             }
                         }
                     }
