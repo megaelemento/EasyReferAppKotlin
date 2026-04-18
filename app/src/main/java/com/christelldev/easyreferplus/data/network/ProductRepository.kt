@@ -331,12 +331,7 @@ class ProductRepository(
                     CartActionResult.Error(body.message ?: "Error")
                 }
             } else {
-                val detail = try {
-                    val json = response.errorBody()?.string()
-                    if (!json.isNullOrBlank()) org.json.JSONObject(json).optString("detail", null)
-                    else null
-                } catch (_: Exception) { null }
-                CartActionResult.Error(detail ?: "Error al agregar al carrito")
+                CartActionResult.Error(parseErrorDetail(response.errorBody()?.string()) ?: "Error al agregar al carrito")
             }
         } catch (e: Exception) {
             CartActionResult.Error("Error de conexión: ${e.message}")
@@ -507,6 +502,19 @@ class ProductRepository(
             val retrofit = RetrofitClient.getInstance()
             val apiService = retrofit.create(ApiService::class.java)
             return ProductRepository(apiService)
+        }
+    }
+
+    companion object {
+        fun parseErrorDetail(body: String?): String? {
+            if (body.isNullOrBlank()) return null
+            return try {
+                com.google.gson.JsonParser.parseString(body)
+                    .asJsonObject
+                    .get("detail")
+                    ?.asString
+                    ?.takeIf { it.isNotBlank() }
+            } catch (_: Exception) { null }
         }
     }
 }
