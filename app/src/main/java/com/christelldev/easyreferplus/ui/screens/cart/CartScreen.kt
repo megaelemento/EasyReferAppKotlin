@@ -120,6 +120,7 @@ fun CartScreen(
                     .background(Brush.verticalGradient(listOf(MaterialTheme.colorScheme.primary.copy(alpha = 0.8f), Color.Transparent)))
             )
 
+            val contentColor = if (isDark) MaterialTheme.colorScheme.onBackground else MaterialTheme.colorScheme.onSurface
             Column(modifier = Modifier.fillMaxSize()) {
                 // Cabecera Premium
                 TopAppBar(
@@ -127,18 +128,18 @@ fun CartScreen(
                         Text(
                             text = "Mi Carrito",
                             fontWeight = FontWeight.ExtraBold,
-                            color = if (isDark) MaterialTheme.colorScheme.onBackground else Color.White
+                            color = contentColor
                         )
                     },
                     navigationIcon = {
                         IconButton(onClick = onNavigateBack) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = if (isDark) MaterialTheme.colorScheme.onBackground else Color.White)
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = contentColor)
                         }
                     },
                     actions = {
                         if (cartItems.isNotEmpty()) {
                             IconButton(onClick = onClearCart) {
-                                Icon(Icons.Default.DeleteSweep, null, tint = if (isDark) MaterialTheme.colorScheme.error else Color.White)
+                                Icon(Icons.Default.DeleteSweep, null, tint = if (isDark) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface)
                             }
                         }
                     },

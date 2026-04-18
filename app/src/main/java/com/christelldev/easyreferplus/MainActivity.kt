@@ -19,6 +19,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.unit.dp
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -767,7 +769,18 @@ fun MainNavigation(
         }
     }
 
-    Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
+    val snackbarHostState = remember { SnackbarHostState() }
+    val cartMessage by productViewModel.cartMessage.collectAsState()
+    LaunchedEffect(cartMessage) {
+        val msg = cartMessage ?: return@LaunchedEffect
+        snackbarHostState.showSnackbar(msg)
+        productViewModel.clearCartMessage()
+    }
+
+    Scaffold(
+        modifier = Modifier.fillMaxSize(),
+        snackbarHost = { SnackbarHost(snackbarHostState) }
+    ) { innerPadding ->
         NavHost(
             navController = navController,
             startDestination = if (isLoggedIn) Screen.AppLock.route else Screen.Login.route,

@@ -52,6 +52,12 @@ class ProductViewModel(
     private val _aliases = MutableStateFlow<List<com.christelldev.easyreferplus.data.model.SearchAlias>>(emptyList())
     val aliases: StateFlow<List<com.christelldev.easyreferplus.data.model.SearchAlias>> = _aliases.asStateFlow()
 
+    // Mensajes puntuales del carrito (éxito o error de add/remove)
+    private val _cartMessage = MutableStateFlow<String?>(null)
+    val cartMessage: StateFlow<String?> = _cartMessage.asStateFlow()
+
+    fun clearCartMessage() { _cartMessage.value = null }
+
     // Estado de checkout
     private val _checkoutState = MutableStateFlow<CheckoutState>(CheckoutState.Idle)
     val checkoutState: StateFlow<CheckoutState> = _checkoutState.asStateFlow()
@@ -316,14 +322,13 @@ class ProductViewModel(
 
     fun addToCart(productId: Int, quantity: Int = 1) {
         viewModelScope.launch {
-            _uiState.value = ProductUiState.Loading
             when (val result = repository.addToCart(authorization, productId, quantity)) {
                 is CartActionResult.Success -> {
                     _cartCount.value = result.cartCount ?: _cartCount.value
-                    _uiState.value = ProductUiState.Success(result.message)
+                    _cartMessage.value = result.message
                 }
                 is CartActionResult.Error -> {
-                    _uiState.value = ProductUiState.Error(result.message)
+                    _cartMessage.value = result.message
                 }
             }
         }

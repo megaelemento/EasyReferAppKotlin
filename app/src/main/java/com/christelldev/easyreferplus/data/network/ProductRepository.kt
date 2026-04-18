@@ -331,7 +331,12 @@ class ProductRepository(
                     CartActionResult.Error(body.message ?: "Error")
                 }
             } else {
-                CartActionResult.Error("Error al agregar al carrito: ${response.message()}")
+                val detail = try {
+                    val json = response.errorBody()?.string()
+                    if (!json.isNullOrBlank()) org.json.JSONObject(json).optString("detail", null)
+                    else null
+                } catch (_: Exception) { null }
+                CartActionResult.Error(detail ?: "Error al agregar al carrito")
             }
         } catch (e: Exception) {
             CartActionResult.Error("Error de conexión: ${e.message}")
