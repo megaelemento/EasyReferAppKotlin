@@ -1432,7 +1432,7 @@ fun MainNavigation(
                     categories = categories,
                     isLoading = uiState is com.christelldev.easyreferplus.ui.viewmodel.ProductUiState.Loading,
                     successMessage = imageUploadSuccessMessage,
-                    onSave = { name, description, categoryId, size, weight, dimensions, quantity, price, offerPrice, commission, useCompanyDefault, status, keywords ->
+                    onSave = { name, description, categoryId, size, weight, dimensions, quantity, price, offerPrice, commission, useCompanyDefault, status, keywords, manageStock ->
                         if (productId != null) {
                             productViewModel.updateProduct(
                                 productId = productId,
@@ -1448,7 +1448,8 @@ fun MainNavigation(
                                 specificCommissionPercentage = commission,
                                 useCompanyDefault = useCompanyDefault,
                                 status = status,
-                                keywords = keywords
+                                keywords = keywords,
+                                manageStock = manageStock
                             )
                         } else {
                             productViewModel.createProduct(
@@ -1464,7 +1465,8 @@ fun MainNavigation(
                                 specificCommissionPercentage = commission,
                                 useCompanyDefault = useCompanyDefault,
                                 status = status,
-                                keywords = keywords
+                                keywords = keywords,
+                                manageStock = manageStock
                             )
                             // Navegar de vuelta a la lista de productos
                             navController.popBackStack()

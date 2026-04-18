@@ -82,7 +82,9 @@ data class Product(
     @SerializedName("effective_commission_percentage")
     val effectiveCommissionPercentage: Double? = null,
     @SerializedName("current_price")
-    val currentPrice: Double? = null
+    val currentPrice: Double? = null,
+    @SerializedName("manage_stock")
+    val manageStock: Boolean = true
 ) {
     val displayPrice: Double
         get() = currentPrice ?: offerPrice ?: price
@@ -252,7 +254,9 @@ data class CreateProductRequest(
     @SerializedName("use_company_default")
     val useCompanyDefault: Boolean = true,
     @SerializedName("status")
-    val status: String = "active"
+    val status: String = "active",
+    @SerializedName("manage_stock")
+    val manageStock: Boolean = true
 )
 
 data class UpdateProductRequest(
@@ -283,7 +287,9 @@ data class UpdateProductRequest(
     @SerializedName("is_active")
     val isActive: Boolean? = null,
     @SerializedName("keywords")
-    val keywords: String? = null
+    val keywords: String? = null,
+    @SerializedName("manage_stock")
+    val manageStock: Boolean? = null
 )
 
 // ==================== IMAGE UPLOAD RESPONSE ====================

@@ -384,7 +384,7 @@ fun ProductDetailScreen(
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = if (isProductOwner) "No puedes comprar" else "Agregar al Carrito",
+                            text = if (isProductOwner) "No disponible para tu empresa" else "Agregar al Carrito",
                             fontWeight = FontWeight.Bold
                         )
                     }

@@ -144,7 +144,8 @@ class ProductViewModel(
         specificCommissionPercentage: Double?,
         useCompanyDefault: Boolean = true,
         status: String = "active",
-        keywords: String? = null
+        keywords: String? = null,
+        manageStock: Boolean = true
     ) {
         viewModelScope.launch {
             _uiState.value = ProductUiState.Loading
@@ -162,7 +163,8 @@ class ProductViewModel(
                 offerPrice = offerPrice,
                 specificCommissionPercentage = specificCommissionPercentage,
                 useCompanyDefault = useCompanyDefault,
-                status = status
+                status = status,
+                manageStock = manageStock
             )
 
             when (val result = repository.createProduct(authorization, request)) {
@@ -191,7 +193,8 @@ class ProductViewModel(
         specificCommissionPercentage: Double?,
         useCompanyDefault: Boolean?,
         status: String?,
-        keywords: String? = null
+        keywords: String? = null,
+        manageStock: Boolean? = null
     ) {
         viewModelScope.launch {
             _uiState.value = ProductUiState.Loading
@@ -209,7 +212,8 @@ class ProductViewModel(
                 offerPrice = offerPrice,
                 specificCommissionPercentage = specificCommissionPercentage,
                 useCompanyDefault = useCompanyDefault,
-                status = status
+                status = status,
+                manageStock = manageStock
             )
 
             when (val result = repository.updateProduct(authorization, productId, request)) {
