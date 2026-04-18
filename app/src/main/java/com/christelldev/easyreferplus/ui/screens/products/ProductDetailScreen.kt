@@ -1,6 +1,7 @@
 package com.christelldev.easyreferplus.ui.screens.products
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -39,73 +40,73 @@ fun ProductDetailScreen(
     onNavigateBack: () -> Unit = {}
 ) {
     var quantity by remember { mutableIntStateOf(1) }
+    val isDark = isSystemInDarkTheme()
+    val contentColor = if (isDark) MaterialTheme.colorScheme.onBackground else Color.White
 
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
     ) {
-        Column(modifier = Modifier.fillMaxSize()) {
-
-            // Header con gradiente
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(
-                        Brush.verticalGradient(
-                            colors = listOf(
-                                MaterialTheme.colorScheme.primary,
-                                MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)
-                            )
+        // Gradiente superior sutil
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(200.dp)
+                .background(
+                    Brush.verticalGradient(
+                        listOf(
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.8f),
+                            Color.Transparent
                         )
                     )
-                    .statusBarsPadding()
-                    .padding(bottom = 16.dp)
-            ) {
-                TopAppBar(
-                    title = {
-                        Text(
-                            text = product.productName ?: "Producto",
-                            fontWeight = FontWeight.Bold,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                            color = MaterialTheme.colorScheme.onPrimary
+                )
+        )
+
+        Column(modifier = Modifier.fillMaxSize()) {
+            TopAppBar(
+                title = {
+                    Text(
+                        text = product.productName ?: "Producto",
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        color = contentColor
+                    )
+                },
+                navigationIcon = {
+                    IconButton(onClick = onNavigateBack) {
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Volver",
+                            tint = contentColor
                         )
-                    },
-                    navigationIcon = {
-                        IconButton(onClick = onNavigateBack) {
-                            Icon(
-                                Icons.AutoMirrored.Filled.ArrowBack,
-                                contentDescription = "Volver",
-                                tint = MaterialTheme.colorScheme.onPrimary
-                            )
-                        }
-                    },
-                    actions = {
-                        BadgedBox(
-                            badge = {
-                                if (cartCount > 0) {
-                                    Badge(
-                                        containerColor = MaterialTheme.colorScheme.error,
-                                        contentColor = MaterialTheme.colorScheme.onError
-                                    ) {
-                                        Text(if (cartCount > 99) "99+" else cartCount.toString())
-                                    }
+                    }
+                },
+                actions = {
+                    BadgedBox(
+                        badge = {
+                            if (cartCount > 0) {
+                                Badge(
+                                    containerColor = MaterialTheme.colorScheme.error,
+                                    contentColor = MaterialTheme.colorScheme.onError
+                                ) {
+                                    Text(if (cartCount > 99) "99+" else cartCount.toString())
                                 }
                             }
-                        ) {
-                            IconButton(onClick = onNavigateToCart) {
-                                Icon(
-                                    Icons.Default.ShoppingCart,
-                                    contentDescription = "Ver carrito",
-                                    tint = MaterialTheme.colorScheme.onPrimary
-                                )
-                            }
                         }
-                    },
-                    colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
-                )
-            }
+                    ) {
+                        IconButton(onClick = onNavigateToCart) {
+                            Icon(
+                                Icons.Default.ShoppingCart,
+                                contentDescription = "Ver carrito",
+                                tint = contentColor
+                            )
+                        }
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
+            )
 
             // Contenido scrollable
             Box(

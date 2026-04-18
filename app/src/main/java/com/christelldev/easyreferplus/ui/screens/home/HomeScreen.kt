@@ -23,8 +23,11 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.border
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.CircleShape
@@ -76,6 +79,8 @@ import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.foundation.text.KeyboardActions
 import com.christelldev.easyreferplus.data.model.ProductCategory
 import androidx.compose.material.icons.filled.Store
 import androidx.compose.material.icons.filled.Storefront
@@ -88,6 +93,7 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.graphics.painter.ColorPainter
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
+import com.christelldev.easyreferplus.data.model.FeedProduct
 import com.christelldev.easyreferplus.data.model.ProductSearchResult
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -122,6 +128,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -170,6 +177,7 @@ fun HomeScreen(
     onNavigateToMisVentas: () -> Unit = {},
     onNavigateToOrderTracking: (Int) -> Unit = {},
     onNavigateToProduct: (Int) -> Unit = {},
+    onNavigateToCompanyProducts: (Int) -> Unit = {},
     onLogout: () -> Unit = {}
 ) {
     val context = LocalContext.current
@@ -263,10 +271,17 @@ fun HomeScreen(
                     CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
                 }
             } else {
+                val lazyListState = rememberLazyListState()
+                val keyboardController = LocalSoftwareKeyboardController.current
+                LaunchedEffect(lazyListState.isScrollInProgress) {
+                    if (lazyListState.isScrollInProgress) keyboardController?.hide()
+                }
                 LazyColumn(
-                    modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background),
+                    state = lazyListState,
+                    modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).imePadding(),
                     contentPadding = PaddingValues(bottom = 32.dp)
                 ) {
+                    // 1. HEADER ───────────────────────────────────────────────
                     item {
                         ModernHeader(
                             userName = "${uiState.nombres} ${uiState.apellidos}".takeIf { it.isNotBlank() } ?: "Usuario",
@@ -275,7 +290,33 @@ fun HomeScreen(
                         )
                     }
 
-                    // ── BUSCADOR GLOBAL ──────────────────────────────────────
+                    // 2. ACCESOS DIRECTOS ─────────────────────────────────────
+                    item {
+                        AnimatedVisibility(
+                            visible = uiState.searchQuery.isEmpty(),
+                            enter = expandVertically(animationSpec = tween(200)) + fadeIn(tween(200)),
+                            exit = shrinkVertically(animationSpec = tween(200)) + fadeOut(tween(150))
+                        ) {
+                            QuickActionsSection(
+                                hasCompany = uiState.hasCompany,
+                                onCompanyClick = { onNavigateToCompaniesList() },
+                                onReferralsClick = onNavigateToReferrals,
+                                onProfileClick = onNavigateToProfile,
+                                onHistoryClick = onNavigateToHistory,
+                                onPaymentsClick = onNavigateToPayments,
+                                onEarningsClick = onNavigateToEarnings,
+                                onWithdrawClick = onNavigateToWithdrawal,
+                                onCartClick = onNavigateToCart,
+                                onMyProductsClick = onNavigateToMyProducts,
+                                onWalletClick = onNavigateToWallet,
+                                onWalletTransferClick = onNavigateToWalletTransfer,
+                                onMisComprasClick = onNavigateToMisCompras,
+                                onMisVentasClick = onNavigateToMisVentas
+                            )
+                        }
+                    }
+
+                    // 3. BUSCADOR GLOBAL ──────────────────────────────────────
                     item {
                         GlobalSearchBar(
                             query = uiState.searchQuery,
@@ -409,26 +450,71 @@ fun HomeScreen(
                             item { Spacer(modifier = Modifier.height(16.dp)) }
                         }
 
+                        // 4. FEED — MÁS RECIENTES ─────────────────────────────
+                        item { Spacer(modifier = Modifier.height(28.dp)) }
+
                         item {
-                            QuickActionsSection(
-                                hasCompany = uiState.hasCompany,
-                                onQRClick = onNavigateToQR,
-                                onCompanyClick = { onNavigateToCompaniesList() },
-                                onReferralsClick = onNavigateToReferrals,
-                                onProfileClick = onNavigateToProfile,
-                                onHistoryClick = onNavigateToHistory,
-                                onPaymentsClick = onNavigateToPayments,
-                                onEarningsClick = onNavigateToEarnings,
-                                onWithdrawClick = onNavigateToWithdrawal,
-                                onCartClick = onNavigateToCart,
-                                onMyProductsClick = onNavigateToMyProducts,
-                                onWalletClick = onNavigateToWallet,
-                                onWalletTransferClick = onNavigateToWalletTransfer,
-                                onMisComprasClick = onNavigateToMisCompras,
-                                onMisVentasClick = onNavigateToMisVentas
-                            )
+                            FeedSectionHeader(title = "🆕 Más recientes")
                         }
 
+                        if (uiState.isLoadingFeed && uiState.recentProducts.isEmpty()) {
+                            item {
+                                Box(
+                                    Modifier.fillMaxWidth().padding(24.dp),
+                                    contentAlignment = Alignment.Center
+                                ) { CircularProgressIndicator(modifier = Modifier.size(28.dp), strokeWidth = 2.dp) }
+                            }
+                        } else {
+                            items(uiState.recentProducts.chunked(2), key = { it.first().productId }) { pair ->
+                                FeedProductRow(
+                                    pair = pair,
+                                    onProductClick = onNavigateToProduct,
+                                    onCompanyClick = onNavigateToCompanyProducts
+                                )
+                            }
+                            if (uiState.recentHasMore) {
+                                item(key = "load_more_recent") {
+                                    LaunchedEffect(Unit) { viewModel.loadMoreRecent() }
+                                    Box(Modifier.fillMaxWidth().padding(8.dp), contentAlignment = Alignment.Center) {
+                                        CircularProgressIndicator(modifier = Modifier.size(22.dp), strokeWidth = 2.dp)
+                                    }
+                                }
+                            }
+                        }
+
+                        // 5. FEED — MÁS VENDIDOS ──────────────────────────────
+                        item { Spacer(modifier = Modifier.height(20.dp)) }
+
+                        item {
+                            FeedSectionHeader(title = "🔥 Más vendidos")
+                        }
+
+                        if (uiState.isLoadingFeed && uiState.bestsellerProducts.isEmpty()) {
+                            item {
+                                Box(
+                                    Modifier.fillMaxWidth().padding(24.dp),
+                                    contentAlignment = Alignment.Center
+                                ) { CircularProgressIndicator(modifier = Modifier.size(28.dp), strokeWidth = 2.dp) }
+                            }
+                        } else {
+                            items(uiState.bestsellerProducts.chunked(2), key = { "bs_${it.first().productId}" }) { pair ->
+                                FeedProductRow(
+                                    pair = pair,
+                                    onProductClick = onNavigateToProduct,
+                                    onCompanyClick = onNavigateToCompanyProducts
+                                )
+                            }
+                            if (uiState.bestsellerHasMore) {
+                                item(key = "load_more_bestseller") {
+                                    LaunchedEffect(Unit) { viewModel.loadMoreBestseller() }
+                                    Box(Modifier.fillMaxWidth().padding(8.dp), contentAlignment = Alignment.Center) {
+                                        CircularProgressIndicator(modifier = Modifier.size(22.dp), strokeWidth = 2.dp)
+                                    }
+                                }
+                            }
+                        }
+
+                        // 6. CÓDIGO DE REFERIDO ───────────────────────────────
                         item { Spacer(modifier = Modifier.height(24.dp)) }
 
                         item {
@@ -439,23 +525,14 @@ fun HomeScreen(
                             )
                         }
 
-                        item { Spacer(modifier = Modifier.height(24.dp)) }
-
-                        item {
-                            StatsSection(
-                                totalReferrals = uiState.totalReferrals,
-                                level1Referrals = uiState.level1Referrals,
-                                level2Referrals = uiState.level2Referrals,
-                                level3Referrals = uiState.level3Referrals
-                            )
-                        }
-
+                        // 7. EMPRESAS PÚBLICAS ────────────────────────────────
                         item { Spacer(modifier = Modifier.height(24.dp)) }
 
                         item {
                             PublicCompaniesCard(onClick = onNavigateToPublicCompanies)
                         }
 
+                        // 8. COMPANY INFO ─────────────────────────────────────
                         if (uiState.hasCompany && !uiState.canGenerateQR) {
                             item { Spacer(modifier = Modifier.height(24.dp)) }
                             item {
@@ -467,6 +544,7 @@ fun HomeScreen(
                                 )
                             }
                         }
+
                     }
                 }
             }
@@ -476,6 +554,8 @@ fun HomeScreen(
 
 @Composable
 private fun ModernHeader(userName: String, isVerified: Boolean, onMenuClick: () -> Unit) {
+    val isDark = isSystemInDarkTheme()
+    val headerContentColor = if (isDark) MaterialTheme.colorScheme.onBackground else MaterialTheme.colorScheme.onSurface
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -514,7 +594,7 @@ private fun ModernHeader(userName: String, isVerified: Boolean, onMenuClick: () 
                     Icon(
                         imageVector = Icons.Default.Menu,
                         contentDescription = null,
-                        tint = if (isSystemInDarkTheme()) MaterialTheme.colorScheme.onBackground else Color.White
+                        tint = headerContentColor
                     )
                 }
             }
@@ -526,7 +606,7 @@ private fun ModernHeader(userName: String, isVerified: Boolean, onMenuClick: () 
                 Text(
                     text = stringResource(R.string.welcome_back),
                     style = MaterialTheme.typography.labelLarge,
-                    color = if (isSystemInDarkTheme()) MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f) else Color.White.copy(alpha = 0.85f),
+                    color = headerContentColor.copy(alpha = 0.75f),
                     fontWeight = FontWeight.Medium
                 )
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -534,7 +614,7 @@ private fun ModernHeader(userName: String, isVerified: Boolean, onMenuClick: () 
                         text = userName,
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.ExtraBold,
-                        color = if (isSystemInDarkTheme()) MaterialTheme.colorScheme.onBackground else Color.White,
+                        color = headerContentColor,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
@@ -560,7 +640,7 @@ private fun ModernHeader(userName: String, isVerified: Boolean, onMenuClick: () 
                     Icon(
                         imageVector = Icons.Default.Person,
                         contentDescription = null,
-                        tint = if (isSystemInDarkTheme()) MaterialTheme.colorScheme.onBackground else Color.White,
+                        tint = headerContentColor,
                         modifier = Modifier.size(26.dp)
                     )
                 }
@@ -749,7 +829,6 @@ private fun QuickActionsSection(
     // Future use: reorder pinned shortcuts by ID (e.g. sorted by usage frequency).
     // Empty = show first 4 of the default list.
     pinnedActionIds: List<String> = emptyList(),
-    onQRClick: () -> Unit,
     onCompanyClick: () -> Unit,
     onReferralsClick: () -> Unit,
     onProfileClick: () -> Unit,
@@ -771,10 +850,8 @@ private fun QuickActionsSection(
         label = "arrowRotation"
     )
 
-    val strQRPayments = stringResource(R.string.qr_payments)
     val allItems = remember(hasCompany) {
         buildList {
-            add(ActionItem("qr", Icons.Default.QrCode2, strQRPayments, Color(0xFF03A9F4), onQRClick))
             add(ActionItem("company", if (hasCompany) Icons.Default.QrCode else Icons.Default.Add, if (hasCompany) "Mi Empresa" else "Registrar", Color(0xFF10B981), onCompanyClick))
             add(ActionItem("referrals", Icons.Default.Group, "Referidos", Color(0xFFF59E0B), onReferralsClick))
             add(ActionItem("wallet", Icons.Default.AccountBalanceWallet, "Billetera", Color(0xFF8B5CF6), onWalletClick))
@@ -1245,8 +1322,16 @@ private fun GlobalSearchBar(
     onClear: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val keyboardController = LocalSoftwareKeyboardController.current
+    val isDark = isSystemInDarkTheme()
     Surface(
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier
+            .fillMaxWidth()
+            .border(
+                width = 1.dp,
+                color = if (isDark) Color.Transparent else MaterialTheme.colorScheme.outline.copy(alpha = 0.4f),
+                shape = RoundedCornerShape(16.dp)
+            ),
         shape = RoundedCornerShape(16.dp),
         color = MaterialTheme.colorScheme.surfaceVariant,
         tonalElevation = 2.dp
@@ -1272,6 +1357,8 @@ private fun GlobalSearchBar(
                 textStyle = MaterialTheme.typography.bodyMedium.copy(
                     color = MaterialTheme.colorScheme.onSurface
                 ),
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                keyboardActions = KeyboardActions(onSearch = { keyboardController?.hide() }),
                 decorationBox = { innerTextField ->
                     Box {
                         if (query.isEmpty()) {
@@ -1560,6 +1647,167 @@ private fun FiltersPanel(
                     shape = RoundedCornerShape(12.dp)
                 ) {
                     Text("Aplicar", color = Color.White)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun FeedSectionHeader(title: String) {
+    Text(
+        text = title,
+        style = MaterialTheme.typography.titleMedium,
+        fontWeight = FontWeight.ExtraBold,
+        modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
+    )
+}
+
+@Composable
+private fun FeedProductRow(
+    pair: List<FeedProduct>,
+    onProductClick: (Int) -> Unit,
+    onCompanyClick: (Int) -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 12.dp, vertical = 4.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        HomeProductCard(
+            product = pair[0],
+            onProductClick = onProductClick,
+            onCompanyClick = onCompanyClick,
+            modifier = Modifier.weight(1f)
+        )
+        if (pair.size > 1) {
+            HomeProductCard(
+                product = pair[1],
+                onProductClick = onProductClick,
+                onCompanyClick = onCompanyClick,
+                modifier = Modifier.weight(1f)
+            )
+        } else {
+            Spacer(modifier = Modifier.weight(1f))
+        }
+    }
+}
+
+@Composable
+private fun HomeProductCard(
+    product: FeedProduct,
+    onProductClick: (Int) -> Unit,
+    onCompanyClick: (Int) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        modifier = modifier.clickable { onProductClick(product.productId) },
+        shape = RoundedCornerShape(16.dp),
+        color = MaterialTheme.colorScheme.surface,
+        tonalElevation = 3.dp,
+        shadowElevation = 2.dp
+    ) {
+        Column {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(130.dp)
+                    .clip(RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp))
+            ) {
+                if (!product.imageUrl.isNullOrEmpty()) {
+                    AsyncImage(
+                        model = ImageRequest.Builder(LocalContext.current)
+                            .data(product.imageUrl)
+                            .crossfade(true)
+                            .build(),
+                        contentDescription = null,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop,
+                        placeholder = remember { ColorPainter(Color(0xFFE0E0E0)) },
+                        error = remember { ColorPainter(Color(0xFFEEEEEE)) }
+                    )
+                } else {
+                    Surface(
+                        modifier = Modifier.fillMaxSize(),
+                        color = MaterialTheme.colorScheme.surfaceVariant
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                imageVector = Icons.Default.ShoppingBag,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
+                                modifier = Modifier.size(36.dp)
+                            )
+                        }
+                    }
+                }
+                // Discount badge
+                if (product.offerPrice != null && product.offerPrice < product.price) {
+                    val discountPct = ((1 - product.offerPrice / product.price) * 100).toInt()
+                    Surface(
+                        modifier = Modifier.align(Alignment.TopEnd).padding(6.dp),
+                        shape = RoundedCornerShape(8.dp),
+                        color = Color(0xFFE53935)
+                    ) {
+                        Text(
+                            text = "-$discountPct%",
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = Color.White,
+                            modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp)
+                        )
+                    }
+                }
+            }
+
+            Column(modifier = Modifier.padding(10.dp)) {
+                Text(
+                    text = product.name,
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                val activePrice = product.offerPrice ?: product.price
+                val formattedPrice = remember(activePrice) { "$${"%.2f".format(activePrice)}" }
+                Text(
+                    text = formattedPrice,
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = Color(0xFF03A9F4)
+                )
+                if (product.offerPrice != null) {
+                    Text(
+                        text = "$${"%.2f".format(product.price)}",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
+                        textDecoration = TextDecoration.LineThrough
+                    )
+                }
+                Spacer(modifier = Modifier.height(6.dp))
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { onCompanyClick(product.companyId) }
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Storefront,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
+                        modifier = Modifier.size(12.dp)
+                    )
+                    Spacer(modifier = Modifier.width(3.dp))
+                    Text(
+                        text = product.companyName,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
                 }
             }
         }

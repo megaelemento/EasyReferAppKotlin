@@ -357,3 +357,24 @@ data class AliasListResponse(
 data class UpdateKeywordsRequest(
     @SerializedName("keywords") val keywords: String?
 )
+
+// ==================== PRODUCT FEED ====================
+
+data class FeedProduct(
+    @SerializedName("product_id") val productId: Int,
+    @SerializedName("name") val name: String,
+    @SerializedName("price") val price: Double,
+    @SerializedName("offer_price") val offerPrice: Double? = null,
+    @SerializedName("image_url") val imageUrl: String? = null,
+    @SerializedName("company_id") val companyId: Int,
+    @SerializedName("company_name") val companyName: String
+)
+
+data class FeedResponse(
+    @SerializedName("success") val success: Boolean,
+    @SerializedName("products") val products: List<FeedProduct>,
+    @SerializedName("total") val total: Int,
+    @SerializedName("has_more") val hasMore: Boolean,
+    @SerializedName("page") val page: Int,
+    @SerializedName("per_page") val perPage: Int
+)

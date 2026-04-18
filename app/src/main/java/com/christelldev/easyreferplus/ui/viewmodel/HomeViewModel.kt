@@ -9,6 +9,7 @@ import com.christelldev.easyreferplus.data.model.UserBalance
 import com.christelldev.easyreferplus.data.model.UserProfile
 import com.christelldev.easyreferplus.data.model.ProfileResponse
 import com.christelldev.easyreferplus.data.model.PaymentAccessResponse
+import com.christelldev.easyreferplus.data.model.FeedProduct
 import com.christelldev.easyreferplus.data.model.ProductCategory
 import com.christelldev.easyreferplus.data.model.ProductSearchResult
 import com.christelldev.easyreferplus.data.network.ApiService
@@ -73,6 +74,15 @@ data class HomeUiState(
     val maxPrice: String = "",
     val sortBy: String = "",
 
+    // Feed
+    val recentProducts: List<FeedProduct> = emptyList(),
+    val bestsellerProducts: List<FeedProduct> = emptyList(),
+    val isLoadingFeed: Boolean = false,
+    val recentPage: Int = 1,
+    val recentHasMore: Boolean = true,
+    val bestsellerPage: Int = 1,
+    val bestsellerHasMore: Boolean = true,
+
     // Loading states
     val isLoading: Boolean = false,
     val isRefreshing: Boolean = false,
@@ -131,6 +141,7 @@ class HomeViewModel(
             lastLoadTime = System.currentTimeMillis()
             _uiState.value = _uiState.value.copy(isLoading = false)
         }
+        if (_uiState.value.recentProducts.isEmpty()) loadProductFeed()
     }
 
     fun refreshData() {
@@ -319,6 +330,76 @@ class HomeViewModel(
         if (state.isLoadingMore || !state.searchHasMore || state.isSearching) return
         triggerSearch(resetPagination = false)
     }
+
+    fun loadProductFeed() {
+        viewModelScope.launch {
+            val state = _uiState.value
+            if (state.isLoadingFeed) return@launch
+            _uiState.value = state.copy(isLoadingFeed = true)
+            val auth = authorization
+            try {
+                val recentJob = async { fetchFeedSection(auth, "recent", 1) }
+                val bestsellerJob = async { fetchFeedSection(auth, "bestseller", 1) }
+                val recent = recentJob.await()
+                val bestseller = bestsellerJob.await()
+                _uiState.value = _uiState.value.copy(
+                    recentProducts = recent?.products ?: emptyList(),
+                    recentPage = 1,
+                    recentHasMore = recent?.hasMore ?: false,
+                    bestsellerProducts = bestseller?.products ?: emptyList(),
+                    bestsellerPage = 1,
+                    bestsellerHasMore = bestseller?.hasMore ?: false,
+                    isLoadingFeed = false
+                )
+            } catch (_: Exception) {
+                _uiState.value = _uiState.value.copy(isLoadingFeed = false)
+            }
+        }
+    }
+
+    fun loadMoreRecent() {
+        val state = _uiState.value
+        if (state.isLoadingFeed || !state.recentHasMore) return
+        viewModelScope.launch {
+            _uiState.value = state.copy(isLoadingFeed = true)
+            val result = fetchFeedSection(authorization, "recent", state.recentPage + 1)
+            if (result != null) {
+                _uiState.value = _uiState.value.copy(
+                    recentProducts = state.recentProducts + result.products,
+                    recentPage = state.recentPage + 1,
+                    recentHasMore = result.hasMore,
+                    isLoadingFeed = false
+                )
+            } else {
+                _uiState.value = _uiState.value.copy(isLoadingFeed = false)
+            }
+        }
+    }
+
+    fun loadMoreBestseller() {
+        val state = _uiState.value
+        if (state.isLoadingFeed || !state.bestsellerHasMore) return
+        viewModelScope.launch {
+            _uiState.value = state.copy(isLoadingFeed = true)
+            val result = fetchFeedSection(authorization, "bestseller", state.bestsellerPage + 1)
+            if (result != null) {
+                _uiState.value = _uiState.value.copy(
+                    bestsellerProducts = state.bestsellerProducts + result.products,
+                    bestsellerPage = state.bestsellerPage + 1,
+                    bestsellerHasMore = result.hasMore,
+                    isLoadingFeed = false
+                )
+            } else {
+                _uiState.value = _uiState.value.copy(isLoadingFeed = false)
+            }
+        }
+    }
+
+    private suspend fun fetchFeedSection(auth: String, section: String, page: Int) =
+        try {
+            val r = apiService.getProductFeed(auth, section, page, 20)
+            if (r.isSuccessful) r.body() else null
+        } catch (_: Exception) { null }
 
     fun clearSearch() {
         searchJob?.cancel()

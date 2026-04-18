@@ -803,6 +803,14 @@ interface ApiService {
         @Path("aliasId") aliasId: Int
     ): Response<com.christelldev.easyreferplus.data.model.ProductResponse>
 
+    @GET("api/products/feed")
+    suspend fun getProductFeed(
+        @Header("Authorization") authorization: String,
+        @Query("section") section: String,
+        @Query("page") page: Int,
+        @Query("per_page") perPage: Int
+    ): Response<com.christelldev.easyreferplus.data.model.FeedResponse>
+
     // Comprador cancela el pedido (solo mientras busca conductor)
     @PUT("api/orders/{orderId}/cancel")
     suspend fun cancelOrder(

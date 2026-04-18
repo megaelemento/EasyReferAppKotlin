@@ -986,6 +986,14 @@ fun MainNavigation(
                     },
                     onNavigateToProduct = { productId ->
                         navController.navigate(Screen.ProductDetail.createRoute(productId))
+                    },
+                    onNavigateToCompanyProducts = { companyId ->
+                        val feedProducts = homeViewModel.uiState.value.recentProducts +
+                            homeViewModel.uiState.value.bestsellerProducts
+                        val companyName = feedProducts.firstOrNull { it.companyId == companyId }
+                            ?.companyName ?: ""
+                        productViewModel.loadCompanyProducts(companyId)
+                        navController.navigate(Screen.CompanyProducts.createRoute(companyId, companyName))
                     }
                 )
             }
