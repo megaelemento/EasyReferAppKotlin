@@ -440,16 +440,6 @@ fun HomeScreen(
                             item { Spacer(modifier = Modifier.height(12.dp)) }
                         }
 
-                        if (uiState.canGenerateQR) {
-                            item {
-                                GenerateQRCard(
-                                    companyName = uiState.empresaNombre ?: "",
-                                    onClick = onNavigateToQR
-                                )
-                            }
-                            item { Spacer(modifier = Modifier.height(16.dp)) }
-                        }
-
                         // 4. FEED — MÁS RECIENTES ─────────────────────────────
                         item { Spacer(modifier = Modifier.height(28.dp)) }
 
@@ -533,7 +523,7 @@ fun HomeScreen(
                         }
 
                         // 8. COMPANY INFO ─────────────────────────────────────
-                        if (uiState.hasCompany && !uiState.canGenerateQR) {
+                        if (uiState.hasCompany) {
                             item { Spacer(modifier = Modifier.height(24.dp)) }
                             item {
                                 CompanyInfoCard(
@@ -763,65 +753,6 @@ private fun ActiveOrderBanner(orderId: Int, status: String, onClick: () -> Unit)
     }
 }
 
-@Composable
-private fun GenerateQRCard(companyName: String, onClick: () -> Unit) {
-    Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp)
-            .height(110.dp)
-            .clickable(onClick = onClick),
-        shape = RoundedCornerShape(20.dp),
-        color = MaterialTheme.colorScheme.primary,
-        tonalElevation = 8.dp,
-        shadowElevation = 4.dp
-    ) {
-        Row(
-            modifier = Modifier.fillMaxSize().padding(20.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
-                Surface(
-                    modifier = Modifier.size(56.dp),
-                    shape = RoundedCornerShape(16.dp),
-                    color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.2f)
-                ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Icon(
-                            imageVector = Icons.Default.QrCode,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onPrimary,
-                            modifier = Modifier.size(32.dp)
-                        )
-                    }
-                }
-                Spacer(modifier = Modifier.width(16.dp))
-                Column {
-                    Text(
-                        text = stringResource(R.string.generate_qr),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.ExtraBold,
-                        color = MaterialTheme.colorScheme.onPrimary
-                    )
-                    Text(
-                        text = companyName,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.85f),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                }
-            }
-            Icon(
-                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onPrimary,
-                modifier = Modifier.size(28.dp)
-            )
-        }
-    }
-}
 
 @Composable
 private fun QuickActionsSection(
