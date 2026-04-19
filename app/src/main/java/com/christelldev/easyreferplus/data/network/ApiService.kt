@@ -922,6 +922,32 @@ interface ApiService {
         @Path("addressId") addressId: Int
     ): Response<com.christelldev.easyreferplus.data.model.SimpleSuccessResponse>
 
+    // ─── Delivery Saved Locations (history & favorites) ─────────────────────
+
+    @GET("api/delivery/locations/")
+    suspend fun getDeliveryLocations(
+        @Header("Authorization") authorization: String
+    ): Response<List<com.christelldev.easyreferplus.data.model.UserSavedLocation>>
+
+    @POST("api/delivery/locations/")
+    suspend fun saveDeliveryLocation(
+        @Header("Authorization") authorization: String,
+        @Body body: com.christelldev.easyreferplus.data.model.SaveLocationRequest
+    ): Response<com.christelldev.easyreferplus.data.model.UserSavedLocation>
+
+    @PATCH("api/delivery/locations/{id}")
+    suspend fun updateDeliveryLocation(
+        @Header("Authorization") authorization: String,
+        @Path("id") id: Int,
+        @Body body: com.christelldev.easyreferplus.data.model.UpdateLocationRequest
+    ): Response<com.christelldev.easyreferplus.data.model.UserSavedLocation>
+
+    @DELETE("api/delivery/locations/{id}")
+    suspend fun deleteDeliveryLocation(
+        @Header("Authorization") authorization: String,
+        @Path("id") id: Int
+    ): Response<Unit>
+
     // ─── Order Tracking ─────────────────────────────────────────────────────
 
     @GET("api/orders/{orderId}/tracking")

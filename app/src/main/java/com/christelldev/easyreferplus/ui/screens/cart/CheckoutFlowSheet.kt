@@ -35,8 +35,10 @@ import androidx.core.content.ContextCompat
 import com.christelldev.easyreferplus.data.model.CartItem
 import com.christelldev.easyreferplus.data.model.DeliveryOption
 import com.christelldev.easyreferplus.data.model.SavedAddress
+import com.christelldev.easyreferplus.data.model.UserSavedLocation
 import com.christelldev.easyreferplus.ui.viewmodel.CheckoutFlowState
 import com.christelldev.easyreferplus.ui.viewmodel.AddressViewModel
+import com.christelldev.easyreferplus.ui.viewmodel.DeliveryLocationViewModel
 import com.christelldev.easyreferplus.ui.viewmodel.OrderViewModel
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
@@ -56,6 +58,7 @@ fun CheckoutFlowSheet(
     cartTotal: Double,
     orderViewModel: OrderViewModel,
     addressViewModel: AddressViewModel? = null,
+    deliveryLocationViewModel: DeliveryLocationViewModel? = null,
     onDismiss: () -> Unit,
     onSuccess: (orderId: Int) -> Unit
 ) {
@@ -73,8 +76,13 @@ fun CheckoutFlowSheet(
     var tipAmount by remember { mutableDoubleStateOf(0.0) }
     val context = LocalContext.current
 
-    // Load saved addresses when opening
-    LaunchedEffect(Unit) { addressViewModel?.loadAddresses() }
+    val userLocations by (deliveryLocationViewModel?.locations?.collectAsState() ?: remember { mutableStateOf(emptyList()) })
+
+    // Load saved addresses and delivery location history when opening
+    LaunchedEffect(Unit) {
+        addressViewModel?.loadAddresses()
+        deliveryLocationViewModel?.loadLocations()
+    }
 
     // Launcher para pedir permiso de ubicación
     val locationLauncher = rememberLauncherForActivityResult(
@@ -165,6 +173,18 @@ fun CheckoutFlowSheet(
                         dropoffLat = addr.lat
                         dropoffLng = addr.lng
                     },
+                    userLocations = userLocations,
+                    onSelectUserLocation = { loc ->
+                        dropoffAddress = loc.address
+                        dropoffLat = loc.latitude
+                        dropoffLng = loc.longitude
+                    },
+                    onToggleFavorite = { id, current ->
+                        deliveryLocationViewModel?.toggleFavorite(id, current)
+                    },
+                    onDeleteLocation = { id ->
+                        deliveryLocationViewModel?.deleteLocation(id)
+                    },
                     onUseGps = { requestGps() },
                     onPinChange = { lat, lng -> dropoffLat = lat; dropoffLng = lng },
                     onBack = { step = CheckoutStep.DELIVERY_QUESTION },
@@ -197,6 +217,10 @@ fun CheckoutFlowSheet(
                                else CheckoutStep.DELIVERY_QUESTION
                     },
                     onConfirm = {
+                        // Auto-save delivery location to history
+                        if (needsDelivery && dropoffLat != null && dropoffLng != null && dropoffAddress.isNotBlank()) {
+                            deliveryLocationViewModel?.saveLocation(dropoffAddress, dropoffLat!!, dropoffLng!!)
+                        }
                         orderViewModel.createAndPayOrder(
                             deliveryRequired = needsDelivery,
                             deliveryCompanyId = selectedDelivery?.companyId,
@@ -279,6 +303,10 @@ private fun AddressInputContent(
     lng: Double?,
     savedAddresses: List<SavedAddress> = emptyList(),
     onSelectSavedAddress: (SavedAddress) -> Unit = {},
+    userLocations: List<UserSavedLocation> = emptyList(),
+    onSelectUserLocation: (UserSavedLocation) -> Unit = {},
+    onToggleFavorite: (id: Int, current: Boolean) -> Unit = { _, _ -> },
+    onDeleteLocation: (id: Int) -> Unit = {},
     onUseGps: () -> Unit,
     onPinChange: (Double, Double) -> Unit,
     onBack: () -> Unit,
@@ -303,11 +331,109 @@ private fun AddressInputContent(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .verticalScroll(rememberScrollState())
             .padding(horizontal = 24.dp)
     ) {
         SheetHeader(title = "Dirección de entrega", onBack = onBack)
-        Spacer(Modifier.height(12.dp))
+        Spacer(Modifier.height(8.dp))
+
+        // ─── Historial y favoritos de delivery ───────────────────────────────
+        if (userLocations.isNotEmpty()) {
+            val favorites = userLocations.filter { it.isFavorite }
+            val recent = userLocations.filter { !it.isFavorite }.take(3)
+
+            if (favorites.isNotEmpty()) {
+                Text(
+                    "Favoritos",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(Modifier.height(4.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    favorites.forEach { loc ->
+                        val isSelected = lat == loc.latitude && lng == loc.longitude
+                        FilterChip(
+                            selected = isSelected,
+                            onClick = { onSelectUserLocation(loc) },
+                            label = { Text(loc.alias ?: "Favorito", maxLines = 1) },
+                            leadingIcon = {
+                                Icon(
+                                    Icons.Default.Star,
+                                    null,
+                                    modifier = Modifier.size(16.dp),
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                        )
+                    }
+                }
+                Spacer(Modifier.height(8.dp))
+            }
+
+            if (recent.isNotEmpty()) {
+                Text(
+                    "Recientes",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(Modifier.height(4.dp))
+                recent.forEach { loc ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onSelectUserLocation(loc) }
+                            .padding(vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            Icons.Default.History,
+                            null,
+                            modifier = Modifier.size(18.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        Text(
+                            text = loc.alias ?: loc.address.take(35),
+                            modifier = Modifier.weight(1f),
+                            style = MaterialTheme.typography.bodySmall,
+                            maxLines = 1,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        IconButton(
+                            onClick = { onToggleFavorite(loc.id, loc.isFavorite) },
+                            modifier = Modifier.size(32.dp)
+                        ) {
+                            Icon(
+                                Icons.Default.Star,
+                                null,
+                                modifier = Modifier.size(16.dp),
+                                tint = if (loc.isFavorite) MaterialTheme.colorScheme.primary
+                                       else MaterialTheme.colorScheme.outline
+                            )
+                        }
+                        IconButton(
+                            onClick = { onDeleteLocation(loc.id) },
+                            modifier = Modifier.size(32.dp)
+                        ) {
+                            Icon(
+                                Icons.Default.DeleteForever,
+                                null,
+                                modifier = Modifier.size(16.dp),
+                                tint = MaterialTheme.colorScheme.error
+                            )
+                        }
+                    }
+                }
+                Spacer(Modifier.height(4.dp))
+            }
+
+            HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+            Spacer(Modifier.height(4.dp))
+        }
 
         // Saved address chips
         if (savedAddresses.isNotEmpty()) {
