@@ -138,6 +138,7 @@ import com.christelldev.easyreferplus.ui.viewmodel.DriverViewModel
 import com.christelldev.easyreferplus.ui.viewmodel.AdminDeliveryViewModel
 import com.christelldev.easyreferplus.ui.viewmodel.OrderListState
 import com.christelldev.easyreferplus.ui.viewmodel.OrderViewModel
+import com.christelldev.easyreferplus.ui.viewmodel.CheckoutFlowState
 import com.christelldev.easyreferplus.data.network.OrderRepository
 import com.christelldev.easyreferplus.ui.screens.orders.MisComprasScreen
 import com.christelldev.easyreferplus.ui.screens.orders.MisVentasScreen
@@ -147,6 +148,13 @@ import com.christelldev.easyreferplus.ui.viewmodel.AddressViewModel
 import com.christelldev.easyreferplus.data.network.AddressRepository
 import com.christelldev.easyreferplus.data.model.SavedAddress
 import com.christelldev.easyreferplus.ui.screens.orders.OrderTrackingScreen
+import com.christelldev.easyreferplus.ui.screens.delivery.DeliveryQuestionScreen
+import com.christelldev.easyreferplus.ui.screens.delivery.DeliveryAddressScreen
+import com.christelldev.easyreferplus.ui.screens.delivery.DeliverySelectionScreen
+import com.christelldev.easyreferplus.ui.screens.delivery.OrderSummaryScreen
+import com.christelldev.easyreferplus.ui.viewmodel.DeliveryLocationViewModel
+import com.christelldev.easyreferplus.data.network.DeliveryLocationRepository
+import com.christelldev.easyreferplus.data.model.DeliveryOption
 import com.christelldev.easyreferplus.ui.screens.orders.OrderRatingScreen
 import com.christelldev.easyreferplus.ui.screens.orders.OrderChatScreen
 import com.christelldev.easyreferplus.ui.viewmodel.OrderTrackingViewModel
@@ -306,6 +314,11 @@ sealed class Screen(val route: String) {
             return "order_chat/$orderId?otherUserName=${Uri.encode(otherUserName)}&isDriver=$isDriver"
         }
     }
+    // Flujo de delivery como pantallas independientes
+    data object DeliveryQuestion : Screen("delivery_question")
+    data object DeliveryAddress : Screen("delivery_address")
+    data object DeliverySelection : Screen("delivery_selection")
+    data object OrderSummary : Screen("order_summary")
     // Rating post-entrega
     data object OrderRating : Screen("order_rating/{orderId}?deliveryFee={deliveryFee}&driverName={driverName}&driverSelfieUrl={driverSelfieUrl}&companyName={companyName}") {
         fun createRoute(orderId: Int, deliveryFee: Double = 0.0, driverName: String? = null, driverSelfieUrl: String? = null, companyName: String? = null): String {
@@ -536,6 +549,20 @@ fun MainNavigation(
     val addressViewModel: AddressViewModel = viewModel(
         factory = AddressViewModel.Factory(addressRepository) { authRepository.getAccessToken() ?: "" }
     )
+
+    // Delivery Location ViewModel (ubicaciones guardadas para el flujo de entrega)
+    val deliveryLocationRepository = DeliveryLocationRepository(apiService)
+    val deliveryLocationViewModel: DeliveryLocationViewModel = viewModel(
+        factory = DeliveryLocationViewModel.Factory(deliveryLocationRepository) { authRepository.getAccessToken() }
+    )
+
+    // Estado compartido para el flujo de checkout de delivery
+    var pendingNeedsDelivery by remember { mutableStateOf(false) }
+    var pendingDropoffLat by remember { androidx.compose.runtime.mutableDoubleStateOf(0.0) }
+    var pendingDropoffLng by remember { androidx.compose.runtime.mutableDoubleStateOf(0.0) }
+    var pendingDropoffAddress by remember { mutableStateOf("") }
+    var pendingDropoffNotes by remember { mutableStateOf("") }
+    var pendingSelectedDelivery by remember { mutableStateOf<DeliveryOption?>(null) }
 
     // Order Tracking ViewModel
     val orderTrackingViewModel: OrderTrackingViewModel = viewModel(
@@ -1348,6 +1375,11 @@ fun MainNavigation(
                     onNavigateBack = {
                         navController.popBackStack()
                     },
+                    onNavigateToDeliveryFlow = {
+                        pendingSelectedDelivery = null
+                        orderViewModel.resetCheckout()
+                        navController.navigate(Screen.DeliveryQuestion.route)
+                    },
                     onCheckoutDismiss = {
                         productViewModel.resetCheckoutState()
                     },
@@ -2023,6 +2055,84 @@ fun MainNavigation(
                     onNavigateBack = { navController.popBackStack() },
                     onSaved = {
                         navController.popBackStack()
+                    }
+                )
+            }
+
+            // ── FLUJO DE DELIVERY ─────────────────────────────────────────
+            composable(Screen.DeliveryQuestion.route) {
+                DeliveryQuestionScreen(
+                    onPickup = {
+                        pendingNeedsDelivery = false
+                        navController.navigate(Screen.OrderSummary.route)
+                    },
+                    onDelivery = {
+                        pendingNeedsDelivery = true
+                        navController.navigate(Screen.DeliveryAddress.route)
+                    },
+                    onBack = { navController.popBackStack() }
+                )
+            }
+
+            composable(Screen.DeliveryAddress.route) {
+                DeliveryAddressScreen(
+                    deliveryLocationViewModel = deliveryLocationViewModel,
+                    onBack = { navController.popBackStack() },
+                    onNext = { lat, lng, address, notes ->
+                        pendingDropoffLat = lat
+                        pendingDropoffLng = lng
+                        pendingDropoffAddress = address
+                        pendingDropoffNotes = notes
+                        orderViewModel.loadDeliveryOptions(lat, lng)
+                        navController.navigate(Screen.DeliverySelection.route)
+                    }
+                )
+            }
+
+            composable(Screen.DeliverySelection.route) {
+                val checkoutState by orderViewModel.checkoutState.collectAsState()
+                DeliverySelectionScreen(
+                    checkoutState = checkoutState,
+                    selectedDelivery = pendingSelectedDelivery,
+                    dropoffAddress = pendingDropoffAddress,
+                    onSelect = { option -> pendingSelectedDelivery = option },
+                    onBack = { navController.popBackStack() },
+                    onNext = { navController.navigate(Screen.OrderSummary.route) }
+                )
+            }
+
+            composable(Screen.OrderSummary.route) {
+                val cartItems by productViewModel.cartItems.collectAsState()
+                val cartSubtotal = remember(cartItems) { cartItems.sumOf { it.price * it.quantity } }
+                val checkoutState by orderViewModel.checkoutState.collectAsState()
+
+                LaunchedEffect(checkoutState) {
+                    if (checkoutState is CheckoutFlowState.Success) {
+                        productViewModel.clearCart()
+                        orderViewModel.resetCheckout()
+                        navController.navigate(Screen.MisCompras.route) {
+                            popUpTo(Screen.Cart.route) { inclusive = true }
+                        }
+                    }
+                }
+
+                OrderSummaryScreen(
+                    cartItems = cartItems,
+                    cartSubtotal = cartSubtotal,
+                    needsDelivery = pendingNeedsDelivery,
+                    selectedDelivery = pendingSelectedDelivery,
+                    dropoffAddress = pendingDropoffAddress,
+                    checkoutState = checkoutState,
+                    onBack = { navController.popBackStack() },
+                    onConfirm = { _ ->
+                        orderViewModel.createAndPayOrder(
+                            deliveryRequired = pendingNeedsDelivery,
+                            deliveryCompanyId = pendingSelectedDelivery?.companyId,
+                            dropoffAddress = if (pendingNeedsDelivery) pendingDropoffAddress else null,
+                            dropoffLat = if (pendingNeedsDelivery) pendingDropoffLat else null,
+                            dropoffLng = if (pendingNeedsDelivery) pendingDropoffLng else null,
+                            observations = pendingDropoffNotes.ifBlank { null }
+                        )
                     }
                 )
             }

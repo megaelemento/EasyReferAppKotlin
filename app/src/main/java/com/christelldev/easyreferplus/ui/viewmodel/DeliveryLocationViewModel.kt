@@ -1,6 +1,7 @@
 package com.christelldev.easyreferplus.ui.viewmodel
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.christelldev.easyreferplus.data.model.SaveLocationRequest
 import com.christelldev.easyreferplus.data.model.UserSavedLocation
@@ -81,5 +82,14 @@ class DeliveryLocationViewModel(
                 _locations.value = _locations.value.filter { it.id != id }
             }
         }
+    }
+
+    class Factory(
+        private val repository: DeliveryLocationRepository,
+        private val getToken: () -> String?
+    ) : ViewModelProvider.Factory {
+        @Suppress("UNCHECKED_CAST")
+        override fun <T : ViewModel> create(modelClass: Class<T>): T =
+            DeliveryLocationViewModel(repository, getToken) as T
     }
 }

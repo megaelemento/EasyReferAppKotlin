@@ -62,13 +62,13 @@ fun CartScreen(
     onCheckout: () -> Unit,
     onClearCart: () -> Unit,
     onNavigateBack: () -> Unit,
+    onNavigateToDeliveryFlow: () -> Unit = {},
     onCheckoutDismiss: () -> Unit,
     onRefreshCart: () -> Unit,
     onCheckoutSuccess: (orderId: Int) -> Unit = {}
 ) {
     val isDark = isSystemInDarkTheme()
     val totalAmount = remember(cartItems) { cartItems.sumOf { it.price * it.quantity } }
-    var showDeliverySheet by remember { mutableStateOf(false) }
     var showActiveOrderDialog by remember { mutableStateOf(false) }
 
     if (showActiveOrderDialog) {
@@ -91,21 +91,6 @@ fun CartScreen(
             onDismiss = {
                 onCheckoutDismiss()
                 onCheckoutSuccess(checkoutState.orderId)
-            }
-        )
-    }
-
-    if (showDeliverySheet) {
-        CheckoutFlowSheet(
-            cartItems = cartItems,
-            cartTotal = totalAmount,
-            orderViewModel = orderViewModel,
-            addressViewModel = addressViewModel,
-            onDismiss = { showDeliverySheet = false },
-            onSuccess = { orderId ->
-                showDeliverySheet = false
-                onRefreshCart()
-                onCheckoutSuccess(orderId)
             }
         )
     }
@@ -176,7 +161,7 @@ fun CartScreen(
                                 if (orderViewModel.hasActiveOrder()) {
                                     showActiveOrderDialog = true
                                 } else {
-                                    showDeliverySheet = true
+                                    onNavigateToDeliveryFlow()
                                 }
                             },
                             isLoading = checkoutState is CheckoutState.Processing
