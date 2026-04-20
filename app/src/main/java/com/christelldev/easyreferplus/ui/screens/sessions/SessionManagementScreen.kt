@@ -91,36 +91,64 @@ fun SessionManagementScreen(
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
-        containerColor = if (isDark) DesignConstants.BackgroundDark else DesignConstants.BackgroundLight
+        containerColor = MaterialTheme.colorScheme.background,
+        contentWindowInsets = WindowInsets(0, 0, 0, 0)
     ) { paddingValues ->
         Box(modifier = Modifier.fillMaxSize()) {
-            // Header con Gradiente
+            // Header con Gradiente que ocupa toda la parte superior incluyendo status bar
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(240.dp)
+                    .height(260.dp)
                     .background(
                         brush = Brush.verticalGradient(
-                            colors = if (isDark) {
-                                listOf(DesignConstants.PrimaryDark.copy(alpha = 0.6f), Color.Transparent)
-                            } else {
-                                DesignConstants.GradientPrimary
-                            }
+                            colors = listOf(
+                                MaterialTheme.colorScheme.primary.copy(alpha = 0.8f),
+                                Color.Transparent
+                            )
                         )
                     )
             )
 
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues)
-            ) {
-                // Espacio para TopBar Flotante
-                Spacer(modifier = Modifier.height(60.dp))
+            val contentColor = if (isDark) MaterialTheme.colorScheme.onBackground else Color.White
+
+            Column(modifier = Modifier.fillMaxSize()) {
+                // TopAppBar manual con padding de status bar
+                TopAppBar(
+                    title = {
+                        Text(
+                            text = "Gestión de Sesiones",
+                            fontWeight = FontWeight.ExtraBold,
+                            color = contentColor
+                        )
+                    },
+                    navigationIcon = {
+                        IconButton(onClick = onBack) {
+                            Icon(
+                                Icons.AutoMirrored.Filled.ArrowBack,
+                                null,
+                                tint = contentColor
+                            )
+                        }
+                    },
+                    actions = {
+                        if (uiState.sessions.size > 1) {
+                            IconButton(onClick = { showRevokeAllDialog = true }) {
+                                Icon(
+                                    Icons.Default.DeleteSweep,
+                                    null,
+                                    tint = contentColor
+                                )
+                            }
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
+                    windowInsets = WindowInsets.statusBars
+                )
 
                 if (uiState.isLoading && uiState.sessions.isEmpty()) {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator(color = Color.White)
+                        CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
                     }
                 } else if (uiState.sessions.isEmpty()) {
                     EmptySessionsState(isDark = isDark, onRetry = { viewModel.loadSessions() })
@@ -147,7 +175,7 @@ fun SessionManagementScreen(
                                 text = "Dispositivos Conectados",
                                 style = MaterialTheme.typography.titleSmall,
                                 fontWeight = FontWeight.Black,
-                                color = if (isDark) Color.White else DesignConstants.TextPrimary,
+                                color = MaterialTheme.colorScheme.onBackground,
                                 modifier = Modifier.padding(top = 8.dp, bottom = 4.dp)
                             )
                         }
@@ -162,66 +190,11 @@ fun SessionManagementScreen(
                             )
                         }
                         
-                        item { Spacer(modifier = Modifier.height(80.dp)) }
+                        // Espacio para la barra de navegación al final de la lista
+                        item { Spacer(modifier = Modifier.navigationBarsPadding().height(80.dp)) }
                     }
                 }
             }
-
-            // Top Bar Flotante (Glass Style)
-            ElegantSessionTopBar(
-                onBack = onBack,
-                onRevokeAll = { showRevokeAllDialog = true },
-                showRevokeAll = uiState.sessions.size > 1
-            )
-        }
-    }
-}
-
-@Composable
-private fun ElegantSessionTopBar(
-    onBack: () -> Unit,
-    onRevokeAll: () -> Unit,
-    showRevokeAll: Boolean
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .statusBarsPadding()
-            .padding(horizontal = 16.dp, vertical = 8.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Surface(
-            modifier = Modifier.size(40.dp),
-            shape = CircleShape,
-            color = Color.Black.copy(alpha = 0.3f),
-            onClick = onBack
-        ) {
-            Box(contentAlignment = Alignment.Center) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = Color.White, modifier = Modifier.size(20.dp))
-            }
-        }
-        
-        Text(
-            text = "Gestión de Sesiones",
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Black,
-            color = Color.White
-        )
-
-        if (showRevokeAll) {
-            Surface(
-                modifier = Modifier.size(40.dp),
-                shape = CircleShape,
-                color = Color.Black.copy(alpha = 0.3f),
-                onClick = onRevokeAll
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Icon(Icons.Default.DeleteSweep, null, tint = Color.White, modifier = Modifier.size(20.dp))
-                }
-            }
-        } else {
-            Box(modifier = Modifier.size(40.dp))
         }
     }
 }

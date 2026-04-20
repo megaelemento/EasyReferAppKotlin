@@ -53,36 +53,49 @@ fun HistoryScreen(
     }
 
     Scaffold(
-        containerColor = MaterialTheme.colorScheme.background
+        containerColor = MaterialTheme.colorScheme.background,
+        contentWindowInsets = WindowInsets(0, 0, 0, 0)
     ) { paddingValues ->
-        Box(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
-            // Gradiente superior sutil
+        Box(modifier = Modifier.fillMaxSize()) {
+            // Gradiente superior profundo que ocupa toda la parte superior incluyendo status bar
             Box(
-                modifier = Modifier.fillMaxWidth().height(200.dp)
-                    .background(Brush.verticalGradient(listOf(MaterialTheme.colorScheme.primary.copy(alpha = 0.8f), Color.Transparent)))
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(260.dp)
+                    .background(
+                        Brush.verticalGradient(
+                            listOf(
+                                MaterialTheme.colorScheme.primary.copy(alpha = 0.8f),
+                                Color.Transparent
+                            )
+                        )
+                    )
             )
 
+            val contentColor = if (isDark) MaterialTheme.colorScheme.onBackground else Color.White
+
             Column(modifier = Modifier.fillMaxSize()) {
-                // Cabecera Premium
+                // Cabecera Premium con insets de status bar
                 TopAppBar(
                     title = {
                         Text(
                             text = "Historial",
                             fontWeight = FontWeight.ExtraBold,
-                            color = if (isDark) MaterialTheme.colorScheme.onBackground else Color.White
+                            color = contentColor
                         )
                     },
                     navigationIcon = {
                         IconButton(onClick = onBack) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = if (isDark) MaterialTheme.colorScheme.onBackground else Color.White)
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = contentColor)
                         }
                     },
                     actions = {
                         IconButton(onClick = { viewModel.loadHistory() }) {
-                            Icon(Icons.Default.Refresh, null, tint = if (isDark) MaterialTheme.colorScheme.onBackground else Color.White)
+                            Icon(Icons.Default.Refresh, null, tint = contentColor)
                         }
                     },
-                    colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
+                    colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
+                    windowInsets = WindowInsets.statusBars
                 )
 
                 // Tabs Modernas
@@ -126,11 +139,13 @@ fun HistoryScreen(
                         CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
                     }
                 } else if (uiState.transactions.isEmpty()) {
-                    EmptyHistoryState(uiState.currentTab == HistoryTab.SALES)
+                    Box(modifier = Modifier.fillMaxSize()) {
+                        EmptyHistoryState(uiState.currentTab == HistoryTab.SALES)
+                    }
                 } else {
                     LazyColumn(
                         modifier = Modifier.fillMaxSize().padding(horizontal = 20.dp),
-                        contentPadding = PaddingValues(top = 24.dp, bottom = 32.dp),
+                        contentPadding = PaddingValues(top = 24.dp, bottom = 24.dp),
                         verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
                         items(uiState.transactions, key = { it.transactionId }) { transaction ->
@@ -139,6 +154,8 @@ fun HistoryScreen(
                                 onClick = { onTransactionClick(transaction.transactionId) }
                             )
                         }
+                        // Espacio para la barra de navegación al final de la lista
+                        item { Spacer(modifier = Modifier.navigationBarsPadding()) }
                     }
                 }
             }

@@ -91,25 +91,36 @@ fun MisComprasScreen(
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
-        containerColor = MaterialTheme.colorScheme.background
+        containerColor = MaterialTheme.colorScheme.background,
+        contentWindowInsets = WindowInsets(0, 0, 0, 0)
     ) { padding ->
-        Box(modifier = Modifier.fillMaxSize().padding(padding)) {
+        Box(modifier = Modifier.fillMaxSize()) {
+            // Gradiente superior profundo que ocupa toda la parte superior incluyendo status bar
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(200.dp)
+                    .height(260.dp)
                     .background(
                         Brush.verticalGradient(
-                            listOf(MaterialTheme.colorScheme.primary.copy(alpha = 0.8f), Color.Transparent)
+                            listOf(
+                                MaterialTheme.colorScheme.primary.copy(alpha = 0.8f),
+                                Color.Transparent
+                            )
                         )
                     )
             )
+
             Column(modifier = Modifier.fillMaxSize()) {
+                // TopAppBar manual con padding de status bar
                 TopAppBar(
                     title = { Text("Mis Compras", fontWeight = FontWeight.Bold, color = contentTint) },
                     navigationIcon = {
                         IconButton(onClick = onNavigateBack) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Atrás", tint = contentTint)
+                            Icon(
+                                Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = "Atrás",
+                                tint = contentTint
+                            )
                         }
                     },
                     actions = {
@@ -129,11 +140,17 @@ fun MisComprasScreen(
                             }
                         }
                         IconButton(onClick = { viewModel.loadMyOrders() }) {
-                            Icon(Icons.Default.Refresh, contentDescription = "Actualizar", tint = contentTint)
+                            Icon(
+                                Icons.Default.Refresh,
+                                contentDescription = "Actualizar",
+                                tint = contentTint
+                            )
                         }
                     },
-                    colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
+                    colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
+                    windowInsets = WindowInsets.statusBars
                 )
+
                 when (state) {
                     is OrderListState.Loading -> {
                         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -147,12 +164,16 @@ fun MisComprasScreen(
                             horizontalAlignment = Alignment.CenterHorizontally,
                             verticalArrangement = Arrangement.Center
                         ) {
-                            Icon(Icons.Default.ErrorOutline, null,
+                            Icon(
+                                Icons.Default.ErrorOutline, null,
                                 modifier = Modifier.size(64.dp),
-                                tint = MaterialTheme.colorScheme.error.copy(alpha = 0.6f))
+                                tint = MaterialTheme.colorScheme.error.copy(alpha = 0.6f)
+                            )
                             Spacer(Modifier.height(16.dp))
-                            Text(msg, textAlign = TextAlign.Center,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(
+                                msg, textAlign = TextAlign.Center,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
                             Spacer(Modifier.height(20.dp))
                             Button(onClick = { viewModel.loadMyOrders() }) { Text("Reintentar") }
                         }
@@ -162,10 +183,15 @@ fun MisComprasScreen(
                         if (orders.isEmpty()) {
                             EmptyOrders()
                         } else {
-                            val activeStatuses = setOf("pending_payment", "paid_pending_driver", "driver_assigned", "ready_for_pickup", "picked_up")
+                            val activeStatuses = setOf(
+                                "pending_payment", "paid_pending_driver", "driver_assigned",
+                                "ready_for_pickup", "picked_up"
+                            )
                             val activeOrders = orders.filter { it.status in activeStatuses }
                             val pastOrders = orders.filter { it.status !in activeStatuses }
-                            var selectedTab by remember { mutableIntStateOf(if (activeOrders.isNotEmpty()) 0 else 1) }
+                            var selectedTab by remember {
+                                mutableIntStateOf(if (activeOrders.isNotEmpty()) 0 else 1)
+                            }
 
                             Column(modifier = Modifier.fillMaxSize()) {
                                 TabRow(
@@ -186,14 +212,22 @@ fun MisComprasScreen(
                                                     )
                                                     Spacer(Modifier.width(6.dp))
                                                 }
-                                                Text("Activos (${activeOrders.size})", fontWeight = FontWeight.Bold)
+                                                Text(
+                                                    "Activos (${activeOrders.size})",
+                                                    fontWeight = FontWeight.Bold
+                                                )
                                             }
                                         }
                                     )
                                     Tab(
                                         selected = selectedTab == 1,
                                         onClick = { selectedTab = 1 },
-                                        text = { Text("Historial (${pastOrders.size})", fontWeight = FontWeight.Bold) }
+                                        text = {
+                                            Text(
+                                                "Historial (${pastOrders.size})",
+                                                fontWeight = FontWeight.Bold
+                                            )
+                                        }
                                     )
                                 }
 
@@ -214,7 +248,8 @@ fun MisComprasScreen(
                                 } else {
                                     LazyColumn(
                                         contentPadding = PaddingValues(16.dp),
-                                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                                        modifier = Modifier.fillMaxSize()
                                     ) {
                                         items(displayOrders, key = { it.id }) { order ->
                                             OrderCard(
@@ -223,11 +258,18 @@ fun MisComprasScreen(
                                                 onTrack = if (order.status in trackableStatuses) {
                                                     { onNavigateToTracking(order.id) }
                                                 } else null,
-                                                onRate = if (order.status in setOf("delivered", "completed")) {
+                                                onRate = if (order.status in setOf(
+                                                        "delivered",
+                                                        "completed"
+                                                    )
+                                                ) {
                                                     { onNavigateToRating(order.id) }
                                                 } else null
                                             )
                                         }
+
+                                        // Espacio para la barra de navegación al final de la lista
+                                        item { Spacer(modifier = Modifier.navigationBarsPadding()) }
                                     }
                                 }
                             }

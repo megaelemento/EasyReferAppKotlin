@@ -58,17 +58,27 @@ fun PublicCompaniesScreen(
     }
 
     Scaffold(
-        containerColor = MaterialTheme.colorScheme.background
+        containerColor = MaterialTheme.colorScheme.background,
+        contentWindowInsets = WindowInsets(0, 0, 0, 0)
     ) { paddingValues ->
-        Box(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
-            // Gradiente superior sutil
+        Box(modifier = Modifier.fillMaxSize()) {
+            // Gradiente superior profundo que ocupa toda la parte superior incluyendo status bar
             Box(
-                modifier = Modifier.fillMaxWidth().height(200.dp)
-                    .background(Brush.verticalGradient(listOf(MaterialTheme.colorScheme.primary.copy(alpha = 0.8f), Color.Transparent)))
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(260.dp)
+                    .background(
+                        Brush.verticalGradient(
+                            listOf(
+                                MaterialTheme.colorScheme.primary.copy(alpha = 0.8f),
+                                Color.Transparent
+                            )
+                        )
+                    )
             )
 
             Column(modifier = Modifier.fillMaxSize()) {
-                // Cabecera Premium
+                // Cabecera Premium con insets de status bar
                 TopAppBar(
                     title = {
                         Text(
@@ -79,10 +89,15 @@ fun PublicCompaniesScreen(
                     },
                     navigationIcon = {
                         IconButton(onClick = onNavigateBack) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = if (isDark) MaterialTheme.colorScheme.onBackground else Color.White)
+                            Icon(
+                                Icons.AutoMirrored.Filled.ArrowBack,
+                                null,
+                                tint = if (isDark) MaterialTheme.colorScheme.onBackground else Color.White
+                            )
                         }
                     },
-                    colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
+                    colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
+                    windowInsets = WindowInsets.statusBars
                 )
 
                 // Sección de Búsqueda y Filtros Premium
@@ -121,11 +136,13 @@ fun PublicCompaniesScreen(
                         CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
                     }
                 } else if (uiState.companies.isEmpty()) {
-                    EmptyPublicSearchState()
+                    Box(modifier = Modifier.fillMaxSize()) {
+                        EmptyPublicSearchState()
+                    }
                 } else {
                     LazyColumn(
                         modifier = Modifier.fillMaxSize().padding(horizontal = 20.dp),
-                        contentPadding = PaddingValues(top = 24.dp, bottom = 32.dp),
+                        contentPadding = PaddingValues(top = 16.dp, bottom = 24.dp),
                         verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
                         items(uiState.companies, key = { it.id }) { company ->
@@ -134,6 +151,8 @@ fun PublicCompaniesScreen(
                                 onClick = { onCompanyClick(company.id) }
                             )
                         }
+                        // Espacio para la barra de navegación al final de la lista
+                        item { Spacer(modifier = Modifier.navigationBarsPadding()) }
                     }
                 }
             }

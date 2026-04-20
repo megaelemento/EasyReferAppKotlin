@@ -164,33 +164,56 @@ fun QRScreen(
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
-        containerColor = MaterialTheme.colorScheme.background
+        containerColor = MaterialTheme.colorScheme.background,
+        contentWindowInsets = WindowInsets(0, 0, 0, 0)
     ) { paddingValues ->
-        Box(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
+        Box(modifier = Modifier.fillMaxSize()) {
+            // Gradiente superior profundo que ocupa toda la parte superior incluyendo status bar
             Box(
-                modifier = Modifier.fillMaxWidth().height(200.dp)
-                    .background(Brush.verticalGradient(listOf(MaterialTheme.colorScheme.primary.copy(alpha = 0.8f), Color.Transparent)))
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(260.dp)
+                    .background(
+                        Brush.verticalGradient(
+                            listOf(
+                                MaterialTheme.colorScheme.primary.copy(alpha = 0.8f),
+                                Color.Transparent
+                            )
+                        )
+                    )
             )
 
+            val contentColor = if (isSystemInDarkTheme()) MaterialTheme.colorScheme.onBackground else Color.White
+
             Column(modifier = Modifier.fillMaxSize()) {
+                // TopAppBar manual con padding de status bar
                 TopAppBar(
                     title = {
                         Text(
                             text = stringResource(R.string.qr_payments),
                             fontWeight = FontWeight.ExtraBold,
-                            color = if (isSystemInDarkTheme()) MaterialTheme.colorScheme.onBackground else Color.White
+                            color = contentColor
                         )
                     },
                     navigationIcon = {
                         IconButton(onClick = onBack) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = if (isSystemInDarkTheme()) MaterialTheme.colorScheme.onBackground else Color.White)
+                            Icon(
+                                Icons.AutoMirrored.Filled.ArrowBack,
+                                null,
+                                tint = contentColor
+                            )
                         }
                     },
-                    colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
+                    colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
+                    windowInsets = WindowInsets.statusBars
                 )
 
                 Column(
-                    modifier = Modifier.fillMaxSize().padding(horizontal = 24.dp).verticalScroll(scrollState).imePadding()
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 24.dp)
+                        .verticalScroll(scrollState)
+                        .imePadding()
                 ) {
                     if (hasCompany) {
                         TabRow(
@@ -209,13 +232,25 @@ fun QRScreen(
                                 Tab(
                                     selected = selectedTab == 0,
                                     onClick = { selectedTab = 0 },
-                                    text = { Text(stringResource(R.string.generate_qr), fontWeight = FontWeight.Bold, color = if (selectedTab == 0 && !isSystemInDarkTheme()) Color.White else MaterialTheme.colorScheme.onSurface) }
+                                    text = {
+                                        Text(
+                                            stringResource(R.string.generate_qr),
+                                            fontWeight = FontWeight.Bold,
+                                            color = if (selectedTab == 0 && !isSystemInDarkTheme()) Color.White else MaterialTheme.colorScheme.onSurface
+                                        )
+                                    }
                                 )
                             }
                             Tab(
                                 selected = selectedTab == 1,
                                 onClick = { selectedTab = 1 },
-                                text = { Text(stringResource(R.string.scan_qr), fontWeight = FontWeight.Bold, color = if (selectedTab == 1 && !isSystemInDarkTheme()) Color.White else MaterialTheme.colorScheme.onSurface) }
+                                text = {
+                                    Text(
+                                        stringResource(R.string.scan_qr),
+                                        fontWeight = FontWeight.Bold,
+                                        color = if (selectedTab == 1 && !isSystemInDarkTheme()) Color.White else MaterialTheme.colorScheme.onSurface
+                                    )
+                                }
                             )
                         }
                         Spacer(modifier = Modifier.height(24.dp))
@@ -252,6 +287,8 @@ fun QRScreen(
                         }
                     }
                     Spacer(modifier = Modifier.height(32.dp))
+                    // Espacio para la barra de navegación
+                    Spacer(modifier = Modifier.navigationBarsPadding())
                 }
             }
         }

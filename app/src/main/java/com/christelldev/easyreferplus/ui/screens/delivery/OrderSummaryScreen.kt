@@ -42,21 +42,28 @@ fun OrderSummaryScreen(
     val deliveryFee = if (needsDelivery) selectedDelivery?.deliveryFee ?: 0.0 else 0.0
     val total = cartSubtotal + deliveryFee + tipAmount
 
-    Scaffold(containerColor = MaterialTheme.colorScheme.background) { padding ->
-        Box(modifier = Modifier.fillMaxSize().padding(padding)) {
-            // Gradient header overlay
+    Scaffold(
+        containerColor = MaterialTheme.colorScheme.background,
+        contentWindowInsets = WindowInsets(0, 0, 0, 0)
+    ) { padding ->
+        Box(modifier = Modifier.fillMaxSize()) {
+            // Gradient header overlay que ocupa toda la parte superior incluyendo status bar
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(200.dp)
+                    .height(260.dp)
                     .background(
                         Brush.verticalGradient(
-                            listOf(MaterialTheme.colorScheme.primary.copy(alpha = 0.8f), Color.Transparent)
+                            listOf(
+                                MaterialTheme.colorScheme.primary.copy(alpha = 0.8f),
+                                Color.Transparent
+                            )
                         )
                     )
                     .align(Alignment.TopStart)
             )
             Column(modifier = Modifier.fillMaxSize()) {
+                // TopAppBar manual con padding de status bar
                 TopAppBar(
                     title = { Text("Resumen del pedido", color = contentColor) },
                     navigationIcon = {
@@ -64,7 +71,8 @@ fun OrderSummaryScreen(
                             Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = contentColor)
                         }
                     },
-                    colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
+                    colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
+                    windowInsets = WindowInsets.statusBars
                 )
 
                 if (checkoutState is CheckoutFlowState.Processing) {
@@ -81,7 +89,7 @@ fun OrderSummaryScreen(
                     }
                 } else {
                     LazyColumn(
-                        modifier = Modifier.fillMaxSize(),
+                        modifier = Modifier.fillMaxSize().imePadding(),
                         contentPadding = PaddingValues(16.dp),
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {

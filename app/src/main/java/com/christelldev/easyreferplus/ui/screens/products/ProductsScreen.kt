@@ -61,28 +61,39 @@ fun MyProductsScreen(
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         floatingActionButton = {
             if (isCompanyOwner) {
                 LargeFloatingActionButton(
                     onClick = onAddProduct,
                     shape = CircleShape,
                     containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = Color.White
+                    contentColor = Color.White,
+                    modifier = Modifier.navigationBarsPadding()
                 ) {
                     Icon(Icons.Default.Add, contentDescription = "Agregar", modifier = Modifier.size(32.dp))
                 }
             }
         }
     ) { paddingValues ->
-        Box(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
-            // Gradiente superior sutil
+        Box(modifier = Modifier.fillMaxSize()) {
+            // Gradiente superior profundo que ocupa toda la parte superior incluyendo status bar
             Box(
-                modifier = Modifier.fillMaxWidth().height(200.dp)
-                    .background(Brush.verticalGradient(listOf(MaterialTheme.colorScheme.primary.copy(alpha = 0.8f), Color.Transparent)))
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(260.dp)
+                    .background(
+                        Brush.verticalGradient(
+                            listOf(
+                                MaterialTheme.colorScheme.primary.copy(alpha = 0.8f),
+                                Color.Transparent
+                            )
+                        )
+                    )
             )
 
             Column(modifier = Modifier.fillMaxSize()) {
-                // Cabecera Premium
+                // Cabecera Premium con insets de status bar
                 TopAppBar(
                     title = {
                         Text(
@@ -93,10 +104,15 @@ fun MyProductsScreen(
                     },
                     navigationIcon = {
                         IconButton(onClick = onNavigateBack) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = if (isDark) MaterialTheme.colorScheme.onBackground else Color.White)
+                            Icon(
+                                Icons.AutoMirrored.Filled.ArrowBack,
+                                null,
+                                tint = if (isDark) MaterialTheme.colorScheme.onBackground else Color.White
+                            )
                         }
                     },
-                    colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
+                    colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
+                    windowInsets = WindowInsets.statusBars
                 )
 
                 if (isLoading) {
@@ -104,11 +120,15 @@ fun MyProductsScreen(
                         CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
                     }
                 } else if (products.isEmpty()) {
-                    EmptyProductsState(isCompanyOwner, onAddProduct)
+                    Box(modifier = Modifier.fillMaxSize()) {
+                        EmptyProductsState(isCompanyOwner, onAddProduct)
+                    }
                 } else {
                     LazyColumn(
-                        modifier = Modifier.fillMaxSize().padding(horizontal = 20.dp),
-                        contentPadding = PaddingValues(top = 16.dp, bottom = 100.dp),
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(horizontal = 20.dp),
+                        contentPadding = PaddingValues(top = 16.dp, bottom = 24.dp),
                         verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
                         items(products, key = { it.id }) { product ->
@@ -119,6 +139,8 @@ fun MyProductsScreen(
                                 onClick = { onViewProduct(product) }
                             )
                         }
+                        // Espacio para la barra de navegación al final de la lista
+                        item { Spacer(modifier = Modifier.navigationBarsPadding().height(80.dp)) }
                     }
                 }
             }
@@ -265,19 +287,54 @@ fun ProductFormScreen(
     var manageStock by remember { mutableStateOf(product?.manageStock ?: true) }
 
     Scaffold(
-        containerColor = MaterialTheme.colorScheme.background
+        containerColor = MaterialTheme.colorScheme.background,
+        contentWindowInsets = WindowInsets(0, 0, 0, 0)
     ) { paddingValues ->
-        Box(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
-            Box(modifier = Modifier.fillMaxWidth().height(200.dp).background(Brush.verticalGradient(listOf(MaterialTheme.colorScheme.primary.copy(alpha = 0.8f), Color.Transparent))))
+        Box(modifier = Modifier.fillMaxSize()) {
+            // Gradiente superior profundo
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(260.dp)
+                    .background(
+                        Brush.verticalGradient(
+                            listOf(
+                                MaterialTheme.colorScheme.primary.copy(alpha = 0.8f),
+                                Color.Transparent
+                            )
+                        )
+                    )
+            )
 
             Column(modifier = Modifier.fillMaxSize()) {
                 TopAppBar(
-                    title = { Text(if (product == null) "Nuevo Producto" else "Editar Producto", fontWeight = FontWeight.ExtraBold, color = if (isDark) MaterialTheme.colorScheme.onBackground else Color.White) },
-                    navigationIcon = { IconButton(onClick = onNavigateBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = if (isDark) MaterialTheme.colorScheme.onBackground else Color.White) } },
-                    colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
+                    title = {
+                        Text(
+                            text = if (product == null) "Nuevo Producto" else "Editar Producto",
+                            fontWeight = FontWeight.ExtraBold,
+                            color = if (isDark) MaterialTheme.colorScheme.onBackground else Color.White
+                        )
+                    },
+                    navigationIcon = {
+                        IconButton(onClick = onNavigateBack) {
+                            Icon(
+                                Icons.AutoMirrored.Filled.ArrowBack,
+                                null,
+                                tint = if (isDark) MaterialTheme.colorScheme.onBackground else Color.White
+                            )
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
+                    windowInsets = WindowInsets.statusBars
                 )
 
-                Column(modifier = Modifier.fillMaxSize().padding(horizontal = 24.dp).verticalScroll(scrollState).imePadding()) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 24.dp)
+                        .verticalScroll(scrollState)
+                        .imePadding()
+                ) {
                     Spacer(modifier = Modifier.height(16.dp))
                     
                     Surface(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(24.dp), color = MaterialTheme.colorScheme.surface, tonalElevation = 2.dp) {
@@ -345,7 +402,9 @@ fun ProductFormScreen(
                         else Text("Guardar Cambios", fontWeight = FontWeight.ExtraBold, style = MaterialTheme.typography.titleMedium)
                     }
                     
-                    Spacer(modifier = Modifier.height(48.dp))
+                    Spacer(modifier = Modifier.height(32.dp))
+                    // Espacio para la barra de navegación
+                    Spacer(modifier = Modifier.navigationBarsPadding())
                 }
             }
         }

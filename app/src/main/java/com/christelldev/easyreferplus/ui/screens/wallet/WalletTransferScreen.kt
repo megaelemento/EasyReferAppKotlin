@@ -112,13 +112,24 @@ fun WalletTransferScreen(
     }
 
     Scaffold(
-        containerColor = MaterialTheme.colorScheme.background
+        containerColor = MaterialTheme.colorScheme.background,
+        contentWindowInsets = WindowInsets(0, 0, 0, 0)
     ) { paddingValues ->
-        Box(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
+        Box(modifier = Modifier.fillMaxSize()) {
             if (step != 4) {
+                // Gradiente superior profundo que ocupa toda la parte superior incluyendo status bar
                 Box(
-                    modifier = Modifier.fillMaxWidth().height(200.dp)
-                        .background(Brush.verticalGradient(listOf(MaterialTheme.colorScheme.primary.copy(alpha = 0.8f), Color.Transparent)))
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(260.dp)
+                        .background(
+                            Brush.verticalGradient(
+                                listOf(
+                                    MaterialTheme.colorScheme.primary.copy(alpha = 0.8f),
+                                    Color.Transparent
+                                )
+                            )
+                        )
                 )
             }
 
@@ -134,10 +145,15 @@ fun WalletTransferScreen(
                         },
                         navigationIcon = {
                             IconButton(onClick = { if (step > 1) step-- else onBack() }) {
-                                Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = if (isDark) MaterialTheme.colorScheme.onBackground else Color.White)
+                                Icon(
+                                    Icons.AutoMirrored.Filled.ArrowBack,
+                                    null,
+                                    tint = if (isDark) MaterialTheme.colorScheme.onBackground else Color.White
+                                )
                             }
                         },
-                        colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
+                        colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
+                        windowInsets = WindowInsets.statusBars
                     )
                 }
 
@@ -225,10 +241,9 @@ private fun StepOneContactPicker(
 
     LazyColumn(
         modifier = Modifier.fillMaxSize().padding(horizontal = 24.dp),
+        contentPadding = PaddingValues(top = 16.dp, bottom = 24.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        item { Spacer(modifier = Modifier.height(16.dp)) }
-        
         item {
             Surface(
                 modifier = Modifier.fillMaxWidth(),
@@ -309,7 +324,7 @@ private fun StepOneContactPicker(
                 }
             }
         }
-        item { Spacer(modifier = Modifier.height(32.dp)) }
+        item { Spacer(modifier = Modifier.navigationBarsPadding()) }
     }
 }
 

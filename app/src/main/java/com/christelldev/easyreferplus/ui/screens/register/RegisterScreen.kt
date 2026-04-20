@@ -6,21 +6,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.imePadding
-import androidx.compose.foundation.layout.navigationBarsPadding
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -29,36 +15,10 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Error
-import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.Mail
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Visibility
-import androidx.compose.material.icons.filled.VisibilityOff
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Checkbox
-import androidx.compose.material3.CheckboxDefaults
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
@@ -91,6 +51,7 @@ fun RegisterScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     val focusManager = LocalFocusManager.current
+    val isDark = isSystemInDarkTheme()
 
     LaunchedEffect(Unit) {
         viewModel.goToPhoneStep()
@@ -113,15 +74,12 @@ fun RegisterScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
-            .statusBarsPadding()
-            .navigationBarsPadding()
-            .imePadding()
     ) {
-        // Fondo con gradiente sutil superior (Consistente con Login)
+        // Fondo con gradiente profundo
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(300.dp)
+                .height(400.dp)
                 .background(
                     brush = Brush.verticalGradient(
                         colors = listOf(
@@ -134,136 +92,148 @@ fun RegisterScreen(
         )
 
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(24.dp)
-                .verticalScroll(rememberScrollState()),
-            horizontalAlignment = Alignment.CenterHorizontally
+            modifier = Modifier.fillMaxSize()
         ) {
+            // Cabecera manual con padding de status bar
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .windowInsetsPadding(WindowInsets.statusBars)
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 IconButton(onClick = onNavigateBack) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                         contentDescription = null,
-                        tint = if (isSystemInDarkTheme()) MaterialTheme.colorScheme.onBackground else Color.White
+                        tint = if (isDark) MaterialTheme.colorScheme.onBackground else Color.White
                     )
                 }
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
                     text = stringResource(R.string.register_title),
-                    style = MaterialTheme.typography.headlineMedium,
-                    color = if (isSystemInDarkTheme()) MaterialTheme.colorScheme.onBackground else Color.White,
-                    fontWeight = FontWeight.ExtraBold
+                    style = MaterialTheme.typography.titleLarge,
+                    color = if (isDark) MaterialTheme.colorScheme.onBackground else Color.White,
+                    fontWeight = FontWeight.Black
                 )
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 24.dp)
+                    .verticalScroll(rememberScrollState())
+                    .imePadding(),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Spacer(modifier = Modifier.height(16.dp))
 
-            StepIndicator(
-                currentStep = uiState.currentStep,
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            Spacer(modifier = Modifier.height(32.dp))
-
-            when (uiState.currentStep) {
-                RegisterStep.PHONE -> PhoneStepContent(
-                    phone = uiState.phone,
-                    phoneError = uiState.phoneError,
-                    onPhoneChange = viewModel::updatePhone,
-                    onSubmit = {
-                        focusManager.clearFocus()
-                        viewModel.verifyPhone()
-                    },
-                    isLoading = uiState.isLoading
+                StepIndicator(
+                    currentStep = uiState.currentStep,
+                    modifier = Modifier.fillMaxWidth()
                 )
 
-                RegisterStep.CODE -> CodeStepContent(
-                    phone = uiState.phone,
-                    code1 = uiState.code1,
-                    code2 = uiState.code2,
-                    code3 = uiState.code3,
-                    code4 = uiState.code4,
-                    codeError = uiState.codeError,
-                    isResendEnabled = uiState.isResendEnabled,
-                    isLoading = uiState.isLoading,
-                    waitSeconds = uiState.waitSeconds,
-                    onCodeChange = viewModel::updateCode,
-                    onResend = viewModel::resendCode
-                )
+                Spacer(modifier = Modifier.height(32.dp))
 
-                RegisterStep.COMPLETE -> {
-                    CompleteRegistrationStep(
-                        nombres = uiState.nombres,
-                        nombresError = uiState.nombresError,
-                        onNombresChange = viewModel::updateNombres,
-                        onNombresNext = { focusManager.moveFocus(androidx.compose.ui.focus.FocusDirection.Down) },
-                        apellidos = uiState.apellidos,
-                        apellidosError = uiState.apellidosError,
-                        onApellidosChange = viewModel::updateApellidos,
-                        cedulaRuc = uiState.cedulaRuc,
-                        cedulaRucError = uiState.cedulaRucError,
-                        onCedulaRucChange = viewModel::updateCedulaRuc,
-                        email = uiState.email,
-                        emailError = uiState.emailError,
-                        onEmailChange = viewModel::updateEmail,
-                        password = uiState.password,
-                        passwordError = uiState.passwordError,
-                        passwordVisible = uiState.passwordVisible,
-                        onPasswordChange = viewModel::updatePassword,
-                        onTogglePassword = viewModel::togglePasswordVisibility,
-                        confirmPassword = uiState.confirmPassword,
-                        confirmPasswordError = uiState.confirmPasswordError,
-                        confirmPasswordVisible = uiState.confirmPasswordVisible,
-                        onConfirmPasswordChange = viewModel::updateConfirmPassword,
-                        onToggleConfirmPassword = viewModel::toggleConfirmPasswordVisibility,
-                        referralCode = uiState.referralCode,
-                        referralCodeError = uiState.referralCodeError,
-                        onReferralCodeChange = viewModel::updateReferralCode,
-                        isAdult = uiState.isAdult,
-                        onToggleAdult = viewModel::toggleIsAdult,
-                        acceptsPrivacyPolicy = uiState.acceptsPrivacyPolicy,
-                        acceptsPrivacyPolicyError = uiState.acceptsPrivacyPolicyError,
-                        onPrivacyPolicyClick = viewModel::onPrivacyPolicyCheckClick,
-                        showPrivacyPolicyDialog = uiState.showPrivacyPolicyDialog,
-                        privacyPolicyTitle = uiState.privacyPolicyTitle,
-                        privacyPolicyContent = uiState.privacyPolicyContent,
-                        isLoadingPrivacyPolicy = uiState.isLoadingPrivacyPolicy,
-                        onAcceptPrivacyPolicy = viewModel::acceptPrivacyPolicy,
-                        onDismissPrivacyPolicyDialog = viewModel::dismissPrivacyPolicyDialog,
-                        isLoading = uiState.isLoading,
+                when (uiState.currentStep) {
+                    RegisterStep.PHONE -> PhoneStepContent(
+                        phone = uiState.phone,
+                        phoneError = uiState.phoneError,
+                        onPhoneChange = viewModel::updatePhone,
                         onSubmit = {
                             focusManager.clearFocus()
-                            viewModel.completeRegistration()
-                        }
+                            viewModel.verifyPhone()
+                        },
+                        isLoading = uiState.isLoading
                     )
-                }
-            }
 
-            Spacer(modifier = Modifier.height(24.dp))
+                    RegisterStep.CODE -> CodeStepContent(
+                        phone = uiState.phone,
+                        code1 = uiState.code1,
+                        code2 = uiState.code2,
+                        code3 = uiState.code3,
+                        code4 = uiState.code4,
+                        codeError = uiState.codeError,
+                        isResendEnabled = uiState.isResendEnabled,
+                        isLoading = uiState.isLoading,
+                        waitSeconds = uiState.waitSeconds,
+                        onCodeChange = viewModel::updateCode,
+                        onResend = viewModel::resendCode
+                    )
 
-            if (uiState.currentStep == RegisterStep.PHONE) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.padding(bottom = 32.dp)
-                ) {
-                    Text(
-                        text = stringResource(R.string.already_have_account),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-                    )
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text(
-                        text = stringResource(R.string.login_link),
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.ExtraBold,
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.clickable { onNavigateToLogin() }
-                    )
+                    RegisterStep.COMPLETE -> {
+                        CompleteRegistrationStep(
+                            nombres = uiState.nombres,
+                            nombresError = uiState.nombresError,
+                            onNombresChange = viewModel::updateNombres,
+                            onNombresNext = { focusManager.moveFocus(androidx.compose.ui.focus.FocusDirection.Down) },
+                            apellidos = uiState.apellidos,
+                            apellidosError = uiState.apellidosError,
+                            onApellidosChange = viewModel::updateApellidos,
+                            cedulaRuc = uiState.cedulaRuc,
+                            cedulaRucError = uiState.cedulaRucError,
+                            onCedulaRucChange = viewModel::updateCedulaRuc,
+                            email = uiState.email,
+                            emailError = uiState.emailError,
+                            onEmailChange = viewModel::updateEmail,
+                            password = uiState.password,
+                            passwordError = uiState.passwordError,
+                            passwordVisible = uiState.passwordVisible,
+                            onPasswordChange = viewModel::updatePassword,
+                            onTogglePassword = viewModel::togglePasswordVisibility,
+                            confirmPassword = uiState.confirmPassword,
+                            confirmPasswordError = uiState.confirmPasswordError,
+                            confirmPasswordVisible = uiState.confirmPasswordVisible,
+                            onConfirmPasswordChange = viewModel::updateConfirmPassword,
+                            onToggleConfirmPassword = viewModel::toggleConfirmPasswordVisibility,
+                            referralCode = uiState.referralCode,
+                            referralCodeError = uiState.referralCodeError,
+                            onReferralCodeChange = viewModel::updateReferralCode,
+                            isAdult = uiState.isAdult,
+                            onToggleAdult = viewModel::toggleIsAdult,
+                            acceptsPrivacyPolicy = uiState.acceptsPrivacyPolicy,
+                            acceptsPrivacyPolicyError = uiState.acceptsPrivacyPolicyError,
+                            onPrivacyPolicyClick = viewModel::onPrivacyPolicyCheckClick,
+                            showPrivacyPolicyDialog = uiState.showPrivacyPolicyDialog,
+                            privacyPolicyTitle = uiState.privacyPolicyTitle,
+                            privacyPolicyContent = uiState.privacyPolicyContent,
+                            isLoadingPrivacyPolicy = uiState.isLoadingPrivacyPolicy,
+                            onAcceptPrivacyPolicy = viewModel::acceptPrivacyPolicy,
+                            onDismissPrivacyPolicyDialog = viewModel::dismissPrivacyPolicyDialog,
+                            isLoading = uiState.isLoading,
+                            onSubmit = {
+                                focusManager.clearFocus()
+                                viewModel.completeRegistration()
+                            }
+                        )
+                    }
                 }
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                if (uiState.currentStep == RegisterStep.PHONE) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.padding(bottom = 32.dp)
+                    ) {
+                        Text(
+                            text = stringResource(R.string.already_have_account),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = stringResource(R.string.login_link),
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.clickable { onNavigateToLogin() }
+                        )
+                    }
+                }
+                
+                // Espacio para la barra de navegación al final
+                Spacer(modifier = Modifier.navigationBarsPadding())
             }
         }
 

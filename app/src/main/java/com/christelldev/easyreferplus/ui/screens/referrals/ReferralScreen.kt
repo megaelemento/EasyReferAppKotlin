@@ -74,17 +74,27 @@ fun ReferralScreen(
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
-        containerColor = MaterialTheme.colorScheme.background
+        containerColor = MaterialTheme.colorScheme.background,
+        contentWindowInsets = WindowInsets(0, 0, 0, 0)
     ) { paddingValues ->
-        Box(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
-            // Gradiente superior sutil
+        Box(modifier = Modifier.fillMaxSize()) {
+            // Gradiente superior profundo que ocupa toda la parte superior incluyendo status bar
             Box(
-                modifier = Modifier.fillMaxWidth().height(200.dp)
-                    .background(Brush.verticalGradient(listOf(MaterialTheme.colorScheme.primary.copy(alpha = 0.8f), Color.Transparent)))
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(260.dp)
+                    .background(
+                        Brush.verticalGradient(
+                            listOf(
+                                MaterialTheme.colorScheme.primary.copy(alpha = 0.8f),
+                                Color.Transparent
+                            )
+                        )
+                    )
             )
 
             Column(modifier = Modifier.fillMaxSize()) {
-                // Cabecera Premium
+                // Cabecera Premium con insets de status bar
                 TopAppBar(
                     title = {
                         Text(
@@ -95,18 +105,24 @@ fun ReferralScreen(
                     },
                     navigationIcon = {
                         IconButton(onClick = onBack) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = if (isSystemInDarkTheme()) MaterialTheme.colorScheme.onBackground else Color.White)
+                            Icon(
+                                Icons.AutoMirrored.Filled.ArrowBack,
+                                null,
+                                tint = if (isSystemInDarkTheme()) MaterialTheme.colorScheme.onBackground else Color.White
+                            )
                         }
                     },
-                    colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
+                    colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
+                    windowInsets = WindowInsets.statusBars
                 )
 
                 LazyColumn(
-                    modifier = Modifier.fillMaxSize().padding(horizontal = 24.dp).imePadding(),
-                    contentPadding = PaddingValues(bottom = 32.dp)
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 24.dp)
+                        .imePadding(),
+                    contentPadding = PaddingValues(top = 16.dp, bottom = 24.dp)
                 ) {
-                    item { Spacer(modifier = Modifier.height(8.dp)) }
-
                     // Tarjeta de Código Central
                     item {
                         YourReferralCodeCard(
@@ -183,6 +199,9 @@ fun ReferralScreen(
                     } else {
                         item { EmptyReferralState() }
                     }
+
+                    // Espacio para la barra de navegación al final de la lista
+                    item { Spacer(modifier = Modifier.navigationBarsPadding()) }
                 }
             }
         }

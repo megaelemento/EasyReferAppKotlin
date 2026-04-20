@@ -69,31 +69,48 @@ fun WalletStatementScreen(
     }
 
     Scaffold(
-        containerColor = MaterialTheme.colorScheme.background
+        containerColor = MaterialTheme.colorScheme.background,
+        contentWindowInsets = WindowInsets(0, 0, 0, 0)
     ) { paddingValues ->
-        Box(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
-            // Gradiente superior sutil
+        Box(modifier = Modifier.fillMaxSize()) {
+            // Gradiente superior profundo que ocupa toda la parte superior incluyendo status bar
             Box(
-                modifier = Modifier.fillMaxWidth().height(200.dp)
-                    .background(Brush.verticalGradient(listOf(MaterialTheme.colorScheme.primary.copy(alpha = 0.8f), Color.Transparent)))
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(260.dp)
+                    .background(
+                        Brush.verticalGradient(
+                            listOf(
+                                MaterialTheme.colorScheme.primary.copy(alpha = 0.8f),
+                                Color.Transparent
+                            )
+                        )
+                    )
             )
 
+            val contentColor = if (isDark) MaterialTheme.colorScheme.onBackground else Color.White
+
             Column(modifier = Modifier.fillMaxSize()) {
-                // Cabecera Premium
+                // Cabecera Premium con insets de status bar
                 TopAppBar(
                     title = {
                         Text(
                             text = "Estado de Cuenta",
                             fontWeight = FontWeight.ExtraBold,
-                            color = if (isDark) MaterialTheme.colorScheme.onBackground else Color.White
+                            color = contentColor
                         )
                     },
                     navigationIcon = {
                         IconButton(onClick = onBack) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = if (isDark) MaterialTheme.colorScheme.onBackground else Color.White)
+                            Icon(
+                                Icons.AutoMirrored.Filled.ArrowBack,
+                                null,
+                                tint = contentColor
+                            )
                         }
                     },
-                    colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
+                    colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
+                    windowInsets = WindowInsets.statusBars
                 )
 
                 // Filtros Modernos
@@ -130,7 +147,7 @@ fun WalletStatementScreen(
                     LazyColumn(
                         state = listState,
                         modifier = Modifier.fillMaxSize().padding(horizontal = 20.dp),
-                        contentPadding = PaddingValues(bottom = 32.dp),
+                        contentPadding = PaddingValues(top = 8.dp, bottom = 24.dp),
                         verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
                         item {
@@ -164,6 +181,9 @@ fun WalletStatementScreen(
                         if (uiState.isLoadingStatement) {
                             item { Box(modifier = Modifier.fillMaxWidth().padding(16.dp), contentAlignment = Alignment.Center) { CircularProgressIndicator(modifier = Modifier.size(32.dp)) } }
                         }
+                        
+                        // Espacio para la barra de navegación al final de la lista
+                        item { Spacer(modifier = Modifier.navigationBarsPadding()) }
                     }
                 }
             }

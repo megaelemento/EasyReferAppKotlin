@@ -3,6 +3,7 @@ package com.christelldev.easyreferplus.ui.screens.address
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -16,6 +17,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -36,54 +39,81 @@ fun SavedAddressesScreen(
     val listState by viewModel.listState.collectAsState()
     val addresses by viewModel.addresses.collectAsState()
     var addressToDelete by remember { mutableStateOf<SavedAddress?>(null) }
+    val isDark = isSystemInDarkTheme()
+    val contentColor = if (isDark) MaterialTheme.colorScheme.onBackground else Color.White
 
     LaunchedEffect(Unit) { viewModel.loadAddresses() }
 
     Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Mis Direcciones", fontWeight = FontWeight.Bold) },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Atrás")
-                    }
-                }
-            )
-        },
+        containerColor = MaterialTheme.colorScheme.background,
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         floatingActionButton = {
             FloatingActionButton(
                 onClick = onAddAddress,
-                containerColor = MaterialTheme.colorScheme.primary
+                containerColor = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.navigationBarsPadding()
             ) {
                 Icon(Icons.Default.Add, contentDescription = "Agregar dirección")
             }
         }
     ) { padding ->
-        Box(modifier = Modifier.fillMaxSize().padding(padding)) {
-            when {
-                listState is AddressListState.Loading -> {
-                    CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
-                }
-                addresses.isEmpty() && listState !is AddressListState.Loading -> {
-                    EmptyAddressesContent(onAddAddress = onAddAddress)
-                }
-                else -> {
-                    LazyColumn(
-                        modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(10.dp)
-                    ) {
-                        items(addresses, key = { it.id }) { address ->
-                            AddressCard(
-                                address = address,
-                                onEdit = { onEditAddress(address) },
-                                onDelete = { addressToDelete = address },
-                                onSetDefault = {
-                                    viewModel.updateAddress(address.id, isDefault = true)
-                                }
+        Box(modifier = Modifier.fillMaxSize()) {
+            // Gradiente superior profundo
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(260.dp)
+                    .background(
+                        Brush.verticalGradient(
+                            listOf(
+                                MaterialTheme.colorScheme.primary.copy(alpha = 0.8f),
+                                Color.Transparent
                             )
+                        )
+                    )
+            )
+
+            Column(modifier = Modifier.fillMaxSize()) {
+                // TopAppBar manual con padding de status bar
+                TopAppBar(
+                    title = { Text("Mis Direcciones", fontWeight = FontWeight.Bold, color = contentColor) },
+                    navigationIcon = {
+                        IconButton(onClick = onNavigateBack) {
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Atrás", tint = contentColor)
                         }
-                        item { Spacer(Modifier.height(80.dp)) }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
+                    windowInsets = WindowInsets.statusBars
+                )
+
+                Box(modifier = Modifier.fillMaxSize()) {
+                    when {
+                        listState is AddressListState.Loading -> {
+                            CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+                        }
+                        addresses.isEmpty() && listState !is AddressListState.Loading -> {
+                            EmptyAddressesContent(onAddAddress = onAddAddress)
+                        }
+                        else -> {
+                            LazyColumn(
+                                modifier = Modifier.fillMaxSize(),
+                                contentPadding = PaddingValues(16.dp),
+                                verticalArrangement = Arrangement.spacedBy(10.dp)
+                            ) {
+                                items(addresses, key = { it.id }) { address ->
+                                    AddressCard(
+                                        address = address,
+                                        onEdit = { onEditAddress(address) },
+                                        onDelete = { addressToDelete = address },
+                                        onSetDefault = {
+                                            viewModel.updateAddress(address.id, isDefault = true)
+                                        }
+                                    )
+                                }
+                                // Espacio para la barra de navegación y el FAB
+                                item { Spacer(Modifier.navigationBarsPadding().height(80.dp)) }
+                            }
+                        }
                     }
                 }
             }

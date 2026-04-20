@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
@@ -28,6 +29,7 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.DeleteSweep
 import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Person
@@ -63,6 +65,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.christelldev.easyreferplus.R
 import com.christelldev.easyreferplus.ui.theme.DesignConstants
@@ -96,15 +99,12 @@ fun LoginScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
-            .windowInsetsPadding(WindowInsets.statusBars)
-            .windowInsetsPadding(WindowInsets.navigationBars)
-            .imePadding()
     ) {
-        // Fondo con gradiente sutil superior
+        // Fondo con gradiente profundo que ocupa toda la parte superior incluyendo status bar
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(300.dp)
+                .height(400.dp)
                 .background(
                     brush = Brush.verticalGradient(
                         colors = listOf(
@@ -119,38 +119,41 @@ fun LoginScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(24.dp)
+                .windowInsetsPadding(WindowInsets.statusBars)
+                .imePadding()
+                .padding(horizontal = 24.dp)
                 .verticalScroll(rememberScrollState()),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Top
         ) {
-            Spacer(modifier = Modifier.height(48.dp))
+            Spacer(modifier = Modifier.height(60.dp))
 
             // Logo/Icono elegante y moderno
             Surface(
-                modifier = Modifier.size(90.dp),
-                shape = RoundedCornerShape(24.dp),
+                modifier = Modifier.size(100.dp),
+                shape = RoundedCornerShape(28.dp),
                 color = MaterialTheme.colorScheme.primaryContainer,
                 tonalElevation = 8.dp,
-                shadowElevation = 4.dp
+                shadowElevation = 12.dp
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Text(
                         text = "ER",
-                        style = MaterialTheme.typography.headlineLarge,
+                        style = MaterialTheme.typography.displaySmall,
                         color = MaterialTheme.colorScheme.primary,
-                        fontWeight = FontWeight.ExtraBold
+                        fontWeight = FontWeight.Black
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(32.dp))
 
             Text(
                 text = stringResource(R.string.welcome_title),
                 style = MaterialTheme.typography.headlineLarge,
                 color = if (isSystemInDarkTheme()) MaterialTheme.colorScheme.onBackground else Color.White,
-                fontWeight = FontWeight.ExtraBold
+                fontWeight = FontWeight.ExtraBold,
+                textAlign = TextAlign.Center
             )
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -159,32 +162,32 @@ fun LoginScreen(
                 text = stringResource(R.string.app_subtitle),
                 style = MaterialTheme.typography.bodyLarge,
                 color = if (isSystemInDarkTheme()) MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f) else Color.White.copy(alpha = 0.9f),
-                fontWeight = FontWeight.Medium
+                fontWeight = FontWeight.Medium,
+                textAlign = TextAlign.Center
             )
 
-            Spacer(modifier = Modifier.height(40.dp))
+            Spacer(modifier = Modifier.height(48.dp))
 
             // Card del formulario
             Surface(
-                modifier = Modifier
-                    .fillMaxWidth(),
-                shape = RoundedCornerShape(DesignConstants.CARD_CORNER_RADIUS),
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(32.dp),
                 color = MaterialTheme.colorScheme.surface,
                 tonalElevation = 2.dp,
-                shadowElevation = 8.dp
+                shadowElevation = 16.dp
             ) {
                 Column(
-                    modifier = Modifier.padding(24.dp),
+                    modifier = Modifier.padding(28.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(
                         text = "Acceso a tu cuenta",
                         style = MaterialTheme.typography.titleLarge,
                         color = MaterialTheme.colorScheme.onSurface,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.Black
                     )
 
-                    Spacer(modifier = Modifier.height(24.dp))
+                    Spacer(modifier = Modifier.height(32.dp))
 
                     PhoneTextField(
                         value = uiState.phone,
@@ -194,7 +197,7 @@ fun LoginScreen(
                         modifier = Modifier.fillMaxWidth()
                     )
 
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(20.dp))
 
                     PasswordTextField(
                         value = uiState.password,
@@ -212,7 +215,7 @@ fun LoginScreen(
                         )
                     )
 
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(12.dp))
 
                     Row(
                         modifier = Modifier
@@ -225,23 +228,24 @@ fun LoginScreen(
                             text = stringResource(R.string.forgot_password),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.primary,
-                            fontWeight = FontWeight.SemiBold
+                            fontWeight = FontWeight.Bold
                         )
                     }
 
-                    Spacer(modifier = Modifier.height(24.dp))
+                    Spacer(modifier = Modifier.height(32.dp))
 
                     Button(
                         onClick = viewModel::login,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(56.dp),
+                            .height(60.dp),
                         enabled = !uiState.isLoading,
-                        shape = RoundedCornerShape(DesignConstants.BUTTON_CORNER_RADIUS),
+                        shape = RoundedCornerShape(18.dp),
                         colors = ButtonDefaults.buttonColors(
                             containerColor = MaterialTheme.colorScheme.primary,
                             contentColor = MaterialTheme.colorScheme.onPrimary
-                        )
+                        ),
+                        elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp)
                     ) {
                         if (uiState.isLoading) {
                             CircularProgressIndicator(
@@ -253,21 +257,21 @@ fun LoginScreen(
                             Text(
                                 text = stringResource(R.string.login_title),
                                 style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold
+                                fontWeight = FontWeight.Black
                             )
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(20.dp))
 
-                    // Botón de Registrarse - Diferenciado como secundario (Outlined)
+                    // Botón de Registrarse
                     OutlinedButton(
                         onClick = onNavigateToRegister,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(56.dp),
+                            .height(60.dp),
                         enabled = !uiState.isLoading,
-                        shape = RoundedCornerShape(DesignConstants.BUTTON_CORNER_RADIUS),
+                        shape = RoundedCornerShape(18.dp),
                         border = ButtonDefaults.outlinedButtonBorder(enabled = !uiState.isLoading)
                     ) {
                         Text(
@@ -277,12 +281,12 @@ fun LoginScreen(
                             fontWeight = FontWeight.Bold
                         )
                     }
-
-                    Spacer(modifier = Modifier.height(16.dp))
                 }
             }
 
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(48.dp))
+            // Espacio para la barra de navegación al final
+            Spacer(modifier = Modifier.navigationBarsPadding())
         }
 
         SnackbarHost(

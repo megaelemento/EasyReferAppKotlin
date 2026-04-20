@@ -74,20 +74,27 @@ fun MisVentasScreen(
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
-        containerColor = MaterialTheme.colorScheme.background
+        containerColor = MaterialTheme.colorScheme.background,
+        contentWindowInsets = WindowInsets(0, 0, 0, 0)
     ) { padding ->
-        Box(modifier = Modifier.fillMaxSize().padding(padding)) {
+        Box(modifier = Modifier.fillMaxSize()) {
+            // Gradiente superior profundo que ocupa toda la parte superior incluyendo status bar
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(200.dp)
+                    .height(260.dp)
                     .background(
                         Brush.verticalGradient(
-                            listOf(MaterialTheme.colorScheme.primary.copy(alpha = 0.8f), Color.Transparent)
+                            listOf(
+                                MaterialTheme.colorScheme.primary.copy(alpha = 0.8f),
+                                Color.Transparent
+                            )
                         )
                     )
             )
+
             Column(modifier = Modifier.fillMaxSize()) {
+                // TopAppBar manual con padding de status bar
                 TopAppBar(
                     title = { Text("Mis Ventas", fontWeight = FontWeight.Bold, color = contentTint) },
                     navigationIcon = {
@@ -109,72 +116,111 @@ fun MisVentasScreen(
                             Icon(Icons.Default.Refresh, "Actualizar", tint = contentTint)
                         }
                     },
-                    colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
+                    colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
+                    windowInsets = WindowInsets.statusBars
                 )
 
-                // Filtros
-                StoreFilterRow(selected = selectedFilter, onSelect = { selectedFilter = if (it == selectedFilter) null else it })
+                // Filtros (con padding lateral para consistencia)
+                Box(modifier = Modifier.padding(horizontal = 16.dp)) {
+                    StoreFilterRow(
+                        selected = selectedFilter,
+                        onSelect = { selectedFilter = if (it == selectedFilter) null else it }
+                    )
+                }
 
                 when (val s = state) {
-                is StoreOrdersState.Loading -> {
-                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator()
-                    }
-                }
-                is StoreOrdersState.Error -> {
-                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(24.dp)) {
-                            Icon(Icons.Default.ErrorOutline, null, tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(48.dp))
-                            Spacer(Modifier.height(8.dp))
-                            Text(s.message, textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.error)
-                            Spacer(Modifier.height(16.dp))
-                            Button(onClick = { viewModel.load(selectedFilter) }) { Text("Reintentar") }
+                    is StoreOrdersState.Loading -> {
+                        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            CircularProgressIndicator()
                         }
                     }
-                }
-                is StoreOrdersState.Success -> {
-                    if (s.orders.isEmpty()) {
+                    is StoreOrdersState.Error -> {
                         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                            Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(24.dp)) {
-                                Icon(Icons.Default.Storefront, null, tint = MaterialTheme.colorScheme.outline, modifier = Modifier.size(56.dp))
-                                Spacer(Modifier.height(12.dp))
-                                Text("No hay pedidos", fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
-                                Text("Los pedidos de tu establecimiento aparecerán aquí", textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp)
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                modifier = Modifier.padding(24.dp)
+                            ) {
+                                Icon(
+                                    Icons.Default.ErrorOutline, null,
+                                    tint = MaterialTheme.colorScheme.error,
+                                    modifier = Modifier.size(48.dp)
+                                )
+                                Spacer(Modifier.height(8.dp))
+                                Text(
+                                    s.message,
+                                    textAlign = TextAlign.Center,
+                                    color = MaterialTheme.colorScheme.error
+                                )
+                                Spacer(Modifier.height(16.dp))
+                                Button(onClick = { viewModel.load(selectedFilter) }) { Text("Reintentar") }
                             }
                         }
-                    } else {
-                        Text(
-                            "${s.total} pedido(s) en total",
-                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        LazyColumn(
-                            contentPadding = PaddingValues(16.dp),
-                            verticalArrangement = Arrangement.spacedBy(12.dp)
-                        ) {
-                            items(s.orders, key = { it.id }) { order ->
-                                StoreOrderCard(
-                                    order = order,
-                                    expanded = expandedOrderId == order.id,
-                                    onToggle = {
-                                        expandedOrderId = if (expandedOrderId == order.id) null else order.id
-                                    },
-                                    onMarkReady = {
-                                        viewModel.markOrderReady(order.id,
-                                            onSuccess = { viewModel.load(selectedFilter) },
-                                            onError = { msg ->
-                                                scope.launch { snackbarHostState.showSnackbar(msg) }
+                    }
+                    is StoreOrdersState.Success -> {
+                        if (s.orders.isEmpty()) {
+                            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    modifier = Modifier.padding(24.dp)
+                                ) {
+                                    Icon(
+                                        Icons.Default.Storefront, null,
+                                        tint = MaterialTheme.colorScheme.outline,
+                                        modifier = Modifier.size(56.dp)
+                                    )
+                                    Spacer(Modifier.height(12.dp))
+                                    Text(
+                                        "No hay pedidos",
+                                        fontWeight = FontWeight.SemiBold,
+                                        fontSize = 16.sp
+                                    )
+                                    Text(
+                                        "Los pedidos de tu establecimiento aparecerán aquí",
+                                        textAlign = TextAlign.Center,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        fontSize = 13.sp
+                                    )
+                                }
+                            }
+                        } else {
+                            Column(modifier = Modifier.fillMaxSize()) {
+                                Text(
+                                    "${s.total} pedido(s) en total",
+                                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                LazyColumn(
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentPadding = PaddingValues(16.dp),
+                                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                                ) {
+                                    items(s.orders, key = { it.id }) { order ->
+                                        StoreOrderCard(
+                                            order = order,
+                                            expanded = expandedOrderId == order.id,
+                                            onToggle = {
+                                                expandedOrderId =
+                                                    if (expandedOrderId == order.id) null else order.id
+                                            },
+                                            onMarkReady = {
+                                                viewModel.markOrderReady(order.id,
+                                                    onSuccess = { viewModel.load(selectedFilter) },
+                                                    onError = { msg ->
+                                                        scope.launch { snackbarHostState.showSnackbar(msg) }
+                                                    }
+                                                )
                                             }
                                         )
                                     }
-                                )
+                                    // Espacio para la barra de navegación al final de la lista
+                                    item { Spacer(modifier = Modifier.navigationBarsPadding()) }
+                                }
                             }
                         }
                     }
+                    else -> {}
                 }
-                else -> {}
-            }
             }
         }
     }

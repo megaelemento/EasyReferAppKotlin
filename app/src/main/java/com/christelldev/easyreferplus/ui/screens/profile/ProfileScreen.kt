@@ -137,17 +137,27 @@ fun ProfileScreen(
     }
 
     Scaffold(
-        containerColor = MaterialTheme.colorScheme.background
+        containerColor = MaterialTheme.colorScheme.background,
+        contentWindowInsets = WindowInsets(0, 0, 0, 0)
     ) { paddingValues ->
-        Box(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
-            // Gradiente superior sutil
+        Box(modifier = Modifier.fillMaxSize()) {
+            // Gradiente superior profundo que ocupa toda la parte superior incluyendo status bar
             Box(
-                modifier = Modifier.fillMaxWidth().height(200.dp)
-                    .background(Brush.verticalGradient(listOf(MaterialTheme.colorScheme.primary.copy(alpha = 0.8f), Color.Transparent)))
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(260.dp)
+                    .background(
+                        Brush.verticalGradient(
+                            listOf(
+                                MaterialTheme.colorScheme.primary.copy(alpha = 0.8f),
+                                Color.Transparent
+                            )
+                        )
+                    )
             )
 
             Column(modifier = Modifier.fillMaxSize()) {
-                // Cabecera Premium
+                // Cabecera Premium con insets de status bar
                 TopAppBar(
                     title = {
                         Text(
@@ -158,7 +168,11 @@ fun ProfileScreen(
                     },
                     navigationIcon = {
                         IconButton(onClick = onBack) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = if (isDark) MaterialTheme.colorScheme.onBackground else Color.White)
+                            Icon(
+                                Icons.AutoMirrored.Filled.ArrowBack,
+                                null,
+                                tint = if (isDark) MaterialTheme.colorScheme.onBackground else Color.White
+                            )
                         }
                     },
                     actions = {
@@ -170,7 +184,8 @@ fun ProfileScreen(
                             )
                         }
                     },
-                    colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
+                    colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
+                    windowInsets = WindowInsets.statusBars
                 )
 
                 if (uiState.isLoading) {
@@ -179,11 +194,13 @@ fun ProfileScreen(
                     }
                 } else {
                     Column(
-                        modifier = Modifier.fillMaxSize().padding(horizontal = 24.dp).verticalScroll(scrollState).imePadding(),
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(horizontal = 24.dp)
+                            .verticalScroll(scrollState)
+                            .imePadding(),
                         verticalArrangement = Arrangement.spacedBy(20.dp)
                     ) {
-                        Spacer(modifier = Modifier.height(8.dp))
-
                         // AVATAR SECTION
                         ProfileHeaderPremium(
                             nombres = uiState.nombres,
@@ -243,15 +260,24 @@ fun ProfileScreen(
 
                             // SAVED ADDRESSES
                             Surface(
-                                modifier = Modifier.fillMaxWidth().clickable { onNavigateToSavedAddresses() },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable { onNavigateToSavedAddresses() },
                                 shape = RoundedCornerShape(20.dp),
                                 color = MaterialTheme.colorScheme.surface,
                                 tonalElevation = 2.dp
                             ) {
-                                Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                                Row(
+                                    modifier = Modifier.padding(16.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
                                     Icon(Icons.Default.Place, null, tint = MaterialTheme.colorScheme.primary)
                                     Spacer(modifier = Modifier.width(16.dp))
-                                    Text("Mis Direcciones", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium)
+                                    Text(
+                                        "Mis Direcciones",
+                                        fontWeight = FontWeight.Bold,
+                                        style = MaterialTheme.typography.bodyMedium
+                                    )
                                     Spacer(modifier = Modifier.weight(1f))
                                     Icon(Icons.Default.ChevronRight, null, tint = MaterialTheme.colorScheme.outline)
                                 }
@@ -259,26 +285,37 @@ fun ProfileScreen(
 
                             // SECURITY ACTIONS
                             Surface(
-                                modifier = Modifier.fillMaxWidth().clickable { onNavigateToSessions() },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable { onNavigateToSessions() },
                                 shape = RoundedCornerShape(20.dp),
                                 color = MaterialTheme.colorScheme.surface,
                                 tonalElevation = 2.dp
                             ) {
-                                Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                                Row(
+                                    modifier = Modifier.padding(16.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
                                     Icon(Icons.Default.Security, null, tint = MaterialTheme.colorScheme.primary)
                                     Spacer(modifier = Modifier.width(16.dp))
-                                    Text("Gestión de Sesiones", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium)
+                                    Text(
+                                        "Gestión de Sesiones",
+                                        fontWeight = FontWeight.Bold,
+                                        style = MaterialTheme.typography.bodyMedium
+                                    )
                                     Spacer(modifier = Modifier.weight(1f))
                                     Icon(Icons.Default.ChevronRight, null, tint = MaterialTheme.colorScheme.outline)
                                 }
                             }
 
-                            TextButton(onClick = onLogout, modifier = Modifier.fillMaxWidth().padding(bottom = 32.dp)) {
+                            TextButton(onClick = onLogout, modifier = Modifier.fillMaxWidth()) {
                                 Icon(Icons.AutoMirrored.Filled.Logout, null, tint = MaterialTheme.colorScheme.error)
                                 Spacer(modifier = Modifier.width(12.dp))
                                 Text("Cerrar Sesión", color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.Bold)
                             }
                         }
+                        // Espacio para la barra de navegación
+                        Spacer(modifier = Modifier.navigationBarsPadding().padding(bottom = 24.dp))
                     }
                 }
             }
@@ -363,6 +400,12 @@ fun ProfileInfoSectionPremium(icon: ImageVector, title: String, items: List<Prof
 
 @Composable
 fun PhoneSectionPremium(phone: String, isVerified: Boolean, onChangePhone: () -> Unit) {
+    val displayPhone = if (phone.startsWith("+593")) {
+        "0" + phone.removePrefix("+593")
+    } else {
+        phone
+    }
+
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(24.dp),
@@ -381,7 +424,7 @@ fun PhoneSectionPremium(phone: String, isVerified: Boolean, onChangePhone: () ->
             Spacer(modifier = Modifier.height(16.dp))
             Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
                 Column {
-                    Text(phone, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Black)
+                    Text(displayPhone, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Black)
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         val color = if (isVerified) Color(0xFF10B981) else Color(0xFFFF9800)
                         Icon(if (isVerified) Icons.Default.CheckCircle else Icons.Default.Warning, null, tint = color, modifier = Modifier.size(14.dp))
@@ -398,44 +441,143 @@ fun PhoneSectionPremium(phone: String, isVerified: Boolean, onChangePhone: () ->
 }
 
 @Composable
-fun ChangePhoneDialogPremium(phone: String, newPhone: String, onNewPhoneChange: (String) -> Unit, verificationCode: String, onCodeChange: (String) -> Unit, codeSent: Boolean, isSendingCode: Boolean, isVerifyingCode: Boolean, resendTimer: Int, onSendCode: () -> Unit, onResendCode: () -> Unit, onConfirm: () -> Unit, onDismiss: () -> Unit, errorMessage: String?) {
+fun ChangePhoneDialogPremium(
+    phone: String?, newPhone: String, onNewPhoneChange: (String) -> Unit,
+    verificationCode: String, onCodeChange: (String) -> Unit,
+    codeSent: Boolean, isSendingCode: Boolean, isVerifyingCode: Boolean,
+    resendTimer: Int, onSendCode: () -> Unit, onResendCode: () -> Unit,
+    onConfirm: () -> Unit, onDismiss: () -> Unit, errorMessage: String?
+) {
+    val displayNewPhone = if (newPhone.startsWith("+593")) {
+        "0" + newPhone.removePrefix("+593")
+    } else {
+        newPhone
+    }
+
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(if (codeSent) "Verificar Número" else "Nuevo Teléfono", fontWeight = FontWeight.Black) },
+        title = {
+            Text(
+                if (codeSent) "Verificar Número" else "Cambiar Teléfono",
+                fontWeight = FontWeight.Black,
+                style = MaterialTheme.typography.titleLarge
+            )
+        },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 if (!codeSent) {
-                    Text("Ingresa tu número en formato local (Ej: 0987654321)", style = MaterialTheme.typography.bodySmall)
+                    Text(
+                        "Ingresa tu número en formato local (Ej: 0956674789). El sistema lo convertirá automáticamente.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                     OutlinedTextField(
-                        value = newPhone, onValueChange = { onNewPhoneChange(it.filter { c -> c.isDigit() }.take(10)) },
-                        label = { Text("Número de teléfono") }, placeholder = { Text("09XXXXXXXX") },
-                        modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp),
+                        value = displayNewPhone,
+                        onValueChange = { onNewPhoneChange(it.filter { c -> c.isDigit() }.take(10)) },
+                        label = { Text("Número de teléfono") },
+                        placeholder = { Text("Ej: 0956674789") },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(16.dp),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone, imeAction = ImeAction.Send),
-                        colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = MaterialTheme.colorScheme.primary),
-                        leadingIcon = { Icon(Icons.Default.Phone, null, tint = MaterialTheme.colorScheme.primary) }
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = MaterialTheme.colorScheme.primary,
+                            unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
+                        ),
+                        leadingIcon = { Icon(Icons.Default.Phone, null, tint = MaterialTheme.colorScheme.primary) },
+                        singleLine = true
                     )
                 } else {
-                    Text("Código enviado al $newPhone", style = MaterialTheme.typography.bodySmall)
-                    OutlinedTextField(
-                        value = verificationCode, onValueChange = { onCodeChange(it.filter { c -> c.isDigit() }.take(6)) },
-                        label = { Text("Código OTP") }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp),
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Done),
-                        colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = MaterialTheme.colorScheme.primary)
+                    Text(
+                        "Hemos enviado un código de 6 dígitos al número:",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-                    if (resendTimer > 0) Text("Reenviar en ${resendTimer}s", style = MaterialTheme.typography.labelSmall, modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center)
-                    else TextButton(onClick = onResendCode, modifier = Modifier.align(Alignment.CenterHorizontally)) { Text("Reenviar código") }
+                    Text(
+                        displayNewPhone,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.fillMaxWidth(),
+                        textAlign = TextAlign.Center
+                    )
+                    OutlinedTextField(
+                        value = verificationCode,
+                        onValueChange = { onCodeChange(it.filter { c -> c.isDigit() }.take(6)) },
+                        label = { Text("Código OTP") },
+                        placeholder = { Text("XXXXXX") },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(16.dp),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Done),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = MaterialTheme.colorScheme.primary
+                        ),
+                        textStyle = MaterialTheme.typography.headlineSmall.copy(
+                            fontWeight = FontWeight.Black,
+                            letterSpacing = 4.sp,
+                            textAlign = TextAlign.Center
+                        )
+                    )
+                    if (resendTimer > 0) {
+                        Text(
+                            "Reenviar código en ${resendTimer}s",
+                            style = MaterialTheme.typography.labelSmall,
+                            modifier = Modifier.fillMaxWidth(),
+                            textAlign = TextAlign.Center,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    } else {
+                        TextButton(
+                            onClick = onResendCode,
+                            modifier = Modifier.align(Alignment.CenterHorizontally)
+                        ) {
+                            Text("Reenviar nuevo código", fontWeight = FontWeight.Bold)
+                        }
+                    }
                 }
-                if (!errorMessage.isNullOrBlank()) Text(errorMessage, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold)
-                if (isSendingCode || isVerifyingCode) LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                
+                if (!errorMessage.isNullOrBlank()) {
+                    Surface(
+                        color = MaterialTheme.colorScheme.errorContainer,
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            errorMessage,
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.bodySmall,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(12.dp),
+                            textAlign = TextAlign.Center
+                        )
+                    }
+                }
+                
+                if (isSendingCode || isVerifyingCode) {
+                    LinearProgressIndicator(
+                        modifier = Modifier.fillMaxWidth().clip(CircleShape),
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
             }
         },
         confirmButton = {
-            Button(onClick = if (codeSent) onConfirm else onSendCode, enabled = if (codeSent) verificationCode.length >= 4 else newPhone.length == 10, shape = RoundedCornerShape(12.dp)) {
+            Button(
+                onClick = if (codeSent) onConfirm else onSendCode,
+                enabled = if (codeSent) verificationCode.length == 6 else newPhone.length == 10,
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier.height(48.dp)
+            ) {
                 Text(if (codeSent) "Verificar" else "Enviar Código", fontWeight = FontWeight.Bold)
             }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancelar") } },
-        shape = RoundedCornerShape(28.dp)
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancelar", fontWeight = FontWeight.SemiBold)
+            }
+        },
+        shape = RoundedCornerShape(28.dp),
+        containerColor = MaterialTheme.colorScheme.surface,
+        tonalElevation = 6.dp
     )
 }
 

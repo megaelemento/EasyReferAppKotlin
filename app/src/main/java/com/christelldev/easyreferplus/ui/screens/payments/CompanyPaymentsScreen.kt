@@ -142,47 +142,106 @@ fun CompanyPaymentsScreen(
     }
 
     Scaffold(
-        containerColor = if (isDark) DesignConstants.BackgroundDark else DesignConstants.BackgroundLight,
+        containerColor = MaterialTheme.colorScheme.background,
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { paddingValues ->
         Box(modifier = Modifier.fillMaxSize()) {
-            // Header con Gradiente
+            // Gradiente superior profundo que ocupa toda la parte superior incluyendo status bar
             Box(
-                modifier = Modifier.fillMaxWidth().height(240.dp)
-                    .background(brush = Brush.verticalGradient(
-                        colors = if (isDark) listOf(DesignConstants.PrimaryDark.copy(alpha = 0.6f), Color.Transparent)
-                        else DesignConstants.GradientPrimary
-                    ))
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(260.dp)
+                    .background(
+                        Brush.verticalGradient(
+                            listOf(
+                                MaterialTheme.colorScheme.primary.copy(alpha = 0.8f),
+                                Color.Transparent
+                            )
+                        )
+                    )
             )
 
-            Column(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
-                Spacer(modifier = Modifier.height(60.dp))
+            val contentColor = if (isDark) MaterialTheme.colorScheme.onBackground else Color.White
+
+            Column(modifier = Modifier.fillMaxSize()) {
+                // TopAppBar manual con padding de status bar
+                TopAppBar(
+                    title = {
+                        Text(
+                            text = "Pago de Comisiones",
+                            fontWeight = FontWeight.ExtraBold,
+                            color = contentColor
+                        )
+                    },
+                    navigationIcon = {
+                        IconButton(onClick = onBack) {
+                            Icon(
+                                Icons.AutoMirrored.Filled.ArrowBack,
+                                null,
+                                tint = contentColor
+                            )
+                        }
+                    },
+                    actions = {
+                        IconButton(onClick = onRefresh) {
+                            Icon(
+                                Icons.Default.Refresh,
+                                null,
+                                tint = contentColor
+                            )
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
+                    windowInsets = WindowInsets.statusBars
+                )
 
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(horizontal = DesignConstants.CARD_MARGIN_HORIZONTAL, vertical = 16.dp),
+                    contentPadding = PaddingValues(horizontal = 24.dp, vertical = 16.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     // Resumen de Empresa y Deuda
                     item {
                         Surface(
                             modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(DesignConstants.CARD_CORNER_RADIUS),
-                            color = if (isDark) DesignConstants.SurfaceCardDark else Color.White,
-                            tonalElevation = 8.dp,
-                            shadowElevation = 12.dp
+                            shape = RoundedCornerShape(20.dp),
+                            color = MaterialTheme.colorScheme.surface,
+                            tonalElevation = 4.dp,
+                            shadowElevation = 8.dp
                         ) {
                             Row(modifier = Modifier.padding(24.dp), verticalAlignment = Alignment.CenterVertically) {
-                                Surface(modifier = Modifier.size(56.dp), shape = CircleShape, color = DesignConstants.PrimaryColor.copy(alpha = 0.1f)) {
-                                    Box(contentAlignment = Alignment.Center) { Icon(Icons.Default.Business, null, tint = DesignConstants.PrimaryColor) }
+                                Surface(
+                                    modifier = Modifier.size(56.dp),
+                                    shape = CircleShape,
+                                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
+                                ) {
+                                    Box(contentAlignment = Alignment.Center) {
+                                        Icon(Icons.Default.Business, null, tint = MaterialTheme.colorScheme.primary)
+                                    }
                                 }
                                 Spacer(modifier = Modifier.width(16.dp))
                                 Column(modifier = Modifier.weight(1f)) {
-                                    Text(companyName, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                                    Text("Deuda de Comisiones", style = MaterialTheme.typography.labelSmall, color = DesignConstants.TextSecondary)
+                                    Text(
+                                        companyName,
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.ExtraBold,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                    Text(
+                                        "Deuda de Comisiones",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
                                 }
                                 Column(horizontalAlignment = Alignment.End) {
-                                    Text("$${String.format(Locale.US, "%.2f", pendingAmount)}", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Black, color = DesignConstants.ErrorColor)
+                                    Text(
+                                        "$${String.format(Locale.US, "%.2f", pendingAmount)}",
+                                        style = MaterialTheme.typography.titleLarge,
+                                        fontWeight = FontWeight.Black,
+                                        color = MaterialTheme.colorScheme.error
+                                    )
                                 }
                             }
                         }
@@ -197,16 +256,16 @@ fun CompanyPaymentsScreen(
                         item {
                             Surface(
                                 modifier = Modifier.fillMaxWidth(),
-                                shape = RoundedCornerShape(DesignConstants.CARD_CORNER_RADIUS),
-                                color = if (isDark) DesignConstants.SurfaceCardDark else Color.White,
-                                tonalElevation = 4.dp
+                                shape = RoundedCornerShape(20.dp),
+                                color = MaterialTheme.colorScheme.surface,
+                                tonalElevation = 2.dp
                             ) {
                                 Column(modifier = Modifier.padding(32.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                                     Icon(Icons.Default.CheckCircle, null, modifier = Modifier.size(48.dp), tint = DesignConstants.SuccessColor)
                                     Spacer(modifier = Modifier.height(16.dp))
                                     Text("Sin comisiones pendientes", fontWeight = FontWeight.Black, style = MaterialTheme.typography.titleMedium, textAlign = TextAlign.Center)
                                     Spacer(modifier = Modifier.height(8.dp))
-                                    Text("Esta empresa no tiene deuda de comisiones por el momento.", style = MaterialTheme.typography.bodySmall, color = DesignConstants.TextSecondary, textAlign = TextAlign.Center)
+                                    Text("Esta empresa no tiene deuda de comisiones por el momento.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center)
                                 }
                             }
                         }
@@ -214,30 +273,30 @@ fun CompanyPaymentsScreen(
                         item {
                             Surface(
                                 modifier = Modifier.fillMaxWidth(),
-                                shape = RoundedCornerShape(DesignConstants.CARD_CORNER_RADIUS),
-                                color = if (isDark) DesignConstants.SurfaceCardDark else Color.White,
-                                tonalElevation = 4.dp
+                                shape = RoundedCornerShape(20.dp),
+                                color = MaterialTheme.colorScheme.surface,
+                                tonalElevation = 2.dp
                             ) {
                                 Column(modifier = Modifier.padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                                     // Campo de Monto Protagonista
-                                    Text("Monto Transferido", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, color = DesignConstants.TextSecondary)
+                                    Text("Monto Transferido", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                     OutlinedTextField(
                                         value = amountTextFieldValue,
                                         onValueChange = onAmountChanged,
-                                        textStyle = MaterialTheme.typography.displayMedium.copy(textAlign = TextAlign.Center, fontWeight = FontWeight.Black, color = DesignConstants.PrimaryColor),
+                                        textStyle = MaterialTheme.typography.displayMedium.copy(textAlign = TextAlign.Center, fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.primary),
                                         modifier = Modifier.fillMaxWidth(),
-                                        prefix = { Text("$", style = MaterialTheme.typography.displaySmall, fontWeight = FontWeight.Bold, color = DesignConstants.PrimaryColor) },
-                                        colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = Color.Transparent, unfocusedBorderColor = Color.Transparent, cursorColor = DesignConstants.PrimaryColor),
+                                        prefix = { Text("$", style = MaterialTheme.typography.displaySmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary) },
+                                        colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = Color.Transparent, unfocusedBorderColor = Color.Transparent, cursorColor = MaterialTheme.colorScheme.primary),
                                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
                                     )
-                                    Box(modifier = Modifier.width(180.dp).height(2.dp).background(DesignConstants.PrimaryColor.copy(alpha = 0.2f)))
+                                    Box(modifier = Modifier.width(180.dp).height(2.dp).background(MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)))
 
                                     val finalAmount = amountTextFieldValue.text.toDoubleOrNull() ?: 0.0
                                     if (finalAmount > pendingAmount) {
                                         Spacer(modifier = Modifier.height(8.dp))
                                         Text(
                                             "El monto no puede superar $${String.format(Locale.US, "%.2f", pendingAmount)}",
-                                            color = DesignConstants.ErrorColor,
+                                            color = MaterialTheme.colorScheme.error,
                                             style = MaterialTheme.typography.labelSmall,
                                             textAlign = TextAlign.Center
                                         )
@@ -260,7 +319,7 @@ fun CompanyPaymentsScreen(
                                         onClick = { onRegisterPayment(documentNumber, bankName, finalAmount, notes.ifBlank { null }) },
                                         modifier = Modifier.fillMaxWidth().height(56.dp),
                                         shape = RoundedCornerShape(DesignConstants.BUTTON_CORNER_RADIUS),
-                                        colors = ButtonDefaults.buttonColors(containerColor = DesignConstants.PrimaryColor),
+                                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                                         enabled = canSubmit
                                     ) {
                                         if (isRegistering) CircularProgressIndicator(modifier = Modifier.size(24.dp), color = Color.White, strokeWidth = 2.dp)
@@ -279,18 +338,18 @@ fun CompanyPaymentsScreen(
                     item { ElegantSectionHeader("Historial Reciente", isDark) }
 
                     if (isLoading) {
-                        item { Box(modifier = Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) { CircularProgressIndicator(color = DesignConstants.PrimaryColor) } }
+                        item { Box(modifier = Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) { CircularProgressIndicator(color = MaterialTheme.colorScheme.primary) } }
                     } else if (payments.isEmpty()) {
                         item {
                             Surface(
                                 modifier = Modifier.fillMaxWidth(),
-                                shape = RoundedCornerShape(DesignConstants.CARD_CORNER_RADIUS),
-                                color = if (isDark) DesignConstants.SurfaceCardDark.copy(alpha = 0.5f) else Color.White.copy(alpha = 0.5f)
+                                shape = RoundedCornerShape(20.dp),
+                                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
                             ) {
                                 Column(modifier = Modifier.padding(40.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                                    Icon(Icons.AutoMirrored.Filled.ReceiptLong, null, modifier = Modifier.size(48.dp), tint = DesignConstants.TextSecondary.copy(alpha = 0.5f))
+                                    Icon(Icons.AutoMirrored.Filled.ReceiptLong, null, modifier = Modifier.size(48.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f))
                                     Spacer(modifier = Modifier.height(16.dp))
-                                    Text("Sin pagos registrados", color = DesignConstants.TextSecondary)
+                                    Text("Sin pagos registrados", color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 }
                             }
                         }
@@ -299,22 +358,8 @@ fun CompanyPaymentsScreen(
                             ElegantPaymentItem(payment = payment, isDark = isDark)
                         }
                     }
-                    item { Spacer(modifier = Modifier.height(80.dp)) }
-                }
-            }
-
-            // Top Bar Flotante (Glass Style)
-            Row(
-                modifier = Modifier.fillMaxWidth().statusBarsPadding().padding(horizontal = 16.dp, vertical = 8.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Surface(modifier = Modifier.size(40.dp), shape = CircleShape, color = Color.Black.copy(alpha = 0.3f), onClick = onBack) {
-                    Box(contentAlignment = Alignment.Center) { Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = Color.White, modifier = Modifier.size(20.dp)) }
-                }
-                Text("Pago de Comisiones", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Black, color = Color.White)
-                Surface(modifier = Modifier.size(40.dp), shape = CircleShape, color = Color.Black.copy(alpha = 0.3f), onClick = onRefresh) {
-                    Box(contentAlignment = Alignment.Center) { Icon(Icons.Default.Refresh, null, tint = Color.White, modifier = Modifier.size(20.dp)) }
+                    // Espacio para la barra de navegación
+                    item { Spacer(modifier = Modifier.navigationBarsPadding().height(24.dp)) }
                 }
             }
         }

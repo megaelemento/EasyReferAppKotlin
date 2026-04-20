@@ -23,6 +23,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.border
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -550,12 +551,12 @@ private fun ModernHeader(userName: String, isVerified: Boolean, onMenuClick: () 
         modifier = Modifier
             .fillMaxWidth()
             .background(MaterialTheme.colorScheme.background)
-            .windowInsetsPadding(WindowInsets.statusBars)
     ) {
-        // Gradiente superior sutil
+        // Gradiente superior profundo que cubre la status bar
         Box(
             modifier = Modifier
-                .matchParentSize()
+                .fillMaxWidth()
+                .height(180.dp)
                 .background(
                     brush = Brush.verticalGradient(
                         colors = listOf(
@@ -570,6 +571,7 @@ private fun ModernHeader(userName: String, isVerified: Boolean, onMenuClick: () 
         Row(
             modifier = Modifier
                 .fillMaxWidth()
+                .windowInsetsPadding(WindowInsets.statusBars)
                 .padding(start = 20.dp, end = 20.dp, top = 12.dp, bottom = 12.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
@@ -1134,15 +1136,33 @@ private fun ModernDrawerContent(
     onNavigateToMisCompras: () -> Unit = {},
     onLogout: () -> Unit
 ) {
-    ModalDrawerSheet(modifier = Modifier.width(310.dp), drawerContainerColor = MaterialTheme.colorScheme.surface) {
+    ModalDrawerSheet(
+        modifier = Modifier.width(310.dp),
+        drawerContainerColor = MaterialTheme.colorScheme.surface,
+        windowInsets = WindowInsets(0, 0, 0, 0) // Deshabilitar insets automáticos
+    ) {
         Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
             Box(
-                modifier = Modifier.fillMaxWidth().background(
-                    brush = Brush.verticalGradient(listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.primaryContainer))
-                ).padding(24.dp)
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(
+                        brush = Brush.verticalGradient(
+                            listOf(
+                                MaterialTheme.colorScheme.primary,
+                                MaterialTheme.colorScheme.primaryContainer
+                            )
+                        )
+                    )
+                    .windowInsetsPadding(WindowInsets.statusBars) // Extender gradiente a status bar
+                    .padding(24.dp)
             ) {
                 Column {
-                    Surface(modifier = Modifier.size(72.dp), shape = CircleShape, color = MaterialTheme.colorScheme.surface, tonalElevation = 8.dp) {
+                    Surface(
+                        modifier = Modifier.size(72.dp),
+                        shape = CircleShape,
+                        color = MaterialTheme.colorScheme.surface,
+                        tonalElevation = 8.dp
+                    ) {
                         Box(contentAlignment = Alignment.Center) {
                             if (selfieUrl != null) {
                                 AsyncImage(
@@ -1206,6 +1226,8 @@ private fun ModernDrawerContent(
             )
             DrawerItem(Icons.AutoMirrored.Filled.Logout, "Cerrar Sesión", onLogout, color = MaterialTheme.colorScheme.error)
             Spacer(modifier = Modifier.height(24.dp))
+            // Espacio para la barra de navegación
+            Spacer(modifier = Modifier.navigationBarsPadding())
         }
     }
 }

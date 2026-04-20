@@ -6,20 +6,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.imePadding
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.navigationBarsPadding
-import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -28,32 +15,10 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Error
-import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.Phone
-import androidx.compose.material.icons.filled.Visibility
-import androidx.compose.material.icons.filled.VisibilityOff
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
@@ -80,20 +45,18 @@ fun PasswordResetScreen(
     onBackToLogin: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val isDark = isSystemInDarkTheme()
 
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
-            .statusBarsPadding()
-            .navigationBarsPadding()
-            .imePadding()
     ) {
-        // Fondo con gradiente sutil superior (Consistente con Login/Register)
+        // Fondo con gradiente profundo
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(300.dp)
+                .height(400.dp)
                 .background(
                     brush = Brush.verticalGradient(
                         colors = listOf(
@@ -105,16 +68,18 @@ fun PasswordResetScreen(
                 )
         )
 
+        val contentColor = if (isDark) MaterialTheme.colorScheme.onBackground else Color.White
+
         Column(
             modifier = Modifier.fillMaxSize()
         ) {
-            // TopAppBar Moderno y Elegante
+            // TopAppBar manual con padding de status bar
             TopAppBar(
                 title = {
                     Text(
                         text = stringResource(R.string.reset_password),
-                        color = if (isSystemInDarkTheme()) MaterialTheme.colorScheme.onBackground else Color.White,
-                        fontWeight = FontWeight.ExtraBold
+                        color = contentColor,
+                        fontWeight = FontWeight.Black
                     )
                 },
                 navigationIcon = {
@@ -122,24 +87,26 @@ fun PasswordResetScreen(
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = null,
-                            tint = if (isSystemInDarkTheme()) MaterialTheme.colorScheme.onBackground else Color.White
+                            tint = contentColor
                         )
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = Color.Transparent
-                )
+                ),
+                windowInsets = WindowInsets.statusBars
             )
 
-            // Contenido principal con Scroll y padding consistente
+            // Contenido principal con Scroll
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(24.dp)
-                    .verticalScroll(rememberScrollState()),
+                    .padding(horizontal = 24.dp)
+                    .verticalScroll(rememberScrollState())
+                    .imePadding(),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(24.dp))
 
                 when (uiState.currentStep) {
                     PasswordResetStep.PHONE -> PhoneStep(
@@ -193,7 +160,9 @@ fun PasswordResetScreen(
                     StatusCard(message = success, isError = false)
                 }
                 
-                Spacer(modifier = Modifier.height(32.dp))
+                Spacer(modifier = Modifier.height(48.dp))
+                // Espacio para la barra de navegación
+                Spacer(modifier = Modifier.navigationBarsPadding())
             }
         }
 
@@ -232,7 +201,7 @@ fun PhoneStep(
             Text(
                 text = "Recuperar Acceso",
                 style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.ExtraBold,
+                fontWeight = FontWeight.Black,
                 color = MaterialTheme.colorScheme.onSurface
             )
 
@@ -249,13 +218,11 @@ fun PhoneStep(
             Spacer(modifier = Modifier.height(32.dp))
 
             PhoneTextField(
-                value = phone,
-                onValueChange = onPhoneChange,
-                isError = phoneError != null,
-                errorMessage = phoneError,
-                enabled = !isLoading,
-                onDone = onSubmit,
-                modifier = Modifier.fillMaxWidth()
+                phone = phone,
+                phoneError = phoneError,
+                isLoading = isLoading,
+                onPhoneChange = onPhoneChange,
+                onSubmit = onSubmit
             )
 
             Spacer(modifier = Modifier.height(32.dp))
@@ -284,18 +251,16 @@ fun PhoneStep(
 
 @Composable
 fun PhoneTextField(
-    value: String,
-    onValueChange: (String) -> Unit,
-    isError: Boolean,
-    errorMessage: String?,
-    enabled: Boolean,
-    onDone: () -> Unit,
-    modifier: Modifier = Modifier
+    phone: String,
+    phoneError: String?,
+    isLoading: Boolean,
+    onPhoneChange: (String) -> Unit,
+    onSubmit: () -> Unit
 ) {
-    Column(modifier = modifier) {
+    Column(modifier = Modifier.fillMaxWidth()) {
         OutlinedTextField(
-            value = value,
-            onValueChange = onValueChange,
+            value = phone,
+            onValueChange = onPhoneChange,
             placeholder = { Text(stringResource(R.string.phone_placeholder)) },
             leadingIcon = {
                 Icon(
@@ -304,14 +269,14 @@ fun PhoneTextField(
                     tint = MaterialTheme.colorScheme.primary
                 )
             },
-            isError = isError,
+            isError = phoneError != null,
             modifier = Modifier.fillMaxWidth(),
             singleLine = true,
             keyboardOptions = KeyboardOptions(
                 keyboardType = KeyboardType.Phone,
                 imeAction = ImeAction.Done
             ),
-            keyboardActions = KeyboardActions(onDone = { onDone() }),
+            keyboardActions = KeyboardActions(onDone = { onSubmit() }),
             colors = OutlinedTextFieldDefaults.colors(
                 focusedBorderColor = MaterialTheme.colorScheme.primary,
                 cursorColor = MaterialTheme.colorScheme.primary,
@@ -319,10 +284,10 @@ fun PhoneTextField(
                 unfocusedContainerColor = MaterialTheme.colorScheme.surface
             ),
             shape = RoundedCornerShape(16.dp),
-            enabled = enabled
+            enabled = !isLoading
         )
 
-        AnimatedVisibility(visible = isError && errorMessage != null, enter = fadeIn(), exit = fadeOut()) {
+        AnimatedVisibility(visible = phoneError != null, enter = fadeIn(), exit = fadeOut()) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -337,7 +302,7 @@ fun PhoneTextField(
                 )
                 Spacer(modifier = Modifier.width(6.dp))
                 Text(
-                    text = errorMessage ?: "",
+                    text = phoneError ?: "",
                     color = MaterialTheme.colorScheme.error,
                     style = MaterialTheme.typography.bodySmall,
                     fontWeight = FontWeight.Bold
@@ -399,7 +364,7 @@ fun CodeStep(
             Text(
                 text = "Validar Código",
                 style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.ExtraBold,
+                fontWeight = FontWeight.Black,
                 color = MaterialTheme.colorScheme.onSurface
             )
 
@@ -577,7 +542,7 @@ fun NewPasswordStep(
             Text(
                 text = "Nueva Contraseña",
                 style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.ExtraBold,
+                fontWeight = FontWeight.Black,
                 color = MaterialTheme.colorScheme.onSurface
             )
 
@@ -762,7 +727,7 @@ fun CompleteStep(onBackToLogin: () -> Unit) {
             Text(
                 text = stringResource(R.string.password_changed),
                 style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.ExtraBold,
+                fontWeight = FontWeight.Black,
                 textAlign = TextAlign.Center,
                 color = MaterialTheme.colorScheme.onSurface
             )

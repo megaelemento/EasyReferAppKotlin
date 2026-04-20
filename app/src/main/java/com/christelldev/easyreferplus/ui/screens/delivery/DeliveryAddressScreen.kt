@@ -11,6 +11,7 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -119,18 +120,19 @@ fun DeliveryAddressScreen(
         GoogleMap(
             modifier = Modifier.fillMaxSize(),
             cameraPositionState = cameraPositionState,
-            uiSettings = MapUiSettings(zoomControlsEnabled = false, myLocationButtonEnabled = false)
+            uiSettings = MapUiSettings(zoomControlsEnabled = false, myLocationButtonEnabled = false),
+            contentPadding = PaddingValues(top = 100.dp, bottom = 300.dp) // Añadir padding al mapa para que el logo de Google no se tape
         )
 
-        // Capa 2: gradiente header
+        // Capa 2: gradiente header consistente con las otras pantallas
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(120.dp)
+                .height(260.dp)
                 .background(
                     Brush.verticalGradient(
                         listOf(
-                            MaterialTheme.colorScheme.primary.copy(alpha = 0.85f),
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.8f),
                             Color.Transparent
                         )
                     )
@@ -138,16 +140,20 @@ fun DeliveryAddressScreen(
                 .align(Alignment.TopStart)
         )
 
-        // Capa 3: TopAppBar transparente
+        val isDark = isSystemInDarkTheme()
+        val contentColor = if (isDark) MaterialTheme.colorScheme.onBackground else MaterialTheme.colorScheme.onSurface
+
+        // Capa 3: TopAppBar transparente con insets correctos
         TopAppBar(
-            title = { Text("¿Dónde entregamos?", color = MaterialTheme.colorScheme.onPrimary) },
+            title = { Text("¿Dónde entregamos?", color = contentColor) },
             navigationIcon = {
                 IconButton(onClick = onBack) {
                     Icon(Icons.AutoMirrored.Filled.ArrowBack, null,
-                        tint = MaterialTheme.colorScheme.onPrimary)
+                        tint = contentColor)
                 }
             },
             colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
+            windowInsets = WindowInsets.statusBars,
             modifier = Modifier.align(Alignment.TopStart)
         )
 

@@ -9,6 +9,7 @@ import android.media.RingtoneManager
 import android.view.WindowManager
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -19,6 +20,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -37,6 +39,7 @@ import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
 import com.google.maps.android.compose.*
 import kotlinx.coroutines.launch
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -59,6 +62,7 @@ fun DriverHomeScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
+    val isDark = isSystemInDarkTheme()
 
     // Reproducir alerta cuando llega un pedido nuevo
     LaunchedEffect(newOrderAlert) {
@@ -105,12 +109,10 @@ fun DriverHomeScreen(
         viewModel.startLiveSocket()
         viewModel.startOrderPolling()
         try { MapsInitializer.initialize(context) } catch (_: Exception) {}
-        // Marcar que este usuario es conductor para que las notificaciones FCM lleguen correctamente
         context.getSharedPreferences("EasyReferPrefs", android.content.Context.MODE_PRIVATE)
             .edit().putBoolean("is_driver_account", true).apply()
     }
 
-    // Iniciar/detener el servicio en primer plano según el turno activo
     LaunchedEffect(profile?.isOnDuty) {
         if (profile?.isOnDuty == true) {
             DriverForegroundService.start(context)
@@ -128,14 +130,12 @@ fun DriverHomeScreen(
         }
         try {
             if (hasLocationPermission.value) {
-                // Obtener la última ubicación conocida inmediatamente (sin esperar fix GPS)
                 val lastKnown = locationManager?.getLastKnownLocation(LocationManager.GPS_PROVIDER)
                     ?: locationManager?.getLastKnownLocation(LocationManager.NETWORK_PROVIDER)
                     ?: locationManager?.getLastKnownLocation(LocationManager.PASSIVE_PROVIDER)
                 lastKnown?.let { loc ->
                     deviceLocation = LatLng(loc.latitude, loc.longitude)
                 }
-                // Escuchar actualizaciones de GPS y red para mayor precisión
                 locationManager?.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000L, 1f, listener)
                 try {
                     locationManager?.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 3000L, 3f, listener)
@@ -148,9 +148,7 @@ fun DriverHomeScreen(
         }
     }
 
-    // Auto-seguimiento: se desactiva al hacer gesto, vuelve automáticamente en 15 segundos
     var isAutoFollowEnabled by remember { mutableStateOf(true) }
-    // Guarda el momento del último gesto; cambiar esta variable reinicia el temporizador de 15s
     var lastGestureMs by remember { mutableLongStateOf(0L) }
 
     LaunchedEffect(cameraPositionState.isMoving) {
@@ -160,7 +158,6 @@ fun DriverHomeScreen(
         }
     }
 
-    // Temporizador de 15s: se reinicia con cada gesto y al completarse re-centra el mapa
     LaunchedEffect(lastGestureMs) {
         if (lastGestureMs > 0L) {
             kotlinx.coroutines.delay(15_000)
@@ -171,7 +168,6 @@ fun DriverHomeScreen(
         }
     }
 
-    // Centrar cámara al actualizar ubicación cuando el auto-seguimiento está activo
     var initialCenterDone by remember { mutableStateOf(false) }
     LaunchedEffect(deviceLocation) {
         if (isAutoFollowEnabled) {
@@ -191,40 +187,21 @@ fun DriverHomeScreen(
     }
 
     Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Panel de Entregas", fontWeight = FontWeight.Bold) },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver")
-                    }
-                },
-                actions = {
-                    IconButton(onClick = { viewModel.loadAll() }) {
-                        Icon(Icons.Default.Refresh, contentDescription = "Actualizar")
-                    }
-                    IconButton(onClick = onNavigateToConfig) {
-                        Icon(Icons.Default.Settings, contentDescription = "Configuración")
-                    }
-                }
-            )
-        },
+        containerColor = MaterialTheme.colorScheme.background,
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { padding ->
-        if (profile == null) {
-            Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator()
-            }
-        } else {
-            Box(modifier = Modifier.fillMaxSize().padding(padding)) {
+        Box(modifier = Modifier.fillMaxSize()) {
+            // Capa 1: Mapa (Fondo)
+            if (profile != null) {
                 GoogleMap(
                     modifier = Modifier.fillMaxSize(),
                     cameraPositionState = cameraPositionState,
                     uiSettings = MapUiSettings(zoomControlsEnabled = false, myLocationButtonEnabled = false),
-                    properties = MapProperties(isMyLocationEnabled = hasLocationPermission.value)
+                    properties = MapProperties(isMyLocationEnabled = hasLocationPermission.value),
+                    contentPadding = PaddingValues(top = 100.dp, bottom = 220.dp)
                 ) {
                     availableOrders.forEach { order ->
-                        // Marcador de recogida (verde = tienda)
                         if (order.pickupLat != null && order.pickupLng != null) {
                             Marker(
                                 state = MarkerState(position = LatLng(order.pickupLat, order.pickupLng)),
@@ -233,7 +210,6 @@ fun DriverHomeScreen(
                                 icon = BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_GREEN)
                             )
                         }
-                        // Marcador de entrega (naranja = cliente)
                         if (order.dropoffLat != null && order.dropoffLng != null) {
                             Marker(
                                 state = MarkerState(position = LatLng(order.dropoffLat, order.dropoffLng)),
@@ -244,62 +220,101 @@ fun DriverHomeScreen(
                         }
                     }
                 }
+            }
 
-                // Botón de centrar en mi ubicación – siempre visible
-                SmallFloatingActionButton(
-                    onClick = {
-                        isAutoFollowEnabled = true
-                        val target = deviceLocation
-                        if (target != null) {
-                            scope.launch { cameraPositionState.animate(CameraUpdateFactory.newLatLngZoom(target, 16f)) }
+            // Capa 2: Gradiente Superior Consistente
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(260.dp)
+                    .background(
+                        Brush.verticalGradient(
+                            listOf(
+                                MaterialTheme.colorScheme.primary.copy(alpha = 0.8f),
+                                Color.Transparent
+                            )
+                        )
+                    )
+            )
+
+            val contentTint = if (isDark) MaterialTheme.colorScheme.onBackground else Color.White
+
+            // Capa 3: TopAppBar y UI
+            Column(modifier = Modifier.fillMaxSize()) {
+                TopAppBar(
+                    title = { Text("Panel de Entregas", fontWeight = FontWeight.Bold, color = contentTint) },
+                    navigationIcon = {
+                        IconButton(onClick = onNavigateBack) {
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver", tint = contentTint)
                         }
                     },
-                    modifier = Modifier
-                        .align(Alignment.CenterEnd)
-                        .padding(end = 16.dp, bottom = 120.dp),
-                    containerColor = MaterialTheme.colorScheme.surface,
-                    contentColor = if (deviceLocation != null)
-                        MaterialTheme.colorScheme.primary
-                    else
-                        MaterialTheme.colorScheme.onSurfaceVariant,
-                    shape = CircleShape
-                ) {
-                    Icon(Icons.Default.MyLocation, "Mi ubicación")
+                    actions = {
+                        IconButton(onClick = { viewModel.loadAll() }) {
+                            Icon(Icons.Default.Refresh, contentDescription = "Actualizar", tint = contentTint)
+                        }
+                        IconButton(onClick = onNavigateToConfig) {
+                            Icon(Icons.Default.Settings, contentDescription = "Configuración", tint = contentTint)
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
+                    windowInsets = WindowInsets.statusBars
+                )
+
+                if (profile == null) {
+                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
+                    }
+                }
+            }
+
+            // Botón de centrar en mi ubicación
+            SmallFloatingActionButton(
+                onClick = {
+                    isAutoFollowEnabled = true
+                    deviceLocation?.let { scope.launch { cameraPositionState.animate(CameraUpdateFactory.newLatLngZoom(it, 16f)) } }
+                },
+                modifier = Modifier
+                    .align(Alignment.CenterEnd)
+                    .padding(end = 16.dp, bottom = 120.dp),
+                containerColor = MaterialTheme.colorScheme.surface,
+                contentColor = if (deviceLocation != null) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                shape = CircleShape
+            ) {
+                Icon(Icons.Default.MyLocation, "Mi ubicación")
+            }
+
+            // Controles inferiores
+            Column(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                if (profile?.isOnDuty == true && availableOrders.isNotEmpty()) {
+                    AvailableOrderCard(
+                        order = availableOrders.first(),
+                        onAccept = {
+                            viewModel.acceptOrder(availableOrders.first().id,
+                                onSuccess = { viewModel.loadActiveOrder() },
+                                onError = { msg -> scope.launch { snackbarHostState.showSnackbar(msg) } }
+                            )
+                        },
+                        onReject = { viewModel.rejectOrder(availableOrders.first().id) }
+                    )
+                }
+                
+                if (profile?.isOnDuty == true && earningsToday != null) {
+                    EarningsTodayCard(
+                        earnings = earningsToday!!.earningsToday,
+                        deliveries = earningsToday!!.deliveriesCount,
+                        onNavigateToHistory = onNavigateToHistory
+                    )
                 }
 
-                // Controles inferiores
-                Column(
-                    modifier = Modifier
-                        .align(Alignment.BottomCenter)
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    if (profile!!.isOnDuty && availableOrders.isNotEmpty()) {
-                        AvailableOrderCard(
-                            order = availableOrders.first(),
-                            onAccept = {
-                                viewModel.acceptOrder(availableOrders.first().id,
-                                    onSuccess = { viewModel.loadActiveOrder() },
-                                    onError = { msg -> scope.launch { snackbarHostState.showSnackbar(msg) } }
-                                )
-                            },
-                            onReject = {
-                                viewModel.rejectOrder(availableOrders.first().id)
-                            }
-                        )
-                    }
-                    // Earnings widget
-                    if (profile!!.isOnDuty && earningsToday != null) {
-                        EarningsTodayCard(
-                            earnings = earningsToday!!.earningsToday,
-                            deliveries = earningsToday!!.deliveriesCount,
-                            onNavigateToHistory = onNavigateToHistory
-                        )
-                    }
-
+                profile?.let {
                     DutyToggleCard(
-                        profile = profile!!,
+                        profile = it,
                         isLoading = state is DriverUiState.Loading,
                         onToggle = {
                             viewModel.toggleOnDuty { ok, msg ->
@@ -309,6 +324,9 @@ fun DriverHomeScreen(
                         }
                     )
                 }
+                
+                // Margen inferior para barra de navegación
+                Spacer(modifier = Modifier.navigationBarsPadding())
             }
         }
     }
@@ -351,7 +369,7 @@ private fun AvailableOrderCard(order: AvailableOrder, onAccept: () -> Unit, onRe
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text("Pedido #${order.id}", fontWeight = FontWeight.Bold,
                     style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
-                Text("$${String.format("%.2f", order.deliveryFee)}",
+                Text("$${String.format(Locale.US, "%.2f", order.deliveryFee)}",
                     fontWeight = FontWeight.Black,
                     color = Color(0xFF2E7D32),
                     style = MaterialTheme.typography.titleMedium)
@@ -378,7 +396,7 @@ private fun AvailableOrderCard(order: AvailableOrder, onAccept: () -> Unit, onRe
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
-            Text("${order.itemsCount} artículo(s) · Total $${String.format("%.2f", order.total)}",
+            Text("${order.itemsCount} artículo(s) · Total $${String.format(Locale.US, "%.2f", order.total)}",
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -431,7 +449,7 @@ private fun EarningsTodayCard(
             Spacer(Modifier.width(12.dp))
             Column(Modifier.weight(1f)) {
                 Text(
-                    "Hoy: $${String.format("%.2f", earnings)}",
+                    "Hoy: $${String.format(Locale.US, "%.2f", earnings)}",
                     fontWeight = FontWeight.Black,
                     style = MaterialTheme.typography.titleMedium,
                     color = Color(0xFF2E7D32)

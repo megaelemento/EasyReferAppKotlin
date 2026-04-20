@@ -36,21 +36,28 @@ fun DeliverySelectionScreen(
     val isDark = isSystemInDarkTheme()
     val contentColor = if (isDark) MaterialTheme.colorScheme.onBackground else MaterialTheme.colorScheme.onSurface
 
-    Scaffold(containerColor = MaterialTheme.colorScheme.background) { padding ->
-        Box(modifier = Modifier.fillMaxSize().padding(padding)) {
-            // Gradient header overlay
+    Scaffold(
+        containerColor = MaterialTheme.colorScheme.background,
+        contentWindowInsets = WindowInsets(0, 0, 0, 0)
+    ) { padding ->
+        Box(modifier = Modifier.fillMaxSize()) {
+            // Gradient header overlay que ocupa toda la parte superior incluyendo status bar
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(200.dp)
+                    .height(260.dp)
                     .background(
                         Brush.verticalGradient(
-                            listOf(MaterialTheme.colorScheme.primary.copy(alpha = 0.8f), Color.Transparent)
+                            listOf(
+                                MaterialTheme.colorScheme.primary.copy(alpha = 0.8f),
+                                Color.Transparent
+                            )
                         )
                     )
                     .align(Alignment.TopStart)
             )
             Column(modifier = Modifier.fillMaxSize()) {
+                // TopAppBar manual con padding de status bar
                 TopAppBar(
                     title = { Text("Elige empresa de entrega", color = contentColor) },
                     navigationIcon = {
@@ -58,7 +65,8 @@ fun DeliverySelectionScreen(
                             Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = contentColor)
                         }
                     },
-                    colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
+                    colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
+                    windowInsets = WindowInsets.statusBars
                 )
 
                 if (dropoffAddress.isNotBlank()) {
@@ -117,19 +125,26 @@ fun DeliverySelectionScreen(
                                             )
                                         }
                                     }
-                                    Surface(modifier = Modifier.fillMaxWidth(), tonalElevation = 4.dp) {
-                                        Button(
-                                            onClick = onNext,
-                                            enabled = selectedDelivery != null,
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .padding(16.dp)
-                                                .height(52.dp),
-                                            shape = RoundedCornerShape(14.dp)
-                                        ) {
-                                            Text("Continuar", fontWeight = FontWeight.Bold)
-                                            Spacer(modifier = Modifier.width(8.dp))
-                                            Icon(Icons.Default.ArrowForward, null)
+                                    Surface(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        tonalElevation = 4.dp
+                                    ) {
+                                        Column {
+                                            Button(
+                                                onClick = onNext,
+                                                enabled = selectedDelivery != null,
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .padding(16.dp)
+                                                    .height(52.dp),
+                                                shape = RoundedCornerShape(14.dp)
+                                            ) {
+                                                Text("Continuar", fontWeight = FontWeight.Bold)
+                                                Spacer(modifier = Modifier.width(8.dp))
+                                                Icon(Icons.Default.ArrowForward, null)
+                                            }
+                                            // Espacio para la barra de navegación
+                                            Spacer(modifier = Modifier.navigationBarsPadding())
                                         }
                                     }
                                 }

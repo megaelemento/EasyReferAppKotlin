@@ -76,17 +76,27 @@ fun EarningsScreen(
     }
 
     Scaffold(
-        containerColor = MaterialTheme.colorScheme.background
+        containerColor = MaterialTheme.colorScheme.background,
+        contentWindowInsets = WindowInsets(0, 0, 0, 0)
     ) { paddingValues ->
-        Box(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
-            // Gradiente superior sutil
+        Box(modifier = Modifier.fillMaxSize()) {
+            // Gradiente superior profundo que ocupa toda la parte superior incluyendo status bar
             Box(
-                modifier = Modifier.fillMaxWidth().height(200.dp)
-                    .background(Brush.verticalGradient(listOf(MaterialTheme.colorScheme.primary.copy(alpha = 0.8f), Color.Transparent)))
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(260.dp)
+                    .background(
+                        Brush.verticalGradient(
+                            listOf(
+                                MaterialTheme.colorScheme.primary.copy(alpha = 0.8f),
+                                Color.Transparent
+                            )
+                        )
+                    )
             )
 
             Column(modifier = Modifier.fillMaxSize()) {
-                // Cabecera Premium
+                // Cabecera Premium con insets de status bar
                 TopAppBar(
                     title = {
                         Text(
@@ -97,15 +107,24 @@ fun EarningsScreen(
                     },
                     navigationIcon = {
                         IconButton(onClick = onBack) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = if (isDark) MaterialTheme.colorScheme.onBackground else Color.White)
+                            Icon(
+                                Icons.AutoMirrored.Filled.ArrowBack,
+                                null,
+                                tint = if (isDark) MaterialTheme.colorScheme.onBackground else Color.White
+                            )
                         }
                     },
                     actions = {
                         IconButton(onClick = onRefresh) {
-                            Icon(Icons.Default.Refresh, null, tint = if (isDark) MaterialTheme.colorScheme.onBackground else Color.White)
+                            Icon(
+                                Icons.Default.Refresh,
+                                null,
+                                tint = if (isDark) MaterialTheme.colorScheme.onBackground else Color.White
+                            )
                         }
                     },
-                    colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
+                    colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
+                    windowInsets = WindowInsets.statusBars
                 )
 
                 if (isLoading) {
@@ -113,15 +132,17 @@ fun EarningsScreen(
                         CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
                     }
                 } else if (isEmpty) {
-                    EmptyEarningsState()
+                    Box(modifier = Modifier.fillMaxSize()) {
+                        EmptyEarningsState()
+                    }
                 } else {
                     LazyColumn(
-                        modifier = Modifier.fillMaxSize().padding(horizontal = 24.dp),
-                        contentPadding = PaddingValues(bottom = 32.dp),
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(horizontal = 24.dp),
+                        contentPadding = PaddingValues(top = 16.dp, bottom = 24.dp),
                         verticalArrangement = Arrangement.spacedBy(20.dp)
                     ) {
-                        item { Spacer(modifier = Modifier.height(8.dp)) }
-
                         // TOTAL EARNED CARD STAR
                         item {
                             EarningsSummaryCard(
@@ -156,7 +177,11 @@ fun EarningsScreen(
                         // FILTROS Y DETALLE
                         item {
                             Column {
-                                Text("Historial de Comisiones", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold)
+                                Text(
+                                    "Historial de Comisiones",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.ExtraBold
+                                )
                                 Spacer(modifier = Modifier.height(12.dp))
                                 FilterSection(selectedFilter, onFilterChange)
                             }
@@ -165,12 +190,18 @@ fun EarningsScreen(
                         if (commissions.isEmpty() && !isLoadingCommissions) {
                             item {
                                 Surface(
-                                    modifier = Modifier.fillMaxWidth().height(150.dp),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(150.dp),
                                     shape = RoundedCornerShape(20.dp),
                                     color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
                                 ) {
                                     Box(contentAlignment = Alignment.Center) {
-                                        Text("Sin movimientos con este filtro", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                        Text(
+                                            "Sin movimientos con este filtro",
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
                                     }
                                 }
                             }
@@ -180,17 +211,28 @@ fun EarningsScreen(
                             }
 
                             if (isLoadingCommissions) {
-                                item { Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) { CircularProgressIndicator(modifier = Modifier.size(32.dp)) } }
+                                item {
+                                    Box(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        contentAlignment = Alignment.Center
+                                    ) { CircularProgressIndicator(modifier = Modifier.size(32.dp)) }
+                                }
                             }
 
                             if (hasMoreCommissions && !isLoadingCommissions) {
                                 item {
-                                    TextButton(onClick = onLoadMoreCommissions, modifier = Modifier.fillMaxWidth()) {
+                                    TextButton(
+                                        onClick = onLoadMoreCommissions,
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
                                         Text("Cargar más movimientos", fontWeight = FontWeight.Bold)
                                     }
                                 }
                             }
                         }
+
+                        // Espacio para la barra de navegación al final de la lista
+                        item { Spacer(modifier = Modifier.navigationBarsPadding()) }
                     }
                 }
             }
