@@ -8,6 +8,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.StickyNote2
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -32,11 +33,12 @@ fun OrderSummaryScreen(
     dropoffAddress: String,
     checkoutState: CheckoutFlowState,
     onBack: () -> Unit,
-    onConfirm: (tipAmount: Double) -> Unit
+    onConfirm: (tipAmount: Double, notes: String) -> Unit
 ) {
     val isDark = isSystemInDarkTheme()
     val contentColor = if (isDark) MaterialTheme.colorScheme.onBackground else MaterialTheme.colorScheme.onSurface
     var tipAmount by remember { mutableDoubleStateOf(0.0) }
+    var notes by remember { mutableStateOf("") }
     val deliveryFee = if (needsDelivery) selectedDelivery?.deliveryFee ?: 0.0 else 0.0
     val total = cartSubtotal + deliveryFee + tipAmount
 
@@ -129,6 +131,21 @@ fun OrderSummaryScreen(
                                         }
                                     }
                                 }
+                            }
+                        }
+
+                        // Campo instrucciones de entrega
+                        if (needsDelivery) {
+                            item {
+                                OutlinedTextField(
+                                    value = notes,
+                                    onValueChange = { notes = it },
+                                    label = { Text("Instrucciones adicionales (piso, referencia...)") },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    shape = RoundedCornerShape(12.dp),
+                                    maxLines = 3,
+                                    leadingIcon = { Icon(Icons.AutoMirrored.Filled.StickyNote2, null) }
+                                )
                             }
                         }
 
@@ -266,7 +283,7 @@ fun OrderSummaryScreen(
                         // Botón confirmar
                         item {
                             Button(
-                                onClick = { onConfirm(tipAmount) },
+                                onClick = { onConfirm(tipAmount, notes) },
                                 modifier = Modifier.fillMaxWidth().height(56.dp),
                                 shape = RoundedCornerShape(16.dp)
                             ) {

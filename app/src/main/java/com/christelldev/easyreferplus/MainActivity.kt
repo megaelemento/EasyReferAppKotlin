@@ -2078,11 +2078,10 @@ fun MainNavigation(
                 DeliveryAddressScreen(
                     deliveryLocationViewModel = deliveryLocationViewModel,
                     onBack = { navController.popBackStack() },
-                    onNext = { lat, lng, address, notes ->
+                    onNext = { lat, lng, address ->
                         pendingDropoffLat = lat
                         pendingDropoffLng = lng
                         pendingDropoffAddress = address
-                        pendingDropoffNotes = notes
                         orderViewModel.loadDeliveryOptions(lat, lng)
                         navController.navigate(Screen.DeliverySelection.route)
                     }
@@ -2124,14 +2123,14 @@ fun MainNavigation(
                     dropoffAddress = pendingDropoffAddress,
                     checkoutState = checkoutState,
                     onBack = { navController.popBackStack() },
-                    onConfirm = { _ ->
+                    onConfirm = { _, notes ->
                         orderViewModel.createAndPayOrder(
                             deliveryRequired = pendingNeedsDelivery,
                             deliveryCompanyId = pendingSelectedDelivery?.companyId,
                             dropoffAddress = if (pendingNeedsDelivery) pendingDropoffAddress else null,
                             dropoffLat = if (pendingNeedsDelivery) pendingDropoffLat else null,
                             dropoffLng = if (pendingNeedsDelivery) pendingDropoffLng else null,
-                            observations = pendingDropoffNotes.ifBlank { null }
+                            observations = notes.ifBlank { null }
                         )
                     }
                 )

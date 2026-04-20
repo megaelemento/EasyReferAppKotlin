@@ -5,11 +5,14 @@ import android.content.pm.PackageManager
 import android.location.Geocoder
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -40,7 +43,7 @@ import kotlinx.coroutines.launch
 fun DeliveryAddressScreen(
     deliveryLocationViewModel: com.christelldev.easyreferplus.ui.viewmodel.DeliveryLocationViewModel? = null,
     onBack: () -> Unit,
-    onNext: (lat: Double, lng: Double, address: String, notes: String) -> Unit
+    onNext: (lat: Double, lng: Double, address: String) -> Unit
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -48,8 +51,8 @@ fun DeliveryAddressScreen(
     var pinLat by remember { mutableDoubleStateOf(-0.22) }
     var pinLng by remember { mutableDoubleStateOf(-78.51) }
     var hasGps by remember { mutableStateOf(false) }
-    var notes by remember { mutableStateOf("") }
     var detectedAddress by remember { mutableStateOf("") }
+    var isPanelExpanded by remember { mutableStateOf(true) }
 
     val cameraPositionState = rememberCameraPositionState {
         position = CameraPosition.fromLatLngZoom(LatLng(pinLat, pinLng), 14f)
@@ -60,13 +63,14 @@ fun DeliveryAddressScreen(
     val favorites = remember(locations) { locations.filter { it.isFavorite } }
     val recent = remember(locations) { locations.filter { !it.isFavorite }.take(3) }
 
+    val showPanel = isPanelExpanded && !cameraPositionState.isMoving
+
     // Actualiza pin al centro del mapa cuando el usuario para de mover
     LaunchedEffect(cameraPositionState.isMoving) {
         if (!cameraPositionState.isMoving) {
             val center = cameraPositionState.position.target
             pinLat = center.latitude
             pinLng = center.longitude
-            // Reverse geocoding
             scope.launch {
                 try {
                     @Suppress("DEPRECATION")
@@ -155,50 +159,73 @@ fun DeliveryAddressScreen(
             modifier = Modifier.size(40.dp)
         )
 
-        // Capa 5: FAB "Mi ubicación"
-        SmallFloatingActionButton(
-            onClick = { requestLocation() },
-            containerColor = MaterialTheme.colorScheme.surface,
-            contentColor = MaterialTheme.colorScheme.primary,
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .padding(bottom = 240.dp, end = 16.dp)
-        ) {
-            Icon(Icons.Default.MyLocation, contentDescription = "Mi ubicación",
-                modifier = Modifier.size(20.dp))
-        }
-
-        // Capa 6: panel inferior fijo
-        DeliveryBottomPanel(
-            detectedAddress = detectedAddress,
-            notes = notes,
-            onNotesChange = { notes = it },
-            favorites = favorites,
-            recent = recent,
-            onSelectLocation = { loc ->
-                pinLat = loc.latitude
-                pinLng = loc.longitude
-                detectedAddress = loc.address
-                scope.launch {
-                    cameraPositionState.animate(
-                        CameraUpdateFactory.newLatLngZoom(LatLng(loc.latitude, loc.longitude), 16f)
-                    )
+        // Capa 5: FAB GPS + re-expand + panel en columna para que suban juntos
+        Column(modifier = Modifier.align(Alignment.BottomStart).fillMaxWidth()) {
+            // GPS FAB alineado a la derecha, siempre visible sobre el panel
+            Box(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
+                SmallFloatingActionButton(
+                    onClick = { requestLocation() },
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    contentColor = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.align(Alignment.CenterEnd)
+                ) {
+                    Icon(Icons.Default.MyLocation, contentDescription = "Mi ubicación",
+                        modifier = Modifier.size(20.dp))
                 }
-            },
-            selectedLat = pinLat,
-            selectedLng = pinLng,
-            canContinue = detectedAddress.isNotBlank() || hasGps,
-            onContinue = { onNext(pinLat, pinLng, detectedAddress, notes) },
-            modifier = Modifier.align(Alignment.BottomStart)
-        )
+            }
+
+            // Botón re-expandir (solo cuando el usuario lo cerró manualmente)
+            AnimatedVisibility(
+                visible = !isPanelExpanded,
+                enter = slideInVertically(tween(300)) { it },
+                exit = slideOutVertically(tween(300)) { it }
+            ) {
+                Box(modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp)) {
+                    SmallFloatingActionButton(
+                        onClick = { isPanelExpanded = true },
+                        containerColor = MaterialTheme.colorScheme.surface,
+                        contentColor = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.align(Alignment.Center)
+                    ) {
+                        Icon(Icons.Default.ExpandLess, contentDescription = "Ver panel")
+                    }
+                }
+            }
+
+            // Panel inferior con animación
+            AnimatedVisibility(
+                visible = showPanel,
+                enter = slideInVertically(tween(300)) { it },
+                exit = slideOutVertically(tween(300)) { it }
+            ) {
+                DeliveryBottomPanel(
+                    detectedAddress = detectedAddress,
+                    favorites = favorites,
+                    recent = recent,
+                    onSelectLocation = { loc ->
+                        pinLat = loc.latitude
+                        pinLng = loc.longitude
+                        detectedAddress = loc.address
+                        scope.launch {
+                            cameraPositionState.animate(
+                                CameraUpdateFactory.newLatLngZoom(LatLng(loc.latitude, loc.longitude), 16f)
+                            )
+                        }
+                    },
+                    selectedLat = pinLat,
+                    selectedLng = pinLng,
+                    canContinue = detectedAddress.isNotBlank() || hasGps,
+                    onContinue = { onNext(pinLat, pinLng, detectedAddress) },
+                    onToggle = { isPanelExpanded = false }
+                )
+            }
+        }
     }
 }
 
 @Composable
 private fun DeliveryBottomPanel(
     detectedAddress: String,
-    notes: String,
-    onNotesChange: (String) -> Unit,
     favorites: List<UserSavedLocation>,
     recent: List<UserSavedLocation>,
     onSelectLocation: (UserSavedLocation) -> Unit,
@@ -206,6 +233,7 @@ private fun DeliveryBottomPanel(
     selectedLng: Double?,
     canContinue: Boolean,
     onContinue: () -> Unit,
+    onToggle: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Surface(
@@ -221,14 +249,16 @@ private fun DeliveryBottomPanel(
                 .padding(20.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Drag handle
+            // Drag handle clickable para colapsar el panel
             Box(
                 modifier = Modifier
-                    .size(40.dp, 4.dp)
+                    .width(48.dp)
+                    .height(4.dp)
                     .background(
                         MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f),
                         RoundedCornerShape(2.dp)
                     )
+                    .clickable { onToggle() }
             )
             Spacer(modifier = Modifier.height(12.dp))
             // Título y dirección detectada
@@ -285,7 +315,9 @@ private fun DeliveryBottomPanel(
                 Spacer(modifier = Modifier.height(4.dp))
                 recent.forEach { loc ->
                     Row(
-                        modifier = Modifier.fillMaxWidth().clickable { onSelectLocation(loc) }
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onSelectLocation(loc) }
                             .padding(vertical = 6.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
@@ -298,23 +330,13 @@ private fun DeliveryBottomPanel(
                     }
                 }
             }
-            Spacer(modifier = Modifier.height(12.dp))
-            HorizontalDivider()
-            Spacer(modifier = Modifier.height(12.dp))
-            OutlinedTextField(
-                value = notes,
-                onValueChange = onNotesChange,
-                label = { Text("Instrucciones adicionales (piso, referencia...)") },
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp),
-                maxLines = 3,
-                leadingIcon = { Icon(Icons.Default.StickyNote2, null) }
-            )
             Spacer(modifier = Modifier.height(16.dp))
             Button(
                 onClick = onContinue,
                 enabled = canContinue,
-                modifier = Modifier.fillMaxWidth().height(52.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(52.dp),
                 shape = RoundedCornerShape(14.dp)
             ) {
                 Icon(Icons.Default.ArrowForward, null)

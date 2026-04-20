@@ -509,11 +509,10 @@ class ProductRepository(
         fun parseErrorDetail(body: String?): String? {
             if (body.isNullOrBlank()) return null
             return try {
-                com.google.gson.JsonParser.parseString(body)
-                    .asJsonObject
-                    .get("detail")
-                    ?.asString
-                    ?.takeIf { it.isNotBlank() }
+                val json = com.google.gson.JsonParser.parseString(body).asJsonObject
+                // Try "detail" (standard FastAPI) then "message" (custom exception handler)
+                json.get("detail")?.asString?.takeIf { it.isNotBlank() }
+                    ?: json.get("message")?.asString?.takeIf { it.isNotBlank() }
             } catch (_: Exception) { null }
         }
     }

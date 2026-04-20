@@ -33,8 +33,8 @@ object NetworkMonitor {
             val url = AppConfig.SERVER_CHECK_URL
             val request = Request.Builder().url(url).get().build()
             val client = OkHttpClient.Builder()
-                .connectTimeout(15, TimeUnit.SECONDS)
-                .readTimeout(15, TimeUnit.SECONDS)
+                .connectTimeout(3, TimeUnit.SECONDS)
+                .readTimeout(3, TimeUnit.SECONDS)
                 .build()
             val response = client.newCall(request).execute()
             val isSuccess = response.isSuccessful
