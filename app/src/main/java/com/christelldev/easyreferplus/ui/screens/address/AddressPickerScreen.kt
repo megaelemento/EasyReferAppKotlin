@@ -64,7 +64,7 @@ fun AddressPickerScreen(
 
     val isEditing = editingAddress != null
     val isDark = isSystemInDarkTheme()
-    val contentColor = if (isDark) MaterialTheme.colorScheme.onBackground else Color.White
+    val contentColor = if (isDark) MaterialTheme.colorScheme.onBackground else MaterialTheme.colorScheme.onSurface
 
     var selectedLabel by remember { mutableStateOf(editingAddress?.label ?: "Casa") }
     var customLabel by remember { mutableStateOf("") }

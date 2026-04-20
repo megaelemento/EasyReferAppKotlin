@@ -97,7 +97,7 @@ fun AdminWithdrawalsScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     val isDark = isSystemInDarkTheme()
-    val contentTint = if (isDark) MaterialTheme.colorScheme.onBackground else Color.White
+    val contentTint = if (isDark) MaterialTheme.colorScheme.onBackground else MaterialTheme.colorScheme.onSurface
 
     // Mostrar mensajes de éxito/error
     LaunchedEffect(uiState.successMessage, uiState.errorMessage) {

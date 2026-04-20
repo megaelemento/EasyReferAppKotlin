@@ -72,7 +72,7 @@ fun HistoryScreen(
                     )
             )
 
-            val contentColor = if (isDark) MaterialTheme.colorScheme.onBackground else Color.White
+            val contentColor = if (isDark) MaterialTheme.colorScheme.onBackground else MaterialTheme.colorScheme.onSurface
 
             Column(modifier = Modifier.fillMaxSize()) {
                 // Cabecera Premium con insets de status bar

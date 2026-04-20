@@ -102,7 +102,7 @@ fun EarningsScreen(
                         Text(
                             text = "Mis Ganancias",
                             fontWeight = FontWeight.ExtraBold,
-                            color = if (isDark) MaterialTheme.colorScheme.onBackground else Color.White
+                            color = if (isDark) MaterialTheme.colorScheme.onBackground else MaterialTheme.colorScheme.onSurface
                         )
                     },
                     navigationIcon = {
@@ -110,7 +110,7 @@ fun EarningsScreen(
                             Icon(
                                 Icons.AutoMirrored.Filled.ArrowBack,
                                 null,
-                                tint = if (isDark) MaterialTheme.colorScheme.onBackground else Color.White
+                                tint = if (isDark) MaterialTheme.colorScheme.onBackground else MaterialTheme.colorScheme.onSurface
                             )
                         }
                     },
@@ -119,7 +119,7 @@ fun EarningsScreen(
                             Icon(
                                 Icons.Default.Refresh,
                                 null,
-                                tint = if (isDark) MaterialTheme.colorScheme.onBackground else Color.White
+                                tint = if (isDark) MaterialTheme.colorScheme.onBackground else MaterialTheme.colorScheme.onSurface
                             )
                         }
                     },

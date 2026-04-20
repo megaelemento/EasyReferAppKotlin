@@ -100,7 +100,7 @@ fun ReferralScreen(
                         Text(
                             text = stringResource(R.string.my_referrals_title),
                             fontWeight = FontWeight.ExtraBold,
-                            color = if (isSystemInDarkTheme()) MaterialTheme.colorScheme.onBackground else Color.White
+                            color = if (isSystemInDarkTheme()) MaterialTheme.colorScheme.onBackground else MaterialTheme.colorScheme.onSurface
                         )
                     },
                     navigationIcon = {
@@ -108,7 +108,7 @@ fun ReferralScreen(
                             Icon(
                                 Icons.AutoMirrored.Filled.ArrowBack,
                                 null,
-                                tint = if (isSystemInDarkTheme()) MaterialTheme.colorScheme.onBackground else Color.White
+                                tint = if (isSystemInDarkTheme()) MaterialTheme.colorScheme.onBackground else MaterialTheme.colorScheme.onSurface
                             )
                         }
                     },

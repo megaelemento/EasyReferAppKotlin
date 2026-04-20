@@ -237,7 +237,7 @@ fun DriverHomeScreen(
                     )
             )
 
-            val contentTint = if (isDark) MaterialTheme.colorScheme.onBackground else Color.White
+            val contentTint = if (isDark) MaterialTheme.colorScheme.onBackground else MaterialTheme.colorScheme.onSurface
 
             // Capa 3: TopAppBar y UI
             Column(modifier = Modifier.fillMaxSize()) {

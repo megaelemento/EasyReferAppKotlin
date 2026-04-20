@@ -98,7 +98,7 @@ fun WithdrawalScreen(
                         Text(
                             text = "Retiros",
                             fontWeight = FontWeight.ExtraBold,
-                            color = if (isDark) MaterialTheme.colorScheme.onBackground else Color.White
+                            color = if (isDark) MaterialTheme.colorScheme.onBackground else MaterialTheme.colorScheme.onSurface
                         )
                     },
                     navigationIcon = {
@@ -106,7 +106,7 @@ fun WithdrawalScreen(
                             Icon(
                                 Icons.AutoMirrored.Filled.ArrowBack,
                                 null,
-                                tint = if (isDark) MaterialTheme.colorScheme.onBackground else Color.White
+                                tint = if (isDark) MaterialTheme.colorScheme.onBackground else MaterialTheme.colorScheme.onSurface
                             )
                         }
                     },
@@ -115,7 +115,7 @@ fun WithdrawalScreen(
                             Icon(
                                 Icons.Default.Refresh,
                                 null,
-                                tint = if (isDark) MaterialTheme.colorScheme.onBackground else Color.White
+                                tint = if (isDark) MaterialTheme.colorScheme.onBackground else MaterialTheme.colorScheme.onSurface
                             )
                         }
                     },

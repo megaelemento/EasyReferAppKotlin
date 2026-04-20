@@ -41,7 +41,7 @@ fun ProductDetailScreen(
 ) {
     var quantity by remember { mutableIntStateOf(1) }
     val isDark = isSystemInDarkTheme()
-    val contentColor = if (isDark) MaterialTheme.colorScheme.onBackground else Color.White
+    val contentColor = if (isDark) MaterialTheme.colorScheme.onBackground else MaterialTheme.colorScheme.onSurface
 
     Box(
         modifier = Modifier

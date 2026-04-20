@@ -151,7 +151,7 @@ fun LoginScreen(
             Text(
                 text = stringResource(R.string.welcome_title),
                 style = MaterialTheme.typography.headlineLarge,
-                color = if (isSystemInDarkTheme()) MaterialTheme.colorScheme.onBackground else Color.White,
+                color = if (isSystemInDarkTheme()) MaterialTheme.colorScheme.onBackground else MaterialTheme.colorScheme.onSurface,
                 fontWeight = FontWeight.ExtraBold,
                 textAlign = TextAlign.Center
             )

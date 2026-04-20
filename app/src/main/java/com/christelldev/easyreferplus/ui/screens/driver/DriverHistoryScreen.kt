@@ -19,7 +19,7 @@ import androidx.compose.ui.unit.dp
 @Composable
 fun DriverHistoryScreen(onNavigateBack: () -> Unit) {
     val isDark = isSystemInDarkTheme()
-    val contentTint = if (isDark) MaterialTheme.colorScheme.onBackground else Color.White
+    val contentTint = if (isDark) MaterialTheme.colorScheme.onBackground else MaterialTheme.colorScheme.onSurface
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,

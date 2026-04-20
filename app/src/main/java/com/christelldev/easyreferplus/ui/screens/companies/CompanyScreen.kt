@@ -16,7 +16,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
-import androidx.compose.material3.MenuAnchorType
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -34,7 +33,6 @@ import androidx.compose.ui.unit.sp
 import com.christelldev.easyreferplus.R
 import com.christelldev.easyreferplus.data.model.CategoryInfo
 import com.christelldev.easyreferplus.data.model.ServiceInfo
-import com.christelldev.easyreferplus.ui.theme.DesignConstants
 import com.christelldev.easyreferplus.ui.viewmodel.CompanyViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
@@ -68,31 +66,48 @@ fun CompanyScreen(
     }
 
     Scaffold(
-        containerColor = MaterialTheme.colorScheme.background
+        containerColor = MaterialTheme.colorScheme.background,
+        contentWindowInsets = WindowInsets(0, 0, 0, 0)
     ) { paddingValues ->
-        Box(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
-            // Gradiente superior sutil
+        Box(modifier = Modifier.fillMaxSize()) {
+            // Gradiente superior profundo (260dp para cubrir status bar)
             Box(
-                modifier = Modifier.fillMaxWidth().height(200.dp)
-                    .background(Brush.verticalGradient(listOf(MaterialTheme.colorScheme.primary.copy(alpha = 0.8f), Color.Transparent)))
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(260.dp)
+                    .background(
+                        Brush.verticalGradient(
+                            listOf(
+                                MaterialTheme.colorScheme.primary.copy(alpha = 0.8f),
+                                Color.Transparent
+                            )
+                        )
+                    )
             )
 
+            val contentTint = if (isDark) MaterialTheme.colorScheme.onBackground else MaterialTheme.colorScheme.onSurface
+
             Column(modifier = Modifier.fillMaxSize()) {
-                // Cabecera Premium
+                // TopAppBar con insets de status bar
                 TopAppBar(
                     title = {
                         Text(
-                            text = stringResource(R.string.register_company),
+                            text = if (uiState.isEditing) "Editar Empresa" else stringResource(R.string.register_company),
                             fontWeight = FontWeight.ExtraBold,
-                            color = if (isDark) MaterialTheme.colorScheme.onBackground else Color.White
+                            color = contentTint
                         )
                     },
                     navigationIcon = {
                         IconButton(onClick = onBack) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = if (isDark) MaterialTheme.colorScheme.onBackground else Color.White)
+                            Icon(
+                                Icons.AutoMirrored.Filled.ArrowBack,
+                                null,
+                                tint = contentTint
+                            )
                         }
                     },
-                    colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
+                    colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
+                    windowInsets = WindowInsets.statusBars
                 )
 
                 if (uiState.isLoading) {
@@ -101,7 +116,11 @@ fun CompanyScreen(
                     }
                 } else {
                     Column(
-                        modifier = Modifier.fillMaxSize().padding(horizontal = 24.dp).verticalScroll(scrollState).imePadding()
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(horizontal = 24.dp)
+                            .verticalScroll(scrollState)
+                            .imePadding()
                     ) {
                         Spacer(modifier = Modifier.height(16.dp))
                         
@@ -217,18 +236,24 @@ fun CompanyScreen(
                         Spacer(modifier = Modifier.height(40.dp))
 
                         Button(
-                            onClick = viewModel::registerCompany,
+                            onClick = if (uiState.isEditing) viewModel::updateCompany else viewModel::registerCompany,
                             modifier = Modifier.fillMaxWidth().height(60.dp),
                             shape = RoundedCornerShape(20.dp),
                             colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                             elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp)
                         ) {
-                            Icon(Icons.Default.CloudUpload, null)
+                            Icon(if (uiState.isEditing) Icons.Default.Save else Icons.Default.CloudUpload, null)
                             Spacer(modifier = Modifier.width(12.dp))
-                            Text(stringResource(R.string.register_company_button), fontWeight = FontWeight.ExtraBold, style = MaterialTheme.typography.titleMedium)
+                            Text(
+                                if (uiState.isEditing) "GUARDAR CAMBIOS" else stringResource(R.string.register_company_button),
+                                fontWeight = FontWeight.ExtraBold,
+                                style = MaterialTheme.typography.titleMedium
+                            )
                         }
 
                         Spacer(modifier = Modifier.height(48.dp))
+                        // Espacio para la barra de navegación
+                        Spacer(modifier = Modifier.navigationBarsPadding())
                     }
                 }
             }
@@ -301,7 +326,7 @@ fun ProvinceDropdownPremium(selected: String, options: List<String>, onSelected:
             label = { Row { Text(stringResource(R.string.province_label)); Text(" *", color = MaterialTheme.colorScheme.error) } },
             placeholder = { Text("Seleccionar provincia") },
             trailingIcon = { if (isLoading) CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp) else ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-            modifier = Modifier.fillMaxWidth().menuAnchor(MenuAnchorType.PrimaryNotEditable, enabled = true),
+            modifier = Modifier.fillMaxWidth().menuAnchor(androidx.compose.material3.MenuAnchorType.PrimaryNotEditable, enabled = true),
             isError = error != null,
             shape = RoundedCornerShape(16.dp),
             colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = MaterialTheme.colorScheme.primary)
@@ -322,7 +347,7 @@ fun CityDropdownPremium(selected: String, options: List<String>, provinceSelecte
             label = { Row { Text(stringResource(R.string.city_label)); Text(" *", color = MaterialTheme.colorScheme.error) } },
             placeholder = { Text(if (provinceSelected.isBlank()) "Seleccione provincia" else "Seleccionar ciudad") },
             trailingIcon = { if (isLoading && provinceSelected.isNotBlank()) CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp) else ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-            modifier = Modifier.fillMaxWidth().menuAnchor(MenuAnchorType.PrimaryNotEditable, enabled = true),
+            modifier = Modifier.fillMaxWidth().menuAnchor(androidx.compose.material3.MenuAnchorType.PrimaryNotEditable, enabled = true),
             isError = error != null,
             shape = RoundedCornerShape(16.dp),
             colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = MaterialTheme.colorScheme.primary)
@@ -343,7 +368,7 @@ fun CategoryDropdownPremium(selected: CategoryInfo?, options: List<CategoryInfo>
             label = { Text(stringResource(R.string.category_label)) },
             placeholder = { Text(stringResource(R.string.select_category)) },
             trailingIcon = { if (isLoading) CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp) else ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-            modifier = Modifier.fillMaxWidth().menuAnchor(MenuAnchorType.PrimaryNotEditable, enabled = true),
+            modifier = Modifier.fillMaxWidth().menuAnchor(androidx.compose.material3.MenuAnchorType.PrimaryNotEditable, enabled = true),
             shape = RoundedCornerShape(16.dp),
             colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = MaterialTheme.colorScheme.primary)
         )
@@ -363,7 +388,7 @@ fun ServiceDropdownPremium(selected: ServiceInfo?, options: List<ServiceInfo>, c
             label = { Text(stringResource(R.string.service_label)) },
             placeholder = { Text(if (!categorySelected) stringResource(R.string.select_category_first) else stringResource(R.string.select_service)) },
             trailingIcon = { if (isLoading && categorySelected) CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp) else ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-            modifier = Modifier.fillMaxWidth().menuAnchor(MenuAnchorType.PrimaryNotEditable, enabled = true),
+            modifier = Modifier.fillMaxWidth().menuAnchor(androidx.compose.material3.MenuAnchorType.PrimaryNotEditable, enabled = true),
             shape = RoundedCornerShape(16.dp),
             colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = MaterialTheme.colorScheme.primary)
         )

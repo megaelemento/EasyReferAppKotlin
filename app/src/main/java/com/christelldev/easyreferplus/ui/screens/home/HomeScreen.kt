@@ -1176,9 +1176,10 @@ private fun ModernDrawerContent(
                             }
                         }
                     }
+                    val drawerContentColor = if (isSystemInDarkTheme()) Color.White else MaterialTheme.colorScheme.onSurface
                     Spacer(modifier = Modifier.height(16.dp))
-                    Text(userName, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.ExtraBold, color = MaterialTheme.colorScheme.onPrimary)
-                    Text(userEmail, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f))
+                    Text(userName, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.ExtraBold, color = drawerContentColor)
+                    Text(userEmail, style = MaterialTheme.typography.bodySmall, color = drawerContentColor.copy(alpha = 0.8f))
                 }
             }
 

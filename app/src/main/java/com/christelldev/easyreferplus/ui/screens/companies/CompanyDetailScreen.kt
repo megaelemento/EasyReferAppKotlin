@@ -10,11 +10,13 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
@@ -103,9 +105,10 @@ fun CompanyDetailScreen(
     }
 
     Scaffold(
-        containerColor = MaterialTheme.colorScheme.background
+        containerColor = MaterialTheme.colorScheme.background,
+        contentWindowInsets = WindowInsets(0, 0, 0, 0)
     ) { paddingValues ->
-        Box(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
+        Box(modifier = Modifier.fillMaxSize()) {
             if (uiState.isLoading) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
@@ -140,10 +143,10 @@ private fun CompanyDetailContent(
 ) {
     val context = LocalContext.current
     val scrollState = rememberScrollState()
-    val contentTint = if (isDark) MaterialTheme.colorScheme.onBackground else Color.White
+    val contentTint = if (isDark) MaterialTheme.colorScheme.onBackground else MaterialTheme.colorScheme.onSurface
 
     Box(modifier = Modifier.fillMaxSize()) {
-        // Fondo de Header con Gradiente
+        // Fondo de Header con Gradiente que cubre status bar
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -156,14 +159,16 @@ private fun CompanyDetailContent(
         )
 
         Column(modifier = Modifier.fillMaxSize()) {
+            // TopAppBar manual con insets de status bar
             TopAppBar(
-                title = { Text("Detalles", fontWeight = FontWeight.Bold, color = contentTint) },
+                title = { Text("Detalles de Empresa", fontWeight = FontWeight.Bold, color = contentTint) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null, tint = contentTint)
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
+                windowInsets = WindowInsets.statusBars
             )
 
             Column(
@@ -217,7 +222,7 @@ private fun CompanyDetailContent(
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Black,
                     textAlign = TextAlign.Center,
-                    color = if (isDark) Color.White else Color.White // En el header siempre blanco por el gradiente
+                    color = contentTint
                 )
 
                 if (!company.city.isNullOrBlank()) {

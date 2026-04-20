@@ -99,7 +99,7 @@ fun MyProductsScreen(
                         Text(
                             text = "Mis Productos",
                             fontWeight = FontWeight.ExtraBold,
-                            color = if (isDark) MaterialTheme.colorScheme.onBackground else Color.White
+                            color = if (isDark) MaterialTheme.colorScheme.onBackground else MaterialTheme.colorScheme.onSurface
                         )
                     },
                     navigationIcon = {
@@ -107,7 +107,7 @@ fun MyProductsScreen(
                             Icon(
                                 Icons.AutoMirrored.Filled.ArrowBack,
                                 null,
-                                tint = if (isDark) MaterialTheme.colorScheme.onBackground else Color.White
+                                tint = if (isDark) MaterialTheme.colorScheme.onBackground else MaterialTheme.colorScheme.onSurface
                             )
                         }
                     },
@@ -312,7 +312,7 @@ fun ProductFormScreen(
                         Text(
                             text = if (product == null) "Nuevo Producto" else "Editar Producto",
                             fontWeight = FontWeight.ExtraBold,
-                            color = if (isDark) MaterialTheme.colorScheme.onBackground else Color.White
+                            color = if (isDark) MaterialTheme.colorScheme.onBackground else MaterialTheme.colorScheme.onSurface
                         )
                     },
                     navigationIcon = {
@@ -320,7 +320,7 @@ fun ProductFormScreen(
                             Icon(
                                 Icons.AutoMirrored.Filled.ArrowBack,
                                 null,
-                                tint = if (isDark) MaterialTheme.colorScheme.onBackground else Color.White
+                                tint = if (isDark) MaterialTheme.colorScheme.onBackground else MaterialTheme.colorScheme.onSurface
                             )
                         }
                     },

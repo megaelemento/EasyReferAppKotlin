@@ -40,7 +40,7 @@ fun SavedAddressesScreen(
     val addresses by viewModel.addresses.collectAsState()
     var addressToDelete by remember { mutableStateOf<SavedAddress?>(null) }
     val isDark = isSystemInDarkTheme()
-    val contentColor = if (isDark) MaterialTheme.colorScheme.onBackground else Color.White
+    val contentColor = if (isDark) MaterialTheme.colorScheme.onBackground else MaterialTheme.colorScheme.onSurface
 
     LaunchedEffect(Unit) { viewModel.loadAddresses() }
 

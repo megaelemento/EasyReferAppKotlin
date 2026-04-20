@@ -96,7 +96,7 @@ fun AdminEarningsScreen(
     val primaryColor = MaterialTheme.colorScheme.primary
     val backgroundColor = MaterialTheme.colorScheme.background
     val isDark = isSystemInDarkTheme()
-    val contentTint = if (isDark) MaterialTheme.colorScheme.onBackground else Color.White
+    val contentTint = if (isDark) MaterialTheme.colorScheme.onBackground else MaterialTheme.colorScheme.onSurface
 
     LaunchedEffect(uiState.errorMessage) {
         uiState.errorMessage?.let { error ->

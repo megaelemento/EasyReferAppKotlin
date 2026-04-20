@@ -25,7 +25,7 @@ fun DriverConfigScreen(
 ) {
     val keepScreenOn by viewModel.keepScreenOn.collectAsState()
     val isDark = isSystemInDarkTheme()
-    val contentTint = if (isDark) MaterialTheme.colorScheme.onBackground else Color.White
+    val contentTint = if (isDark) MaterialTheme.colorScheme.onBackground else MaterialTheme.colorScheme.onSurface
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,

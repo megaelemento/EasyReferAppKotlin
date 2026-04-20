@@ -829,7 +829,7 @@ fun MainNavigation(
                             popUpTo(Screen.AppLock.route) { inclusive = true }
                         }
                     },
-                    onUsePassword = {
+                    onPinClick = {
                         AppLockManager.reset()
                         navController.navigate(Screen.Login.route) {
                             popUpTo(Screen.AppLock.route) { inclusive = true }
@@ -2148,7 +2148,7 @@ fun MainNavigation(
                     AppLockManager.unlock()
                     showLockOverlay = false
                 },
-                onUsePassword = {
+                onPinClick = {
                     AppLockManager.reset()
                     showLockOverlay = false
                     navController.navigate(Screen.Login.route) {

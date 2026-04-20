@@ -105,7 +105,7 @@ fun WalletScreen(
                         Text(
                             text = "Mi Billetera",
                             fontWeight = FontWeight.ExtraBold,
-                            color = if (isDark) MaterialTheme.colorScheme.onBackground else Color.White
+                            color = if (isDark) MaterialTheme.colorScheme.onBackground else MaterialTheme.colorScheme.onSurface
                         )
                     },
                     navigationIcon = {
@@ -113,7 +113,7 @@ fun WalletScreen(
                             Icon(
                                 Icons.AutoMirrored.Filled.ArrowBack,
                                 null,
-                                tint = if (isDark) MaterialTheme.colorScheme.onBackground else Color.White
+                                tint = if (isDark) MaterialTheme.colorScheme.onBackground else MaterialTheme.colorScheme.onSurface
                             )
                         }
                     },

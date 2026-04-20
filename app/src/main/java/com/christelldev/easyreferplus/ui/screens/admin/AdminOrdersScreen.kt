@@ -36,7 +36,7 @@ fun AdminOrdersScreen(
     var selectedFilter by remember { mutableStateOf<String?>(null) }
     val listState = rememberLazyListState()
     val isDark = isSystemInDarkTheme()
-    val contentTint = if (isDark) MaterialTheme.colorScheme.onBackground else Color.White
+    val contentTint = if (isDark) MaterialTheme.colorScheme.onBackground else MaterialTheme.colorScheme.onSurface
 
     LaunchedEffect(selectedFilter) {
         viewModel.loadCompanyOrders(page = 1, status = selectedFilter)

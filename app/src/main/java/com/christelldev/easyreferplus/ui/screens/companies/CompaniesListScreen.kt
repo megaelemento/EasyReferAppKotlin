@@ -74,7 +74,7 @@ fun CompaniesListScreen(
                         Text(
                             text = if (isPublicMode) "Comercios" else "Mis Empresas",
                             fontWeight = FontWeight.ExtraBold,
-                            color = if (isDark) MaterialTheme.colorScheme.onBackground else Color.White
+                            color = if (isDark) MaterialTheme.colorScheme.onBackground else MaterialTheme.colorScheme.onSurface
                         )
                     },
                     navigationIcon = {
@@ -82,7 +82,7 @@ fun CompaniesListScreen(
                             Icon(
                                 Icons.AutoMirrored.Filled.ArrowBack,
                                 null,
-                                tint = if (isDark) MaterialTheme.colorScheme.onBackground else Color.White
+                                tint = if (isDark) MaterialTheme.colorScheme.onBackground else MaterialTheme.colorScheme.onSurface
                             )
                         }
                     },

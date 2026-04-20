@@ -70,7 +70,7 @@ fun MisVentasScreen(
     )
 
     val isDark = isSystemInDarkTheme()
-    val contentTint = if (isDark) MaterialTheme.colorScheme.onBackground else Color.White
+    val contentTint = if (isDark) MaterialTheme.colorScheme.onBackground else MaterialTheme.colorScheme.onSurface
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },

@@ -106,14 +106,14 @@ fun RegisterScreen(
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                         contentDescription = null,
-                        tint = if (isDark) MaterialTheme.colorScheme.onBackground else Color.White
+                        tint = if (isDark) MaterialTheme.colorScheme.onBackground else MaterialTheme.colorScheme.onSurface
                     )
                 }
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
                     text = stringResource(R.string.register_title),
                     style = MaterialTheme.typography.titleLarge,
-                    color = if (isDark) MaterialTheme.colorScheme.onBackground else Color.White,
+                    color = if (isDark) MaterialTheme.colorScheme.onBackground else MaterialTheme.colorScheme.onSurface,
                     fontWeight = FontWeight.Black
                 )
             }
