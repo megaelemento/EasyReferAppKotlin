@@ -34,6 +34,9 @@ android {
 
         val mapsApiKey = localProperties.getProperty("MAPS_API_KEY") ?: ""
         manifestPlaceholders["MAPS_API_KEY"] = mapsApiKey
+
+        val paypalClientId = localProperties.getProperty("PAYPAL_CLIENT_ID") ?: ""
+        buildConfigField("String", "PAYPAL_CLIENT_ID", "\"$paypalClientId\"")
     }
 
     buildTypes {
@@ -74,6 +77,12 @@ dependencies {
     implementation(libs.okhttp)
     implementation(libs.okhttp.logging)
     implementation(libs.gson)
+
+    // PayPal Checkout SDK
+    implementation(libs.paypal.checkout)
+
+    // Accompanist Permissions
+    implementation(libs.accompanist.permissions)
 
     // CameraX
     implementation(libs.camerax.core)

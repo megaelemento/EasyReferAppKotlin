@@ -28,6 +28,7 @@ data class OrderTrackingState(
     val deliveryFee: Double = 0.0,
     val itemsCount: Int = 0,
     val items: List<TrackingOrderItem> = emptyList(),
+    val deliveryRequired: Boolean = true,
     // Markers
     val pickupLatLng: LatLng? = null,
     val dropoffLatLng: LatLng? = null,
@@ -77,6 +78,7 @@ class OrderTrackingViewModel(
                         deliveryFee = info.deliveryFee,
                         itemsCount = info.itemsCount,
                         items = info.items,
+                        deliveryRequired = info.deliveryRequired,
                         pickupLatLng = info.delivery?.pickupLat?.let { lat ->
                             info.delivery.pickupLng?.let { lng -> LatLng(lat, lng) }
                         },
@@ -94,7 +96,7 @@ class OrderTrackingViewModel(
                         isDelivered = info.status == "delivered" || info.status == "completed",
                     )
                     // Connect WebSocket for real-time updates
-                    if (info.status in listOf("driver_assigned", "ready_for_pickup", "picked_up")) {
+                    if (info.status in listOf("driver_assigned", "picked_up")) {
                         connectWebSocket(orderId)
                         startEtaPolling(orderId)
                     }

@@ -256,6 +256,12 @@ class WithdrawalViewModel(
         }
     }
 
+    override fun onCleared() {
+        super.onCleared()
+        wsManager?.shutdown()
+        wsManager = null
+    }
+
     private fun updateFromWebSocket(data: Map<String, Any>) {
         val action = data["action"] as? String
 

@@ -60,6 +60,9 @@ data class CompanyUiState(
     val hasLogo: Boolean = false,
     val isUploadingLogo: Boolean = false,
     val isDeletingLogo: Boolean = false,
+    // Coordenadas de ubicación
+    val latitude: Double = 0.0,
+    val longitude: Double = 0.0,
     // Category and Service IDs for editing existing company
     val categoryId: Int? = null,
     val serviceId: Int? = null
@@ -126,6 +129,8 @@ class CompanyViewModel(
                             facebookUrl = company.facebookUrl ?: "",
                             instagramUrl = company.instagramUrl ?: "",
                             whatsappNumber = company.whatsappNumber ?: "",
+                            latitude = company.latitude ?: 0.0,
+                            longitude = company.longitude ?: 0.0,
                             logoUrl = company.logoUrl,
                             hasLogo = company.hasLogo ?: false,
                             isEditing = true,
@@ -230,6 +235,13 @@ class CompanyViewModel(
 
     fun selectService(service: ServiceInfo?) {
         _uiState.value = _uiState.value.copy(selectedService = service)
+    }
+
+    fun updateLocation(lat: Double, lng: Double) {
+        _uiState.value = _uiState.value.copy(
+            latitude = lat,
+            longitude = lng
+        )
     }
 
     fun restoreCategoryAndServiceSelection() {
@@ -421,6 +433,8 @@ class CompanyViewModel(
                 address = state.address.trim(),
                 city = state.city.trim(),
                 province = state.province.trim(),
+                latitude = state.latitude,
+                longitude = state.longitude,
                 commissionPercentage = state.commissionPercentage.toDoubleOrNull() ?: 10.0,
                 website = state.website.trim().takeIf { it.isNotBlank() },
                 facebookUrl = state.facebookUrl.trim().takeIf { it.isNotBlank() },
@@ -494,6 +508,8 @@ class CompanyViewModel(
                 address = state.address.trim(),
                 city = state.city.trim(),
                 province = state.province.trim(),
+                latitude = state.latitude,
+                longitude = state.longitude,
                 commissionPercentage = state.commissionPercentage.toDoubleOrNull() ?: 10.0,
                 website = state.website.trim().takeIf { it.isNotBlank() },
                 facebookUrl = state.facebookUrl.trim().takeIf { it.isNotBlank() },

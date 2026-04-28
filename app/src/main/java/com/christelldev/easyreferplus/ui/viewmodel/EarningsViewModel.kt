@@ -219,6 +219,12 @@ class EarningsViewModel(
         }
     }
 
+    override fun onCleared() {
+        super.onCleared()
+        wsManager?.shutdown()
+        wsManager = null
+    }
+
     /**
      * Actualizar UI con datos del WebSocket
      */

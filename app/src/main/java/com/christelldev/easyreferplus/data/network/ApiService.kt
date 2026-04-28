@@ -96,66 +96,66 @@ import retrofit2.http.Path
 import retrofit2.http.Query
 
 interface ApiService {
-    @POST("api/auth/login")
+    @POST("/api/auth/login")
     suspend fun login(@Body request: LoginRequest): Response<LoginResponse>
 
-    @PUT("api/auth/fcm-token")
+    @PUT("/api/auth/fcm-token")
     suspend fun updateFcmToken(
         @Header("Authorization") authorization: String,
         @Body body: Map<String, String>,
     ): Response<Unit>
 
-    @DELETE("api/auth/fcm-token")
+    @DELETE("/api/auth/fcm-token")
     suspend fun clearFcmToken(
         @Header("Authorization") authorization: String,
     ): Response<Unit>
 
-    @POST("api/auth/logout")
+    @POST("/api/auth/logout")
     suspend fun logout(
         @Header("Authorization") authorization: String,
         @Header("X-Refresh-Token") refreshTokenHeader: String? = null,
         @Body request: LogoutRequest? = null
     ): Response<LogoutResponse>
 
-    @GET("api/auth/my-referrals")
+    @GET("/api/auth/my-referrals")
     suspend fun getMyReferrals(
         @Header("Authorization") authorization: String
     ): Response<ReferralTreeResponse>
 
-    @GET("api/auth/search-referral")
+    @GET("/api/auth/search-referral")
     suspend fun searchReferral(
         @Header("Authorization") authorization: String,
         @Query("code") code: String
     ): Response<SearchReferralResponse>
 
-    @POST("api/companies/register")
+    @POST("/api/companies/register")
     suspend fun registerCompany(
         @Header("Authorization") authorization: String,
         @Body request: RegisterCompanyRequest
     ): Response<RegisterCompanyResponse>
 
-    @PUT("api/companies/my-company/update")
+    @PUT("/api/companies/my-company/update")
     suspend fun updateCompany(
         @Header("Authorization") authorization: String,
         @Body request: UpdateCompanyRequest
     ): Response<UpdateCompanyResponse>
 
-    @POST("api/auth/refresh")
+    @POST("/api/auth/refresh")
     suspend fun refreshToken(@Body request: RefreshTokenRequest): Response<RefreshTokenResponse>
 
-    @GET("api/auth/validate-session")
+    @GET("/api/auth/validate-session")
     suspend fun validateSession(
         @Header("Authorization") authorization: String,
         @Header("X-Refresh-Token") refreshToken: String? = null
     ): Response<ValidateSessionResponse>
 
     // Endpoints de perfil de usuario
-    @GET("api/auth/profile")
+    @GET("/api/auth/profile")
     suspend fun getProfile(
         @Header("Authorization") authorization: String
     ): Response<ProfileResponse>
 
-    @PUT("api/auth/profile")
+    @PUT("/api/auth/profile")
     suspend fun updateProfile(
         @Header("Authorization") authorization: String,
         @Body request: UpdateProfileRequest
@@ -163,68 +163,68 @@ interface ApiService {
 
     // Endpoints de selfie (foto de perfil)
     @Multipart
-    @POST("api/auth/profile/upload-selfie")
+    @POST("/api/auth/profile/upload-selfie")
     suspend fun uploadSelfie(
         @Header("Authorization") authorization: String,
         @Part selfie: okhttp3.MultipartBody.Part
     ): Response<SelfieUploadResponse>
 
-    @DELETE("api/auth/profile/delete-selfie")
+    @DELETE("/api/auth/profile/delete-selfie")
     suspend fun deleteSelfie(
         @Header("Authorization") authorization: String
     ): Response<SelfieDeleteResponse>
 
     // Endpoints de ciudades y provincias
-    @GET("api/cities/ecuador")
+    @GET("/api/cities/ecuador")
     suspend fun getAllCities(@Query("province") province: String? = null): Response<List<String>>
 
-    @GET("api/cities/ecuador/provinces")
+    @GET("/api/cities/ecuador/provinces")
     suspend fun getProvinces(): Response<List<String>>
 
-    @GET("api/cities/ecuador/province-cities/{province}")
+    @GET("/api/cities/ecuador/province-cities/{province}")
     suspend fun getCitiesByProvince(@Path("province") province: String): Response<List<String>>
 
     // ==================== CATEGORÍAS Y SERVICIOS ====================
-    @GET("api/categories-services/categories")
+    @GET("/api/categories-services/categories")
     suspend fun getCategories(): Response<List<CategoryInfo>>
 
-    @GET("api/categories-services/services")
+    @GET("/api/categories-services/services")
     suspend fun getServices(@Query("category_id") categoryId: Int? = null): Response<List<ServiceInfo>>
 
     // ==================== QR TRANSACTIONS ====================
 
-    @POST("api/qr-transactions/generate")
+    @POST("/api/qr-transactions/generate")
     suspend fun generateQR(
         @Header("Authorization") authorization: String,
         @Body request: GenerateQRRequest
     ): Response<GenerateQRResponse>
 
-    @POST("api/qr-transactions/scan")
+    @POST("/api/qr-transactions/scan")
     suspend fun scanQR(
         @Header("Authorization") authorization: String,
         @Body request: ScanQRRequest
     ): Response<ProcessReceiptResponse>
 
-    @POST("api/qr-transactions/process")
+    @POST("/api/qr-transactions/process")
     suspend fun processQR(
         @Header("Authorization") authorization: String,
         @Body request: ProcessQRRequest
     ): Response<ProcessReceiptResponse>
 
-    @GET("api/qr-transactions/status/{qr_code}")
+    @GET("/api/qr-transactions/status/{qr_code}")
     suspend fun getQRStatus(
         @Header("Authorization") authorization: String,
         @Path("qr_code") qrCode: String
     ): Response<QRStatusResponse>
 
-    @GET("api/qr-transactions/my-generated")
+    @GET("/api/qr-transactions/my-generated")
     suspend fun getMyGeneratedQRs(
         @Header("Authorization") authorization: String,
         @Query("page") page: Int = 1,
         @Query("per_page") perPage: Int = 20
     ): Response<QRListResponse>
 
-    @GET("api/qr-transactions/my-scanned")
+    @GET("/api/qr-transactions/my-scanned")
     suspend fun getMyScannedQRs(
         @Header("Authorization") authorization: String,
         @Query("page") page: Int = 1,
@@ -233,7 +233,7 @@ interface ApiService {
 
     // ==================== QR HISTORY ====================
 
-    @GET("api/qr-transactions/history")
+    @GET("/api/qr-transactions/history")
     suspend fun getTransactionHistory(
         @Header("Authorization") authorization: String,
         @Query("transaction_type") transactionType: String? = null, // "sales" | "purchases"
@@ -241,7 +241,7 @@ interface ApiService {
         @Query("per_page") perPage: Int = 20
     ): Response<TransactionHistoryResponse>
 
-    @GET("api/qr-transactions/receipt/{transactionId}")
+    @GET("/api/qr-transactions/receipt/{transactionId}")
     suspend fun getTransactionReceipt(
         @Header("Authorization") authorization: String,
         @Path("transactionId") transactionId: String
@@ -249,7 +249,7 @@ interface ApiService {
 
     // ==================== PRODUCT SEARCH ====================
 
-    @GET("api/companies/search-products")
+    @GET("/api/companies/search-products")
     suspend fun searchProducts(
         @Header("Authorization") authorization: String,
         @Query("q") query: String? = null,
@@ -263,7 +263,7 @@ interface ApiService {
 
     // ==================== PUBLIC COMPANIES ====================
 
-    @GET("api/companies")
+    @GET("/api/companies")
     suspend fun searchCompanies(
         @Header("Authorization") authorization: String,
         @Query("q") query: String? = null,
@@ -275,7 +275,7 @@ interface ApiService {
         @Query("per_page") perPage: Int = 20
     ): Response<CompaniesSearchResponse>
 
-    @GET("api/companies/{company_id}")
+    @GET("/api/companies/{company_id}")
     suspend fun getCompanyById(
         @Header("Authorization") authorization: String,
         @Path("company_id") companyId: Int
@@ -283,62 +283,62 @@ interface ApiService {
 
     // ==================== USER COMPANIES ====================
 
-    @GET("api/companies/my-company")
+    @GET("/api/companies/my-company")
     suspend fun getMyCompany(
         @Header("Authorization") authorization: String
     ): Response<UserCompanyResponse>
 
     // Logo upload endpoints
     @Multipart
-    @POST("api/companies/my-company/upload-logo")
+    @POST("/api/companies/my-company/upload-logo")
     suspend fun uploadCompanyLogo(
         @Header("Authorization") authorization: String,
         @Part logo: okhttp3.MultipartBody.Part
     ): Response<LogoUploadResponse>
 
-    @DELETE("api/companies/my-company/delete-logo")
+    @DELETE("/api/companies/my-company/delete-logo")
     suspend fun deleteCompanyLogo(
         @Header("Authorization") authorization: String
     ): Response<LogoUploadResponse>
 
-    @GET("api/companies/my-companies")
+    @GET("/api/companies/my-companies")
     suspend fun getMyCompanies(
         @Header("Authorization") authorization: String
     ): Response<UserCompaniesResponse>
 
     // ==================== BALANCE & STATS ====================
 
-    @GET("api/auth/withdrawals/balance")
+    @GET("/api/auth/withdrawals/balance")
     suspend fun getBalance(
         @Header("Authorization") authorization: String
     ): Response<BalanceResponse>
 
     // ==================== SESSION MANAGEMENT ====================
 
-    @GET("api/auth/sessions/list")
+    @GET("/api/auth/sessions/list")
     suspend fun getSessions(
         @Header("Authorization") authorization: String
     ): Response<SessionsResponse>
 
-    @POST("api/auth/sessions/invalidate-session")
+    @POST("/api/auth/sessions/invalidate-session")
     suspend fun invalidateSession(
         @Header("Authorization") authorization: String,
         @Body request: InvalidateSessionRequest
     ): Response<InvalidateSessionResponse>
 
-    @POST("api/auth/sessions/logout-all-except-current")
+    @POST("/api/auth/sessions/logout-all-except-current")
     suspend fun logoutAllExceptCurrent(
         @Header("Authorization") authorization: String
     ): Response<LogoutAllResponse>
 
-    @POST("api/auth/sessions/force-logout-all")
+    @POST("/api/auth/sessions/force-logout-all")
     suspend fun forceLogoutAll(
         @Header("Authorization") authorization: String
     ): Response<LogoutAllResponse>
 
     // ==================== ADMIN EARNINGS ====================
 
-    @GET("api/admin/earnings")
+    @GET("/api/admin/earnings")
     suspend fun getAdminEarnings(
         @Header("Authorization") authorization: String,
         @Query("search") search: String? = null,
@@ -349,7 +349,7 @@ interface ApiService {
         @Query("per_page") perPage: Int = 20
     ): Response<AdminEarningsResponse>
 
-    @GET("api/admin/earnings/user/{userId}")
+    @GET("/api/admin/earnings/user/{userId}")
     suspend fun getAdminUserEarnings(
         @Header("Authorization") authorization: String,
         @Path("userId") userId: Int,
@@ -359,18 +359,18 @@ interface ApiService {
 
     // ==================== COMPANY PAYMENTS ====================
 
-    @POST("api/companies/my-company/payments/register")
+    @POST("/api/companies/my-company/payments/register")
     suspend fun registerCompanyPayment(
         @Header("Authorization") authorization: String,
         @Body paymentRequest: CompanyPaymentRequest
     ): Response<RegisterPaymentResponse>
 
-    @GET("api/companies/my-company/payments/history")
+    @GET("/api/companies/my-company/payments/history")
     suspend fun getPaymentHistory(
         @Header("Authorization") authorization: String
     ): Response<PaymentHistoryResponse>
 
-    @GET("api/companies/my-company/payments/can-access")
+    @GET("/api/companies/my-company/payments/can-access")
     suspend fun checkPaymentAccess(
         @Header("Authorization") authorization: String
     ): Response<PaymentAccessResponse>
@@ -380,13 +380,13 @@ interface ApiService {
     // =====================================================
 
     // Ganancias del usuario autenticado
-    @GET("api/companies/transactions/my-earnings/summary")
+    @GET("/api/companies/transactions/my-earnings/summary")
     suspend fun getMyEarningsSummary(
         @Header("Authorization") authorization: String
     ): Response<EarningsSummaryResponse>
 
     // Lista de comisiones del usuario autenticado
-    @GET("api/companies/transactions/my-commissions")
+    @GET("/api/companies/transactions/my-commissions")
     suspend fun getMyCommissions(
         @Header("Authorization") authorization: String,
         @Query("page") page: Int = 1,
@@ -395,13 +395,13 @@ interface ApiService {
     ): Response<List<CommissionResponse>>
 
     // Admin: Resumen general de ganancias
-    @GET("admin/earnings/summary")
+    @GET("/admin/earnings/summary")
     suspend fun getAdminEarningsSummary(
         @Header("Authorization") authorization: String
     ): Response<AdminEarningsSummaryResponse>
 
     // Admin: Resumen de ganancias de un usuario específico
-    @GET("admin/earnings/user/{userId}/summary")
+    @GET("/admin/earnings/user/{userId}/summary")
     suspend fun getAdminUserEarningsSummary(
         @Header("Authorization") authorization: String,
         @Path("userId") userId: Int
@@ -412,33 +412,33 @@ interface ApiService {
     // =====================================================
 
     // Obtener balance de comisiones (incluye monto mínimo)
-    @GET("api/auth/withdrawals/balance/detailed")
+    @GET("/api/auth/withdrawals/balance/detailed")
     suspend fun getCommissionBalance(
         @Header("Authorization") authorization: String
     ): Response<CommissionBalanceResponse>
 
     // Obtener mis cuentas bancarias
-    @GET("api/auth/withdrawals/bank-accounts")
+    @GET("/api/auth/withdrawals/bank-accounts")
     suspend fun getMyBankAccounts(
         @Header("Authorization") authorization: String
     ): Response<BankAccountListResponse>
 
     // Crear cuenta bancaria
-    @POST("api/auth/withdrawals/bank-accounts")
+    @POST("/api/auth/withdrawals/bank-accounts")
     suspend fun createBankAccount(
         @Header("Authorization") authorization: String,
         @Body account: CreateBankAccountRequest
     ): Response<WithdrawalSuccessResponse>
 
     // Crear solicitud de retiro
-    @POST("api/auth/withdrawals/requests")
+    @POST("/api/auth/withdrawals/requests")
     suspend fun createWithdrawalRequest(
         @Header("Authorization") authorization: String,
         @Body request: CreateWithdrawalRequest
     ): Response<WithdrawalSuccessResponse>
 
     // Obtener mis solicitudes de retiro
-    @GET("api/auth/withdrawals/requests")
+    @GET("/api/auth/withdrawals/requests")
     suspend fun getMyWithdrawalRequests(
         @Header("Authorization") authorization: String,
         @Query("page") page: Int = 1,
@@ -446,7 +446,7 @@ interface ApiService {
     ): Response<WithdrawalRequestListResponse>
 
     // Cancelar solicitud de retiro
-    @PUT("api/auth/withdrawals/requests/{requestId}/cancel")
+    @PUT("/api/auth/withdrawals/requests/{requestId}/cancel")
     suspend fun cancelWithdrawalRequest(
         @Header("Authorization") authorization: String,
         @Path("requestId") requestId: Int
@@ -457,7 +457,7 @@ interface ApiService {
     // =====================================================
 
     // Obtener todas las solicitudes de retiro (admin)
-    @GET("api/admin/withdrawals/requests")
+    @GET("/api/admin/withdrawals/requests")
     suspend fun getAdminWithdrawals(
         @Header("Authorization") authorization: String,
         @Query("status") status: String? = null, // "pending", "approved", "rejected", "postponed"
@@ -466,14 +466,14 @@ interface ApiService {
     ): Response<AdminWithdrawalsListResponse>
 
     // Obtener detalle de una solicitud de retiro (admin)
-    @GET("api/admin/withdrawals/requests/{requestId}")
+    @GET("/api/admin/withdrawals/requests/{requestId}")
     suspend fun getAdminWithdrawalDetail(
         @Header("Authorization") authorization: String,
         @Path("requestId") requestId: Int
     ): Response<AdminWithdrawalActionResponse>
 
     // Revisar solicitud de retiro (aprobar/rechazar/postergar)
-    @PUT("api/admin/withdrawals/requests/{requestId}/review")
+    @PUT("/api/admin/withdrawals/requests/{requestId}/review")
     suspend fun reviewWithdrawal(
         @Header("Authorization") authorization: String,
         @Path("requestId") requestId: Int,
@@ -485,7 +485,7 @@ interface ApiService {
     // =====================================================
 
     // Obtener categorías de productos
-    @GET("api/product-categories")
+    @GET("/api/product-categories")
     suspend fun getProductCategories(
         @Header("Authorization") authorization: String,
         @Query("active_only") activeOnly: Boolean = true
@@ -496,27 +496,27 @@ interface ApiService {
     // =====================================================
 
     // Obtener productos de mi empresa
-    @GET("api/companies/my-company/products")
+    @GET("/api/companies/my-company/products")
     suspend fun getMyCompanyProducts(
         @Header("Authorization") authorization: String
     ): Response<List<Product>>
 
     // Obtener productos de una empresa específica
-    @GET("api/companies/{companyId}/products")
+    @GET("/api/companies/{companyId}/products")
     suspend fun getCompanyProducts(
         @Header("Authorization") authorization: String,
         @Path("companyId") companyId: Int
     ): Response<List<Product>>
 
     // Crear producto
-    @POST("api/companies/my-company/products")
+    @POST("/api/companies/my-company/products")
     suspend fun createProduct(
         @Header("Authorization") authorization: String,
         @Body request: CreateProductRequest
     ): Response<ProductResponse>
 
     // Actualizar producto
-    @PUT("api/companies/my-company/products/{productId}")
+    @PUT("/api/companies/my-company/products/{productId}")
     suspend fun updateProduct(
         @Header("Authorization") authorization: String,
         @Path("productId") productId: Int,
@@ -524,14 +524,14 @@ interface ApiService {
     ): Response<ProductResponse>
 
     // Eliminar producto (soft delete - desactivar)
-    @PUT("api/companies/my-company/products/{productId}/deactivate")
+    @PUT("/api/companies/my-company/products/{productId}/deactivate")
     suspend fun deactivateProduct(
         @Header("Authorization") authorization: String,
         @Path("productId") productId: Int
     ): Response<ProductResponse>
 
     // Eliminar producto (hard delete)
-    @DELETE("api/companies/my-company/products/{productId}")
+    @DELETE("/api/companies/my-company/products/{productId}")
     suspend fun deleteProduct(
         @Header("Authorization") authorization: String,
         @Path("productId") productId: Int
@@ -543,7 +543,7 @@ interface ApiService {
 
     // Subir imagen de producto
     @Multipart
-    @POST("api/companies/my-company/products/{productId}/images")
+    @POST("/api/companies/my-company/products/{productId}/images")
     suspend fun uploadProductImage(
         @Header("Authorization") authorization: String,
         @Path("productId") productId: Int,
@@ -552,21 +552,21 @@ interface ApiService {
     ): Response<ImageUploadResponse>
 
     // Obtener imágenes de un producto
-    @GET("api/companies/my-company/products/{productId}/images")
+    @GET("/api/companies/my-company/products/{productId}/images")
     suspend fun getProductImages(
         @Header("Authorization") authorization: String,
         @Path("productId") productId: Int
     ): Response<List<ProductImage>>
 
     // Eliminar imagen de producto
-    @DELETE("api/companies/my-company/products/images/{imageId}")
+    @DELETE("/api/companies/my-company/products/images/{imageId}")
     suspend fun deleteProductImage(
         @Header("Authorization") authorization: String,
         @Path("imageId") imageId: Int
     ): Response<ProductResponse>
 
     // Establecer imagen como principal
-    @PUT("api/companies/my-company/products/images/{imageId}/primary")
+    @PUT("/api/companies/my-company/products/images/{imageId}/primary")
     suspend fun setPrimaryProductImage(
         @Header("Authorization") authorization: String,
         @Path("imageId") imageId: Int
@@ -577,13 +577,13 @@ interface ApiService {
     // =====================================================
 
     // Obtener carrito
-    @GET("api/cart")
+    @GET("/api/cart")
     suspend fun getCart(
         @Header("Authorization") authorization: String
     ): Response<List<CartItem>>
 
     // Agregar al carrito
-    @POST("api/cart/add")
+    @POST("/api/cart/add")
     suspend fun addToCart(
         @Header("Authorization") authorization: String,
         @Query("product_id") productId: Int,
@@ -591,7 +591,7 @@ interface ApiService {
     ): Response<CartResponse>
 
     // Actualizar cantidad en carrito
-    @PUT("api/cart/update")
+    @PUT("/api/cart/update")
     suspend fun updateCartItem(
         @Header("Authorization") authorization: String,
         @Query("product_id") productId: Int,
@@ -599,26 +599,27 @@ interface ApiService {
     ): Response<CartResponse>
 
     // Eliminar item del carrito
-    @DELETE("api/cart/remove/{productId}")
+    @DELETE("/api/cart/remove/{productId}")
     suspend fun removeFromCart(
         @Header("Authorization") authorization: String,
         @Path("productId") productId: Int
     ): Response<CartResponse>
 
     // Vaciar carrito
-    @DELETE("api/cart/clear")
+    @DELETE("/api/cart/clear")
     suspend fun clearCart(
         @Header("Authorization") authorization: String
     ): Response<CartResponse>
 
     // Checkout - generar código de referencia
-    @GET("api/cart/checkout")
+    @GET("/api/cart/checkout")
     suspend fun checkout(
-        @Header("Authorization") authorization: String
+        @Header("Authorization") authorization: String,
+        @Query("delivery_required") deliveryRequired: Boolean = true
     ): Response<CheckoutResponse>
 
     // Obtener cantidad de items en carrito
-    @GET("api/cart/count")
+    @GET("/api/cart/count")
     suspend fun getCartCount(
         @Header("Authorization") authorization: String
     ): Response<CartCountResponse>
@@ -628,29 +629,29 @@ interface ApiService {
     // =====================================================
 
     // Establecer PIN de billetera (primera vez)
-    @POST("api/wallet/pin/set")
+    @POST("/api/wallet/pin/set")
     suspend fun setWalletPin(
         @Body request: SetPinRequest
     ): Response<WalletApiResponse<Unit>>
 
     // Cambiar PIN de billetera
-    @POST("api/wallet/pin/change")
+    @POST("/api/wallet/pin/change")
     suspend fun changeWalletPin(
         @Body request: ChangePinRequest
     ): Response<WalletApiResponse<Unit>>
 
     // Consultar saldo de billetera
-    @GET("api/wallet/balance")
+    @GET("/api/wallet/balance")
     suspend fun getWalletBalance(): Response<WalletBalanceResponse>
 
     // Realizar transferencia entre usuarios
-    @POST("api/wallet/transfer")
+    @POST("/api/wallet/transfer")
     suspend fun walletTransfer(
         @Body request: TransferRequest
     ): Response<TransferResponse>
 
     // Obtener estado de cuenta / historial de movimientos
-    @GET("api/wallet/statement")
+    @GET("/api/wallet/statement")
     suspend fun getWalletStatement(
         @Query("page") page: Int = 1,
         @Query("per_page") perPage: Int = 20,
@@ -659,13 +660,13 @@ interface ApiService {
     ): Response<WalletStatementResponse>
 
     // Obtener detalle de una transferencia específica
-    @GET("api/wallet/transfer/{id}")
+    @GET("/api/wallet/transfer/{id}")
     suspend fun getWalletTransfer(
         @Path("id") id: Int
     ): Response<WalletStatementItem>
 
     // Verificar si un teléfono está registrado en EasyRefer
-    @GET("api/wallet/check-recipient")
+    @GET("/api/wallet/check-recipient")
     suspend fun checkWalletRecipient(
         @Query("phone") phone: String
     ): Response<CheckRecipientResponse>
@@ -674,58 +675,58 @@ interface ApiService {
     // DELIVERY - DRIVER
     // =====================================================
 
-    @GET("api/delivery/drivers/me")
+    @GET("/api/delivery/drivers/me")
     suspend fun getDriverProfile(
         @Header("Authorization") authorization: String
     ): Response<com.christelldev.easyreferplus.data.model.DriverProfile>
 
-    @GET("api/orders/driver/available")
+    @GET("/api/orders/driver/available")
     suspend fun getAvailableOrders(
         @Header("Authorization") authorization: String
     ): Response<List<com.christelldev.easyreferplus.data.model.AvailableOrder>>
 
-    @GET("api/delivery/drivers/me/active-order")
+    @GET("/api/delivery/drivers/me/active-order")
     suspend fun getActiveOrder(
         @Header("Authorization") authorization: String
     ): Response<com.christelldev.easyreferplus.data.model.ActiveOrderResponse>
 
-    @PUT("api/delivery/drivers/me/duty")
+    @PUT("/api/delivery/drivers/me/duty")
     suspend fun toggleDriverDuty(
         @Header("Authorization") authorization: String
     ): Response<com.christelldev.easyreferplus.data.model.OnDutyToggleResponse>
 
-    @PUT("api/delivery/drivers/me/location")
+    @PUT("/api/delivery/drivers/me/location")
     suspend fun updateDriverLocation(
         @Header("Authorization") authorization: String,
         @Body body: com.christelldev.easyreferplus.data.model.LocationUpdate
     ): Response<com.christelldev.easyreferplus.data.model.DriverActionResponse>
 
-    @PUT("api/orders/{orderId}/driver/accept")
+    @PUT("/api/orders/{orderId}/driver/accept")
     suspend fun acceptDeliveryOrder(
         @Header("Authorization") authorization: String,
         @Path("orderId") orderId: Int
     ): Response<com.christelldev.easyreferplus.data.model.DriverActionResponse>
 
-    @PUT("api/orders/{orderId}/driver/reject")
+    @PUT("/api/orders/{orderId}/driver/reject")
     suspend fun rejectOrder(
         @Header("Authorization") authorization: String,
         @Path("orderId") orderId: Int
     ): Response<com.christelldev.easyreferplus.data.model.DriverActionResponse>
 
     // Alias sin Response wrapper para uso directo desde DriverOrderRequestActivity
-    @PUT("api/orders/{orderId}/driver/accept")
+    @PUT("/api/orders/{orderId}/driver/accept")
     suspend fun acceptOrder(
         @Header("Authorization") authorization: String,
         @Path("orderId") orderId: Int
     ): Response<com.christelldev.easyreferplus.data.model.DriverActionResponse>
 
-    @PUT("api/orders/{orderId}/driver/pickup")
+    @PUT("/api/orders/{orderId}/driver/pickup")
     suspend fun confirmOrderPickup(
         @Header("Authorization") authorization: String,
         @Path("orderId") orderId: Int
     ): Response<com.christelldev.easyreferplus.data.model.DriverActionResponse>
 
-    @PUT("api/orders/{orderId}/driver/deliver")
+    @PUT("/api/orders/{orderId}/driver/deliver")
     suspend fun confirmOrderDelivery(
         @Header("Authorization") authorization: String,
         @Path("orderId") orderId: Int
@@ -733,7 +734,7 @@ interface ApiService {
 
     // Foto de evidencia de entrega
     @Multipart
-    @POST("api/orders/{orderId}/delivery-photo")
+    @POST("/api/orders/{orderId}/delivery-photo")
     suspend fun uploadDeliveryPhoto(
         @Header("Authorization") authorization: String,
         @Path("orderId") orderId: Int,
@@ -741,34 +742,34 @@ interface ApiService {
     ): Response<com.christelldev.easyreferplus.data.model.DeliveryPhotoResponse>
 
     // Conductor marca llegada al punto de recogida
-    @PUT("api/orders/{orderId}/arrived-pickup")
+    @PUT("/api/orders/{orderId}/arrived-pickup")
     suspend fun driverArrivedAtPickup(
         @Header("Authorization") authorization: String,
         @Path("orderId") orderId: Int
     ): Response<com.christelldev.easyreferplus.data.model.DriverActionResponse>
 
     // Conductor marca llegada al destino
-    @PUT("api/orders/{orderId}/arrived-dropoff")
+    @PUT("/api/orders/{orderId}/arrived-dropoff")
     suspend fun driverArrivedAtDropoff(
         @Header("Authorization") authorization: String,
         @Path("orderId") orderId: Int
     ): Response<com.christelldev.easyreferplus.data.model.DriverActionResponse>
 
     // Ganancias del conductor hoy
-    @GET("api/orders/driver/earnings-today")
+    @GET("/api/orders/driver/earnings-today")
     suspend fun getDriverEarningsToday(
         @Header("Authorization") authorization: String
     ): Response<com.christelldev.easyreferplus.data.model.DriverEarningsTodayResponse>
 
     // Establecimiento marca el pedido como listo para recoger
-    @PUT("api/orders/{orderId}/store/ready")
+    @PUT("/api/orders/{orderId}/store/ready")
     suspend fun storeMarkOrderReady(
         @Header("Authorization") authorization: String,
         @Path("orderId") orderId: Int
     ): Response<com.christelldev.easyreferplus.data.model.SimpleSuccessResponse>
 
     // Comprador confirma que recibió el pedido
-    @PUT("api/orders/{orderId}/buyer/confirm")
+    @PUT("/api/orders/{orderId}/buyer/confirm")
     suspend fun buyerConfirmReceipt(
         @Header("Authorization") authorization: String,
         @Path("orderId") orderId: Int
@@ -778,7 +779,7 @@ interface ApiService {
     // KEYWORDS & SEARCH ALIASES
     // =====================================================
 
-    @PATCH("api/companies/{companyId}/products/{productId}/keywords")
+    @PATCH("/api/companies/{companyId}/products/{productId}/keywords")
     suspend fun updateProductKeywords(
         @Header("Authorization") authorization: String,
         @Path("companyId") companyId: Int,
@@ -786,24 +787,24 @@ interface ApiService {
         @Body request: com.christelldev.easyreferplus.data.model.UpdateKeywordsRequest
     ): Response<com.christelldev.easyreferplus.data.model.ProductResponse>
 
-    @GET("api/search/aliases")
+    @GET("/api/search/aliases")
     suspend fun getSearchAliases(
         @Header("Authorization") authorization: String
     ): Response<com.christelldev.easyreferplus.data.model.AliasListResponse>
 
-    @POST("api/search/aliases")
+    @POST("/api/search/aliases")
     suspend fun createSearchAlias(
         @Header("Authorization") authorization: String,
         @Body request: com.christelldev.easyreferplus.data.model.CreateAliasRequest
     ): Response<com.christelldev.easyreferplus.data.model.ProductResponse>
 
-    @DELETE("api/search/aliases/{aliasId}")
+    @DELETE("/api/search/aliases/{aliasId}")
     suspend fun deleteSearchAlias(
         @Header("Authorization") authorization: String,
         @Path("aliasId") aliasId: Int
     ): Response<com.christelldev.easyreferplus.data.model.ProductResponse>
 
-    @GET("api/products/feed")
+    @GET("/api/products/feed")
     suspend fun getProductFeed(
         @Header("Authorization") authorization: String,
         @Query("section") section: String,
@@ -812,24 +813,24 @@ interface ApiService {
     ): Response<com.christelldev.easyreferplus.data.model.FeedResponse>
 
     // Comprador cancela el pedido (solo mientras busca conductor)
-    @PUT("api/orders/{orderId}/cancel")
+    @PUT("/api/orders/{orderId}/cancel")
     suspend fun cancelOrder(
         @Header("Authorization") authorization: String,
         @Path("orderId") orderId: Int
     ): Response<com.christelldev.easyreferplus.data.model.SimpleSuccessResponse>
 
-    @GET("api/delivery/drivers/me/invitations")
+    @GET("/api/delivery/drivers/me/invitations")
     suspend fun getDriverInvitations(
         @Header("Authorization") authorization: String
     ): Response<List<com.christelldev.easyreferplus.data.model.DriverInvitation>>
 
-    @POST("api/delivery/drivers/me/invitations/{invitationId}/accept")
+    @POST("/api/delivery/drivers/me/invitations/{invitationId}/accept")
     suspend fun acceptDriverInvitation(
         @Header("Authorization") authorization: String,
         @Path("invitationId") invitationId: Int
     ): Response<com.christelldev.easyreferplus.data.model.DriverActionResponse>
 
-    @POST("api/delivery/drivers/me/invitations/{invitationId}/reject")
+    @POST("/api/delivery/drivers/me/invitations/{invitationId}/reject")
     suspend fun rejectDriverInvitation(
         @Header("Authorization") authorization: String,
         @Path("invitationId") invitationId: Int
@@ -839,12 +840,12 @@ interface ApiService {
     // DELIVERY - ADMIN
     // =====================================================
 
-    @GET("api/delivery/drivers/company/live-locations")
+    @GET("/api/delivery/drivers/company/live-locations")
     suspend fun getAdminDriverLocations(
         @Header("Authorization") authorization: String
     ): Response<List<com.christelldev.easyreferplus.data.model.AdminDriverLocation>>
 
-    @GET("api/delivery/drivers/company/orders")
+    @GET("/api/delivery/drivers/company/orders")
     suspend fun getCompanyOrders(
         @Header("Authorization") authorization: String,
         @Query("page") page: Int = 1,
@@ -856,39 +857,39 @@ interface ApiService {
     // ORDERS — COMPRADOR
     // =====================================================
 
-    @POST("api/orders/")
+    @POST("/api/orders/")
     suspend fun createOrder(
         @Header("Authorization") authorization: String,
         @Body request: com.christelldev.easyreferplus.data.model.OrderCreateRequest
     ): Response<com.christelldev.easyreferplus.data.model.OrderCreateResponse>
 
-    @GET("api/orders/delivery-options")
+    @GET("/api/orders/delivery-options")
     suspend fun getDeliveryOptions(
         @Header("Authorization") authorization: String,
         @Query("dest_lat") destLat: Double,
         @Query("dest_lng") destLng: Double
     ): Response<com.christelldev.easyreferplus.data.model.DeliveryOptionsResponse>
 
-    @POST("api/orders/{orderId}/simulate-payment")
+    @POST("/api/orders/{orderId}/simulate-payment")
     suspend fun simulatePayment(
         @Header("Authorization") authorization: String,
         @Path("orderId") orderId: Int
     ): Response<com.christelldev.easyreferplus.data.model.SimulatePaymentResponse>
 
-    @GET("api/orders/")
+    @GET("/api/orders/")
     suspend fun getMyOrders(
         @Header("Authorization") authorization: String,
         @Query("page") page: Int = 1,
         @Query("per_page") perPage: Int = 20
     ): Response<List<com.christelldev.easyreferplus.data.model.OrderOut>>
 
-    @GET("api/orders/{orderId}")
+    @GET("/api/orders/{orderId}")
     suspend fun getOrderDetail(
         @Header("Authorization") authorization: String,
         @Path("orderId") orderId: Int
     ): Response<com.christelldev.easyreferplus.data.model.OrderOut>
 
-    @GET("api/orders/company/received")
+    @GET("/api/orders/company/received")
     suspend fun getMyReceivedOrders(
         @Header("Authorization") authorization: String,
         @Query("page") page: Int = 1,
@@ -898,25 +899,25 @@ interface ApiService {
 
     // ─── Saved Addresses ─────────────────────────────────────────────────────
 
-    @GET("api/orders/saved-addresses")
+    @GET("/api/orders/saved-addresses")
     suspend fun getSavedAddresses(
         @Header("Authorization") authorization: String
     ): Response<List<com.christelldev.easyreferplus.data.model.SavedAddress>>
 
-    @POST("api/orders/saved-addresses")
+    @POST("/api/orders/saved-addresses")
     suspend fun createSavedAddress(
         @Header("Authorization") authorization: String,
         @Body request: com.christelldev.easyreferplus.data.model.CreateAddressRequest
     ): Response<com.christelldev.easyreferplus.data.model.SavedAddress>
 
-    @PUT("api/orders/saved-addresses/{addressId}")
+    @PUT("/api/orders/saved-addresses/{addressId}")
     suspend fun updateSavedAddress(
         @Header("Authorization") authorization: String,
         @Path("addressId") addressId: Int,
         @Body request: com.christelldev.easyreferplus.data.model.UpdateAddressRequest
     ): Response<com.christelldev.easyreferplus.data.model.SavedAddress>
 
-    @DELETE("api/orders/saved-addresses/{addressId}")
+    @DELETE("/api/orders/saved-addresses/{addressId}")
     suspend fun deleteSavedAddress(
         @Header("Authorization") authorization: String,
         @Path("addressId") addressId: Int
@@ -924,25 +925,25 @@ interface ApiService {
 
     // ─── Delivery Saved Locations (history & favorites) ─────────────────────
 
-    @GET("api/delivery/locations/")
+    @GET("/api/delivery/locations/")
     suspend fun getDeliveryLocations(
         @Header("Authorization") authorization: String
     ): Response<List<com.christelldev.easyreferplus.data.model.UserSavedLocation>>
 
-    @POST("api/delivery/locations/")
+    @POST("/api/delivery/locations/")
     suspend fun saveDeliveryLocation(
         @Header("Authorization") authorization: String,
         @Body body: com.christelldev.easyreferplus.data.model.SaveLocationRequest
     ): Response<com.christelldev.easyreferplus.data.model.UserSavedLocation>
 
-    @PATCH("api/delivery/locations/{id}")
+    @PATCH("/api/delivery/locations/{id}")
     suspend fun updateDeliveryLocation(
         @Header("Authorization") authorization: String,
         @Path("id") id: Int,
         @Body body: com.christelldev.easyreferplus.data.model.UpdateLocationRequest
     ): Response<com.christelldev.easyreferplus.data.model.UserSavedLocation>
 
-    @DELETE("api/delivery/locations/{id}")
+    @DELETE("/api/delivery/locations/{id}")
     suspend fun deleteDeliveryLocation(
         @Header("Authorization") authorization: String,
         @Path("id") id: Int
@@ -950,12 +951,12 @@ interface ApiService {
 
     // ─── Order Tracking ─────────────────────────────────────────────────────
 
-    @GET("api/orders/{orderId}/tracking")
+    @GET("/api/orders/{orderId}/tracking")
     suspend fun getOrderTracking(
         @Path("orderId") orderId: Int
     ): Response<com.christelldev.easyreferplus.data.model.OrderTrackingInfo>
 
-    @GET("api/orders/{orderId}/eta")
+    @GET("/api/orders/{orderId}/eta")
     suspend fun getOrderEta(
         @Path("orderId") orderId: Int
     ): Response<com.christelldev.easyreferplus.data.model.OrderEtaResponse>
@@ -964,60 +965,102 @@ interface ApiService {
     // RATINGS & TIPS
     // =====================================================
 
-    @POST("api/orders/{orderId}/rating")
+    @POST("/api/orders/{orderId}/rating")
     suspend fun createRating(
         @Header("Authorization") authorization: String,
         @Path("orderId") orderId: Int,
         @Body request: com.christelldev.easyreferplus.data.model.RatingRequest
     ): Response<com.christelldev.easyreferplus.data.model.RatingResponse>
 
-    @GET("api/orders/{orderId}/rating")
+    @GET("/api/orders/{orderId}/rating")
     suspend fun getMyRating(
         @Header("Authorization") authorization: String,
         @Path("orderId") orderId: Int
     ): Response<com.christelldev.easyreferplus.data.model.MyRatingResponse>
 
-    @POST("api/orders/{orderId}/tip")
+    @POST("/api/orders/{orderId}/tip")
     suspend fun createOrUpdateTip(
         @Header("Authorization") authorization: String,
         @Path("orderId") orderId: Int,
         @Body request: com.christelldev.easyreferplus.data.model.TipRequest
     ): Response<com.christelldev.easyreferplus.data.model.TipResponse>
 
-    @GET("api/orders/{orderId}/tip")
+    @GET("/api/orders/{orderId}/tip")
     suspend fun getTip(
         @Header("Authorization") authorization: String,
         @Path("orderId") orderId: Int
     ): Response<com.christelldev.easyreferplus.data.model.TipDetailResponse>
 
-    @GET("api/orders/ratings/config")
+    @GET("/api/orders/ratings/config")
     suspend fun getRatingConfig(
         @Header("Authorization") authorization: String
     ): Response<com.christelldev.easyreferplus.data.model.RatingConfigResponse>
 
     // ─── Chat ────────────────────────────────────────────────────────────────
 
-    @GET("api/orders/{orderId}/messages")
+    @GET("/api/orders/{orderId}/messages")
     suspend fun getChatMessages(
         @Path("orderId") orderId: Int,
         @Query("limit") limit: Int = 50,
         @Query("before_id") beforeId: Int? = null,
     ): Response<com.christelldev.easyreferplus.data.model.ChatMessagesResponse>
 
-    @POST("api/orders/{orderId}/messages")
+    @POST("/api/orders/{orderId}/messages")
     suspend fun sendChatMessage(
         @Path("orderId") orderId: Int,
         @Body body: com.christelldev.easyreferplus.data.model.ChatMessageRequest,
     ): Response<com.christelldev.easyreferplus.data.model.ChatSendResponse>
 
-    @PUT("api/orders/{orderId}/messages/read")
+    @PUT("/api/orders/{orderId}/messages/read")
     suspend fun markChatMessagesRead(
         @Path("orderId") orderId: Int,
     ): Response<com.christelldev.easyreferplus.data.model.ChatMarkReadResponse>
 
-    @GET("api/orders/{orderId}/unread-count")
+    @GET("/api/orders/{orderId}/unread-count")
     suspend fun getChatUnreadCount(
         @Path("orderId") orderId: Int,
         @Header("Authorization") authorization: String
     ): Response<com.christelldev.easyreferplus.data.model.ChatUnreadResponse>
+
+    // ─── Dispatch Panel (Owners) ─────────────────────────────────────────────
+
+    @GET("/api/orders/company/active-dispatches")
+    suspend fun getActiveDispatches(
+        @Header("Authorization") authorization: String
+    ): Response<com.christelldev.easyreferplus.data.model.ActiveDispatchesResponse>
+
+    @GET("/api/orders/company/order/{orderId}/dispatch-detail")
+    suspend fun getDispatchDetail(
+        @Header("Authorization") authorization: String,
+        @Path("orderId") orderId: Int
+    ): Response<com.christelldev.easyreferplus.data.model.DispatchDetail>
+
+    @PUT("/api/orders/{orderId}/store/ready-pickup")
+    suspend fun markOrderReadyPickup(
+        @Header("Authorization") authorization: String,
+        @Path("orderId") orderId: Int
+    ): Response<com.christelldev.easyreferplus.data.model.SimpleSuccessResponse>
+
+    @PUT("/api/orders/{orderId}/store/dispatched")
+    suspend fun markOrderDispatched(
+        @Header("Authorization") authorization: String,
+        @Path("orderId") orderId: Int
+    ): Response<com.christelldev.easyreferplus.data.model.SimpleSuccessResponse>
+
+    // =====================================================
+    // PAYPAL PAYMENTS
+    // =====================================================
+
+    @POST("/api/payments/paypal/create-order")
+    suspend fun createPayPalOrder(
+        @Header("Authorization") authorization: String,
+        @Body request: com.christelldev.easyreferplus.data.model.CreatePayPalOrderRequest
+    ): Response<com.christelldev.easyreferplus.data.model.CreatePayPalOrderResponse>
+
+    @POST("/api/payments/paypal/capture-order")
+    suspend fun capturePayPalOrder(
+        @Header("Authorization") authorization: String,
+        @Body request: com.christelldev.easyreferplus.data.model.CapturePayPalOrderRequest
+    ): Response<com.christelldev.easyreferplus.data.model.CapturePayPalOrderResponse>
 }
+

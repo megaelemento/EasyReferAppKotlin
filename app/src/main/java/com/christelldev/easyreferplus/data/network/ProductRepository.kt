@@ -392,9 +392,9 @@ class ProductRepository(
         }
     }
 
-    suspend fun checkout(authorization: String): CheckoutResult {
+    suspend fun checkout(authorization: String, deliveryRequired: Boolean = true): CheckoutResult {
         return try {
-            val response = apiService.checkout(authorization)
+            val response = apiService.checkout(authorization, deliveryRequired)
             if (response.isSuccessful && response.body() != null) {
                 val body = response.body()!!
                 if (body.success) {

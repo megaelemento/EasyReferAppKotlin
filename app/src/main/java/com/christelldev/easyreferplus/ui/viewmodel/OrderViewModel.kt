@@ -25,7 +25,7 @@ sealed class CheckoutFlowState {
     object LoadingOptions : CheckoutFlowState()
     data class OptionsLoaded(val options: List<DeliveryOption>) : CheckoutFlowState()
     object Processing : CheckoutFlowState()
-    data class Success(val orderId: Int, val status: String, val total: Double) : CheckoutFlowState()
+    data class Success(val orderId: Int, val status: String, val total: Double, val companyId: Int? = null) : CheckoutFlowState()
     data class Error(val message: String) : CheckoutFlowState()
 }
 
@@ -87,6 +87,12 @@ class OrderViewModel(
         }
     }
 
+    override fun onCleared() {
+        super.onCleared()
+        wsManager?.shutdown()
+        wsManager = null
+    }
+
     private fun updateFromWebSocket(data: Map<String, Any>) {
         val orderId = (data["order_id"] as? Double)?.toInt() ?: return
         val newStatus = data["status"] as? String ?: return
@@ -116,7 +122,7 @@ class OrderViewModel(
 
     private val activeStatuses = setOf(
         "pending_payment", "paid_pending_driver", "driver_assigned",
-        "ready_for_pickup", "picked_up",
+        "picked_up",
     )
 
     fun hasActiveOrder(): Boolean {
@@ -146,13 +152,14 @@ class OrderViewModel(
         }
     }
 
-    fun createAndPayOrder(
+    fun createOrderOnly(
         deliveryRequired: Boolean,
         deliveryCompanyId: Int?,
         dropoffAddress: String?,
         dropoffLat: Double?,
         dropoffLng: Double?,
-        observations: String?
+        observations: String? = null,
+        tipAmount: Double? = null
     ) {
         viewModelScope.launch {
             _checkoutState.value = CheckoutFlowState.Processing
@@ -165,19 +172,17 @@ class OrderViewModel(
                     deliveryCompanyId = deliveryCompanyId,
                     dropoffAddress = dropoffAddress,
                     dropoffLat = dropoffLat,
-                    dropoffLng = dropoffLng
+                    dropoffLng = dropoffLng,
+                    observations = observations,
+                    tipAmount = if (tipAmount != null && tipAmount > 0) tipAmount else null
                 )
             )
             when (createResult) {
                 is OrderRepository.Result.Success -> {
                     val orderId = createResult.data.id
                     val total = createResult.data.total
-                    when (val payResult = repository.simulatePayment(token, orderId)) {
-                        is OrderRepository.Result.Success ->
-                            _checkoutState.value = CheckoutFlowState.Success(orderId, payResult.data.status, total)
-                        is OrderRepository.Result.Error ->
-                            _checkoutState.value = CheckoutFlowState.Error(payResult.message)
-                    }
+                    val companyId = createResult.data.companyId
+                    _checkoutState.value = CheckoutFlowState.Success(orderId, "pending_payment", total, companyId)
                 }
                 is OrderRepository.Result.Error ->
                     _checkoutState.value = CheckoutFlowState.Error(createResult.message)

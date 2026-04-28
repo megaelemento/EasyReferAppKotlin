@@ -79,6 +79,8 @@ data class Product(
     val updatedAt: String? = null,
     @SerializedName("images")
     val images: List<ProductImage> = emptyList(),
+    @SerializedName("allow_delivery")
+    val allowDelivery: Boolean = true,
     @SerializedName("effective_commission_percentage")
     val effectiveCommissionPercentage: Double? = null,
     @SerializedName("current_price")
@@ -124,6 +126,8 @@ data class CartItem(
     val dimensions: String? = null,
     @SerializedName("images")
     val images: List<ProductImage> = emptyList(),
+    @SerializedName("allow_delivery")
+    val allowDelivery: Boolean = true,
     @SerializedName("subtotal")
     val subtotal: Double
 ) {

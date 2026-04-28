@@ -167,6 +167,12 @@ class ReferralViewModel(
         }
     }
 
+    override fun onCleared() {
+        super.onCleared()
+        wsManager?.shutdown()
+        wsManager = null
+    }
+
     private fun updateFromWebSocket(data: Map<String, Any>) {
         fun int(key: String) = (data[key] as? Double)?.toInt() ?: (data[key] as? Int)
 

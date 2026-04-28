@@ -34,7 +34,8 @@ import kotlinx.coroutines.launch
 @Composable
 fun MisVentasScreen(
     viewModel: StoreOrdersViewModel,
-    onNavigateBack: () -> Unit
+    onNavigateBack: () -> Unit,
+    onNavigateToDispatch: (Int) -> Unit = {}
 ) {
     val context = LocalContext.current
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -210,7 +211,8 @@ fun MisVentasScreen(
                                                         scope.launch { snackbarHostState.showSnackbar(msg) }
                                                     }
                                                 )
-                                            }
+                                            },
+                                            onNavigateToDispatch = { onNavigateToDispatch(order.id) }
                                         )
                                     }
                                     // Espacio para la barra de navegación al final de la lista
@@ -257,7 +259,8 @@ private fun StoreOrderCard(
     order: StoreOrderSummary,
     expanded: Boolean,
     onToggle: () -> Unit,
-    onMarkReady: () -> Unit = {}
+    onMarkReady: () -> Unit = {},
+    onNavigateToDispatch: () -> Unit = {}
 ) {
     val (statusLabel, statusColor) = storeOrderStatusInfo(order.status)
 
@@ -349,6 +352,20 @@ private fun StoreOrderCard(
                         color = MaterialTheme.colorScheme.primary,
                         fontSize = 14.sp
                     )
+                }
+
+                // Botón "Ver Despacho" para órdenes con delivery
+                if (order.deliveryRequired) {
+                    Spacer(Modifier.height(8.dp))
+                    OutlinedButton(
+                        onClick = onNavigateToDispatch,
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(10.dp)
+                    ) {
+                        Icon(Icons.Default.LocalShipping, null, modifier = Modifier.size(18.dp))
+                        Spacer(Modifier.width(6.dp))
+                        Text("Ver Despacho", fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
+                    }
                 }
 
                 // Botón "Marcar como Listo" cuando el conductor ya fue asignado

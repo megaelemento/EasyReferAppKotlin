@@ -122,9 +122,6 @@ class WalletViewModel(
                         availableBalance = result.balance.availableBalance,
                         totalBalance = result.balance.totalBalance
                     )
-                    // Token is confirmed valid here — reconnect WebSocket if needed
-                    // (handles case where WebSocket failed on first connect due to expired token)
-                    connectWebSocket()
                 }
                 is WalletBalanceResult.Error -> {
                     _uiState.value = _uiState.value.copy(

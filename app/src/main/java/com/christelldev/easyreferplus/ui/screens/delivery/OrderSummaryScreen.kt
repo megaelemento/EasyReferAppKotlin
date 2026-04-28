@@ -13,7 +13,11 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
@@ -21,7 +25,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.christelldev.easyreferplus.data.model.CartItem
 import com.christelldev.easyreferplus.data.model.DeliveryOption
+import com.christelldev.easyreferplus.ui.components.PayPalCheckoutButton
 import com.christelldev.easyreferplus.ui.viewmodel.CheckoutFlowState
+import com.christelldev.easyreferplus.ui.viewmodel.PayPalViewModel
+import com.christelldev.easyreferplus.ui.viewmodel.PayPalUiState
+import com.christelldev.easyreferplus.util.AppLockManager
+
+import android.util.Log
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -32,15 +42,75 @@ fun OrderSummaryScreen(
     selectedDelivery: DeliveryOption?,
     dropoffAddress: String,
     checkoutState: CheckoutFlowState,
+    payPalViewModel: PayPalViewModel,
     onBack: () -> Unit,
-    onConfirm: (tipAmount: Double, notes: String) -> Unit
+    onConfirm: (tipAmount: Double, notes: String) -> Unit,
+    onPayPalSuccess: (orderId: Int, companyId: Int?, status: String) -> Unit,
+    onCancelOrder: () -> Unit = {}
 ) {
+    Log.d("PayPalFlow", "OrderSummaryScreen - checkoutState: $checkoutState")
     val isDark = isSystemInDarkTheme()
     val contentColor = if (isDark) MaterialTheme.colorScheme.onBackground else MaterialTheme.colorScheme.onSurface
     var tipAmount by remember { mutableDoubleStateOf(0.0) }
     var notes by remember { mutableStateOf("") }
     val deliveryFee = if (needsDelivery) selectedDelivery?.deliveryFee ?: 0.0 else 0.0
     val total = cartSubtotal + deliveryFee + tipAmount
+
+    // Timer de expiración para pending_payment
+    var secondsPending by remember { mutableIntStateOf(0) }
+    val isPendingPayment = checkoutState is CheckoutFlowState.Success && checkoutState.status == "pending_payment"
+    LaunchedEffect(isPendingPayment) {
+        if (isPendingPayment) {
+            secondsPending = 0
+            while (true) {
+                kotlinx.coroutines.delay(1000)
+                secondsPending++
+            }
+        }
+    }
+    val pendingMinutes = secondsPending / 60
+    val isExpired = secondsPending > 300 // 5 minutos
+
+    // Observar éxito de PayPal
+    val payPalState by payPalViewModel.uiState.collectAsState()
+    Log.d("PayPalFlow", "OrderSummaryScreen - payPalState: $payPalState")
+    var lastProcessedPaymentId by remember { mutableIntStateOf(-1) }
+
+    LaunchedEffect(payPalState) {
+        if (payPalState is PayPalUiState.Success) {
+            val success = payPalState as PayPalUiState.Success
+            val paymentId = success.response.paymentId ?: 0
+            Log.d("PayPalFlow", "PayPal Success detected - paymentId: $paymentId")
+            if (paymentId != lastProcessedPaymentId) {
+                lastProcessedPaymentId = paymentId
+
+                // Extraer información del estado de la orden (checkoutState)
+                val orderId = (checkoutState as? CheckoutFlowState.Success)?.orderId ?: 0
+                val companyId = (checkoutState as? CheckoutFlowState.Success)?.companyId
+
+                Log.d("PayPalFlow", "Navigating to success - orderId: $orderId, companyId: $companyId")
+                val finalStatus = if (needsDelivery) "paid_pending_driver" else "ready_for_pickup"
+                onPayPalSuccess(orderId, companyId, finalStatus)
+            }
+        }
+    }
+
+    // Si el SDK de PayPal no procesó el deep link automáticamente (ej: browser externo),
+    // detectamos el retorno y disparamos la captura manualmente.
+    val lifecycleOwner = LocalLifecycleOwner.current
+    LaunchedEffect(lifecycleOwner) {
+        lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
+            if (AppLockManager.consumeReturnFromPayPal()) {
+                val paypalOrderId = AppLockManager.getPendingPaypalOrderId()
+                val currentState = payPalState
+                Log.d("PayPalFlow", "Resumed after PayPal return. pendingPaypalId=$paypalOrderId, currentState=$currentState")
+                if (paypalOrderId != null && currentState is PayPalUiState.OrderCreated) {
+                    Log.d("PayPalFlow", "SDK did not fire callback, triggering capture manually")
+                    payPalViewModel.captureOrder(paypalOrderId)
+                }
+            }
+        }
+    }
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
@@ -288,18 +358,141 @@ fun OrderSummaryScreen(
                             }
                         }
 
-                        // Botón confirmar
+                        // Botón confirmar o PayPal
                         item {
-                            Button(
-                                onClick = { onConfirm(tipAmount, notes) },
-                                modifier = Modifier.fillMaxWidth().height(56.dp),
-                                shape = RoundedCornerShape(16.dp)
-                            ) {
-                                Icon(Icons.Default.Payment, null)
-                                Spacer(modifier = Modifier.width(10.dp))
-                                Text("Confirmar y Pagar",
-                                    fontWeight = FontWeight.ExtraBold,
-                                    style = MaterialTheme.typography.titleMedium)
+                            if (checkoutState is CheckoutFlowState.Success && checkoutState.status == "pending_payment") {
+                                // 1. Pre-crear la orden de PayPal en nuestro backend al llegar a este estado
+                                LaunchedEffect(checkoutState.orderId) {
+                                    if (payPalViewModel.uiState.value is PayPalUiState.Idle) {
+                                        val companyId = cartItems.firstOrNull()?.companyId
+                                        payPalViewModel.setPaymentContext(checkoutState.orderId, needsDelivery, companyId)
+                                        payPalViewModel.startPayPalCheckout(
+                                            amount = checkoutState.total,
+                                            orderId = checkoutState.orderId,
+                                            notes = notes.ifBlank { null }
+                                        )
+                                    }
+                                }
+
+                                Column(modifier = Modifier.fillMaxWidth()) {
+                                    val isPayPalReady = payPalState is PayPalUiState.OrderCreated
+                                    val isPayPalLoading = payPalState is PayPalUiState.Loading || payPalState is PayPalUiState.Idle
+
+                                    Text(
+                                        if (isPayPalReady) "¡Listo! Haz clic en el botón de PayPal para pagar:" 
+                                        else "Preparando PayPal...",
+                                        style = MaterialTheme.typography.labelMedium,
+                                        color = if (isPayPalReady) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.padding(bottom = 8.dp)
+                                    )
+                                    
+                                    if (isPayPalLoading) {
+                                        Box(modifier = Modifier.fillMaxWidth().height(65.dp), contentAlignment = Alignment.Center) {
+                                            CircularProgressIndicator(modifier = Modifier.size(24.dp))
+                                        }
+                                    } else {
+                                        Column(modifier = Modifier.fillMaxWidth()) {
+                                            // Botón nativo de PayPal
+                                            PayPalCheckoutButton(
+                                                viewModel = payPalViewModel,
+                                                modifier = Modifier.fillMaxWidth().height(60.dp)
+                                            )
+                                            
+                                            Spacer(modifier = Modifier.height(8.dp))
+                                            
+                                            // Botón de reintentar PayPal si el SDK no cargó
+                                            OutlinedButton(
+                                                onClick = {
+                                                    // Reiniciar el flujo de PayPal
+                                                    payPalViewModel.startPayPalCheckout(
+                                                        amount = checkoutState.total,
+                                                        orderId = checkoutState.orderId,
+                                                        notes = notes.ifBlank { null }
+                                                    )
+                                                },
+                                                modifier = Modifier.fillMaxWidth(),
+                                                shape = RoundedCornerShape(12.dp)
+                                            ) {
+                                                Icon(Icons.Default.Refresh, null)
+                                                Spacer(modifier = Modifier.width(8.dp))
+                                                Text("Reintentar PayPal")
+                                            }
+                                        }
+                                        
+                                        if (payPalState is PayPalUiState.Error) {
+                                            Text(
+                                                "Error: ${(payPalState as PayPalUiState.Error).message}",
+                                                color = MaterialTheme.colorScheme.error,
+                                                style = MaterialTheme.typography.bodySmall,
+                                                modifier = Modifier.padding(top = 4.dp)
+                                            )
+                                            Button(
+                                                onClick = { 
+                                                    payPalViewModel.startPayPalCheckout(
+                                                        amount = checkoutState.total,
+                                                        orderId = checkoutState.orderId,
+                                                        notes = notes.ifBlank { null }
+                                                    ) 
+                                                },
+                                                modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
+                                            ) {
+                                                Text("Reintentar PayPal")
+                                            }
+                                        }
+
+                                        // Aviso de expiración y botón cancelar
+                                        if (isExpired) {
+                                            Spacer(Modifier.height(12.dp))
+                                            Surface(
+                                                shape = RoundedCornerShape(10.dp),
+                                                color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.6f),
+                                                modifier = Modifier.fillMaxWidth()
+                                            ) {
+                                                Column(Modifier.padding(12.dp)) {
+                                                    Text(
+                                                        "El pago lleva pendiente más de 5 minutos. Si el pago con PayPal no funciona, puedes cancelar este pedido.",
+                                                        style = MaterialTheme.typography.bodySmall,
+                                                        color = MaterialTheme.colorScheme.onErrorContainer
+                                                    )
+                                                    Spacer(Modifier.height(8.dp))
+                                                    OutlinedButton(
+                                                        onClick = onCancelOrder,
+                                                        modifier = Modifier.fillMaxWidth(),
+                                                        colors = ButtonDefaults.outlinedButtonColors(
+                                                            contentColor = MaterialTheme.colorScheme.error
+                                                        )
+                                                    ) {
+                                                        Icon(Icons.Default.Cancel, null, modifier = Modifier.size(18.dp))
+                                                        Spacer(Modifier.width(6.dp))
+                                                        Text("Cancelar pedido")
+                                                    }
+                                                }
+                                            }
+                                        } else if (pendingMinutes >= 2) {
+                                            Spacer(Modifier.height(8.dp))
+                                            Text(
+                                                "El pago lleva $pendingMinutes minuto(s) pendiente. Si no completa en breve, aparecerá la opción de cancelar.",
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                        }
+                                    }
+                                }
+                            } else {
+                                Button(
+                                    onClick = { onConfirm(tipAmount, notes) },
+                                    modifier = Modifier.fillMaxWidth().height(56.dp),
+                                    shape = RoundedCornerShape(16.dp),
+                                    enabled = checkoutState !is CheckoutFlowState.Processing
+                                ) {
+                                    Icon(Icons.Default.Payment, null)
+                                    Spacer(modifier = Modifier.width(10.dp))
+                                    Text(
+                                        "Confirmar y Pagar",
+                                        fontWeight = FontWeight.ExtraBold,
+                                        style = MaterialTheme.typography.titleMedium
+                                    )
+                                }
                             }
                         }
 

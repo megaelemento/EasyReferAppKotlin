@@ -556,7 +556,7 @@ private fun ModernHeader(userName: String, isVerified: Boolean, onMenuClick: () 
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(180.dp)
+                .height(130.dp)
                 .background(
                     brush = Brush.verticalGradient(
                         colors = listOf(

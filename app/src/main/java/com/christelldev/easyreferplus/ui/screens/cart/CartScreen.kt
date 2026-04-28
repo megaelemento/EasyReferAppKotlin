@@ -34,38 +34,20 @@ import com.christelldev.easyreferplus.data.model.CartItem
 import com.christelldev.easyreferplus.ui.viewmodel.AddressViewModel
 import com.christelldev.easyreferplus.ui.viewmodel.OrderViewModel
 
-sealed class CheckoutState {
-    object Idle : CheckoutState()
-    object Processing : CheckoutState()
-    data class Success(
-        val message: String,
-        val orderId: Int,
-        val qrCodes: List<String> = emptyList(),
-        val totalItems: Int = 0,
-        val totalAmount: Double = 0.0,
-        val companyCount: Int = 0
-    ) : CheckoutState()
-    data class Error(val message: String) : CheckoutState()
-}
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CartScreen(
     cartItems: List<CartItem>,
     isLoading: Boolean,
-    checkoutState: CheckoutState,
     orderViewModel: OrderViewModel,
     addressViewModel: AddressViewModel? = null,
     onAddToCart: (Int, Int) -> Unit,
     onRemoveFromCart: (Int) -> Unit,
     onUpdateQuantity: (Int, Int) -> Unit,
-    onCheckout: () -> Unit,
     onClearCart: () -> Unit,
     onNavigateBack: () -> Unit,
     onNavigateToDeliveryFlow: () -> Unit = {},
-    onCheckoutDismiss: () -> Unit,
-    onRefreshCart: () -> Unit,
-    onCheckoutSuccess: (orderId: Int) -> Unit = {}
+    onRefreshCart: () -> Unit
 ) {
     val isDark = isSystemInDarkTheme()
     val totalAmount = remember(cartItems) { cartItems.sumOf { it.price * it.quantity } }
@@ -81,16 +63,6 @@ fun CartScreen(
                 androidx.compose.material3.TextButton(onClick = { showActiveOrderDialog = false }) {
                     Text("Entendido")
                 }
-            }
-        )
-    }
-
-    if (checkoutState is CheckoutState.Success) {
-        CheckoutSuccessDialog(
-            state = checkoutState,
-            onDismiss = {
-                onCheckoutDismiss()
-                onCheckoutSuccess(checkoutState.orderId)
             }
         )
     }
@@ -172,6 +144,28 @@ fun CartScreen(
                             }
                         }
 
+                        // Banner de No Delivery si aplica
+                        val deliveryRequired = cartItems.all { it.allowDelivery }
+                        if (!deliveryRequired) {
+                            Surface(
+                                modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp),
+                                shape = RoundedCornerShape(16.dp),
+                                color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f),
+                                border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.secondary.copy(alpha = 0.2f))
+                            ) {
+                                Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(Icons.Default.Store, null, tint = MaterialTheme.colorScheme.secondary)
+                                    Spacer(Modifier.width(16.dp))
+                                    Text(
+                                        "Este pedido contiene servicios o artÃ­culos para retiro en tienda. No se cobrarÃ¡ envÃ­o.",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        fontWeight = FontWeight.Medium,
+                                        color = MaterialTheme.colorScheme.onSecondaryContainer
+                                    )
+                                }
+                            }
+                        }
+
                         // Resumen de Pago Premium
                         CheckoutSummaryCard(
                             subtotal = totalAmount,
@@ -183,7 +177,7 @@ fun CartScreen(
                                     onNavigateToDeliveryFlow()
                                 }
                             },
-                            isLoading = checkoutState is CheckoutState.Processing
+                            isLoading = isLoading
                         )
                     }
                 }
@@ -324,23 +318,3 @@ fun EmptyCartState(onContinueShopping: () -> Unit) {
     }
 }
 
-@Composable
-fun CheckoutSuccessDialog(state: CheckoutState.Success, onDismiss: () -> Unit) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        icon = { Icon(Icons.Default.CheckCircle, null, tint = Color(0xFF10B981), modifier = Modifier.size(64.dp)) },
-        title = { Text("¡Compra Realizada!", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Black) },
-        text = {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(state.message, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
-                if (state.qrCodes.isNotEmpty()) {
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Text("Presenta tus códigos QR en cada establecimiento para recibir tus productos.", style = MaterialTheme.typography.bodySmall, textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
-                }
-            }
-        },
-        confirmButton = { Button(onClick = onDismiss, shape = RoundedCornerShape(12.dp)) { Text("Aceptar", fontWeight = FontWeight.Bold) } },
-        shape = RoundedCornerShape(28.dp),
-        tonalElevation = 6.dp
-    )
-}

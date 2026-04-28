@@ -22,7 +22,8 @@ data class OrderItemOut(
     @SerializedName("product_name") val productName: String,
     @SerializedName("quantity") val quantity: Int,
     @SerializedName("unit_price") val unitPrice: Double,
-    @SerializedName("company_name") val companyName: String?
+    @SerializedName("company_name") val companyName: String?,
+    @SerializedName("company_id") val companyId: Int? = null
 )
 
 data class OrderCreateRequest(
@@ -31,13 +32,16 @@ data class OrderCreateRequest(
     @SerializedName("delivery_company_id") val deliveryCompanyId: Int? = null,
     @SerializedName("dropoff_address") val dropoffAddress: String? = null,
     @SerializedName("dropoff_lat") val dropoffLat: Double? = null,
-    @SerializedName("dropoff_lng") val dropoffLng: Double? = null
+    @SerializedName("dropoff_lng") val dropoffLng: Double? = null,
+    @SerializedName("observations") val observations: String? = null,
+    @SerializedName("tip_amount") val tipAmount: Double? = null
 )
 
 data class OrderCreateResponse(
     @SerializedName("id") val id: Int,
     @SerializedName("status") val status: String,
-    @SerializedName("total") val total: Double
+    @SerializedName("total") val total: Double,
+    @SerializedName("company_id") val companyId: Int?
 )
 
 data class DeliveryOption(

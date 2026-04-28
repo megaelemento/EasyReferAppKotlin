@@ -11,8 +11,10 @@ import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
@@ -292,16 +294,31 @@ fun DriverHomeScreen(
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 if (profile?.isOnDuty == true && availableOrders.isNotEmpty()) {
-                    AvailableOrderCard(
-                        order = availableOrders.first(),
-                        onAccept = {
-                            viewModel.acceptOrder(availableOrders.first().id,
-                                onSuccess = { viewModel.loadActiveOrder() },
-                                onError = { msg -> scope.launch { snackbarHostState.showSnackbar(msg) } }
+                    Column(
+                        modifier = Modifier.heightIn(max = 320.dp).verticalScroll(rememberScrollState()),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        availableOrders.take(5).forEach { order ->
+                            AvailableOrderCard(
+                                order = order,
+                                onAccept = {
+                                    viewModel.acceptOrder(order.id,
+                                        onSuccess = { viewModel.loadActiveOrder() },
+                                        onError = { msg -> scope.launch { snackbarHostState.showSnackbar(msg) } }
+                                    )
+                                },
+                                onReject = { viewModel.rejectOrder(order.id) }
                             )
-                        },
-                        onReject = { viewModel.rejectOrder(availableOrders.first().id) }
-                    )
+                        }
+                        if (availableOrders.size > 5) {
+                            Text(
+                                "+ ${availableOrders.size - 5} pedidos más disponibles",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(start = 8.dp)
+                            )
+                        }
+                    }
                 }
                 
                 if (profile?.isOnDuty == true && earningsToday != null) {

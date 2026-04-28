@@ -186,32 +186,53 @@ fun OrderTrackingScreen(
             }
 
             // ── Center on markers buttons ────────────────────────────
-            Column(
-                modifier = Modifier
-                    .align(Alignment.CenterEnd)
-                    .padding(end = 12.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                state.pickupLatLng?.let { pickup ->
-                    SmallFloatingActionButton(
-                        onClick = { scope.launch { cameraPositionState.animate(CameraUpdateFactory.newLatLngZoom(pickup, 16f)) } },
-                        containerColor = MaterialTheme.colorScheme.surface,
-                        contentColor = Color(0xFF2E7D32)
-                    ) { Icon(Icons.Default.Store, "Recogida", Modifier.size(18.dp)) }
+            Box(Modifier.fillMaxSize()) {
+                Column(
+                    modifier = Modifier
+                        .align(Alignment.CenterEnd)
+                        .padding(end = 12.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    state.pickupLatLng?.let { pickup ->
+                        SmallFloatingActionButton(
+                            onClick = { scope.launch { cameraPositionState.animate(CameraUpdateFactory.newLatLngZoom(pickup, 16f)) } },
+                            containerColor = MaterialTheme.colorScheme.surface,
+                            contentColor = Color(0xFF2E7D32)
+                        ) { Icon(Icons.Default.Store, "Recogida", Modifier.size(18.dp)) }
+                    }
+                    state.driverLatLng?.let { driver ->
+                        SmallFloatingActionButton(
+                            onClick = { scope.launch { cameraPositionState.animate(CameraUpdateFactory.newLatLngZoom(driver, 16f)) } },
+                            containerColor = MaterialTheme.colorScheme.surface,
+                            contentColor = Color(0xFF1565C0)
+                        ) { Icon(Icons.Default.DirectionsBike, "Repartidor", Modifier.size(18.dp)) }
+                    }
+
+                    state.dropoffLatLng?.let { dropoff ->
+                        SmallFloatingActionButton(
+                            onClick = { scope.launch { cameraPositionState.animate(CameraUpdateFactory.newLatLngZoom(dropoff, 16f)) } },
+                            containerColor = MaterialTheme.colorScheme.surface,
+                            contentColor = Color(0xFFD32F2F)
+                        ) { Icon(Icons.Default.Place, "Entrega", Modifier.size(18.dp)) }
+                    }
                 }
-                state.driverLatLng?.let { driver ->
-                    SmallFloatingActionButton(
-                        onClick = { scope.launch { cameraPositionState.animate(CameraUpdateFactory.newLatLngZoom(driver, 16f)) } },
-                        containerColor = MaterialTheme.colorScheme.surface,
-                        contentColor = Color(0xFF1565C0)
-                    ) { Icon(Icons.Default.DirectionsBike, "Repartidor", Modifier.size(18.dp)) }
-                }
-                state.dropoffLatLng?.let { dropoff ->
-                    SmallFloatingActionButton(
-                        onClick = { scope.launch { cameraPositionState.animate(CameraUpdateFactory.newLatLngZoom(dropoff, 16f)) } },
-                        containerColor = MaterialTheme.colorScheme.surface,
-                        contentColor = Color(0xFFD32F2F)
-                    ) { Icon(Icons.Default.Place, "Entrega", Modifier.size(18.dp)) }
+
+                // Botón Cómo Llegar (GPS) para retiro en tienda
+                if (!state.deliveryRequired && state.pickupLatLng != null) {
+                    ExtendedFloatingActionButton(
+                        onClick = {
+                            val uri = Uri.parse("google.navigation:q=${state.pickupLatLng!!.latitude},${state.pickupLatLng!!.longitude}")
+                            val intent = Intent(Intent.ACTION_VIEW, uri).apply { setPackage("com.google.android.apps.maps") }
+                            context.startActivity(intent)
+                        },
+                        modifier = Modifier
+                            .align(Alignment.BottomEnd)
+                            .padding(end = 16.dp, bottom = 200.dp),
+                        containerColor = Color(0xFF4CAF50),
+                        contentColor = Color.White,
+                        icon = { Icon(Icons.Default.Directions, null) },
+                        text = { Text("¿Cómo llegar?") }
+                    )
                 }
             }
 

@@ -55,6 +55,7 @@ class SimpleWebSocketManager(
     private val activeChannels = mutableSetOf<String>()
     private var currentToken: String? = null
     private var isConnecting = false
+    private var isShutdown = false
 
     // Datos en tiempo real
     private val _referralsData = MutableStateFlow<Map<String, Any>?>(null)
@@ -112,7 +113,7 @@ class SimpleWebSocketManager(
      * Conectar al WebSocket
      */
     fun connect() {
-        if (isConnecting || isConnected()) return
+        if (isShutdown || isConnecting || isConnected()) return
 
         val token = getAccessToken()
         if (token.isNullOrBlank()) {
@@ -128,13 +129,14 @@ class SimpleWebSocketManager(
         Log.d(TAG, "Conectando a: $wsUrl")
 
         val request = Request.Builder().url(wsUrl).build()
-        
+        val self = this
+
         webSocket = client.newWebSocket(request, object : WebSocketListener() {
             override fun onOpen(webSocket: WebSocket, response: Response) {
-                isConnecting = false
+                self.isConnecting = false
                 _connectionState.value = ConnectionState.Connected
                 Log.d(TAG, "Conectado!")
-                
+
                 // Re-suscribir a canales activos
                 activeChannels.forEach { sendSubscribe(it) }
             }
@@ -144,13 +146,15 @@ class SimpleWebSocketManager(
             }
 
             override fun onClosed(webSocket: WebSocket, code: Int, reason: String) {
-                isConnecting = false
+                self.webSocket = null
+                self.isConnecting = false
                 _connectionState.value = ConnectionState.Disconnected
                 Log.d(TAG, "Cerrado: $code - $reason")
             }
 
             override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
-                isConnecting = false
+                self.webSocket = null
+                self.isConnecting = false
                 _connectionState.value = ConnectionState.Error(t.message ?: "Error")
                 Log.e(TAG, "Error: ${t.message}")
             }
@@ -172,7 +176,17 @@ class SimpleWebSocketManager(
     /**
      * Está conectado?
      */
-    fun isConnected(): Boolean = webSocket != null && !isConnecting
+    fun isConnected(): Boolean =
+        webSocket != null && !isConnecting && _connectionState.value is ConnectionState.Connected
+
+    /**
+     * Apagar el manager completamente — usar desde onCleared() del ViewModel
+     */
+    fun shutdown() {
+        isShutdown = true
+        disconnect()
+        scope.coroutineContext[kotlinx.coroutines.Job.Key]?.cancel()
+    }
 
     /**
      * Enviar suscripción

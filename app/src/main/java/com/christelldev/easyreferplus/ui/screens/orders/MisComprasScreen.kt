@@ -1,5 +1,7 @@
 package com.christelldev.easyreferplus.ui.screens.orders
 
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -30,7 +32,7 @@ import com.christelldev.easyreferplus.ui.viewmodel.OrderListState
 import com.christelldev.easyreferplus.ui.viewmodel.OrderViewModel
 import kotlinx.coroutines.launch
 
-private val trackableStatuses = setOf("driver_assigned", "ready_for_pickup", "picked_up")
+private val trackableStatuses = setOf("paid_pending_driver", "driver_assigned", "picked_up")
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -38,7 +40,8 @@ fun MisComprasScreen(
     viewModel: OrderViewModel,
     onNavigateBack: () -> Unit,
     onNavigateToTracking: (Int) -> Unit = {},
-    onNavigateToRating: (Int) -> Unit = {}
+    onNavigateToRating: (Int) -> Unit = {},
+    onNavigateToStoreInfo: (Int, String) -> Unit = { _, _ -> }
 ) {
     val context = LocalContext.current
     val state by viewModel.ordersState.collectAsState()
@@ -185,7 +188,7 @@ fun MisComprasScreen(
                         } else {
                             val activeStatuses = setOf(
                                 "pending_payment", "paid_pending_driver", "driver_assigned",
-                                "ready_for_pickup", "picked_up"
+                                "picked_up"
                             )
                             val activeOrders = orders.filter { it.status in activeStatuses }
                             val pastOrders = orders.filter { it.status !in activeStatuses }
@@ -352,7 +355,8 @@ fun MisComprasScreen(
                         scope.launch { snackbarHostState.showSnackbar(msg) }
                     }
                 )
-            }
+            },
+            onNavigateToStoreInfo = onNavigateToStoreInfo
         )
     }
 }
@@ -516,9 +520,11 @@ private fun OrderDetailSheet(
     isCancelling: Boolean = false,
     onCancelOrder: () -> Unit = {},
     onTrack: (() -> Unit)? = null,
-    onRate: (() -> Unit)? = null
+    onRate: (() -> Unit)? = null,
+    onNavigateToStoreInfo: ((Int, String) -> Unit)? = null
 ) {
     val statusInfo = orderStatusInfo(order.status)
+    val context = LocalContext.current
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -622,6 +628,30 @@ private fun OrderDetailSheet(
                         Text(order.dropoffAddress, style = MaterialTheme.typography.bodySmall)
                     }
                 }
+                // Botón abrir en Google Maps (para todos los pedidos con coordenadas)
+                if (order.dropoffLat != null && order.dropoffLng != null) {
+                    Spacer(Modifier.height(8.dp))
+                    OutlinedButton(
+                        onClick = {
+                            val uri = Uri.parse("geo:${order.dropoffLat},${order.dropoffLng}?q=${Uri.encode(order.dropoffAddress!!)}")
+                            val intent = Intent(Intent.ACTION_VIEW, uri).apply {
+                                setPackage("com.google.android.apps.maps")
+                            }
+                            try {
+                                context.startActivity(intent)
+                            } catch (_: Exception) {
+                                val webUri = Uri.parse("https://www.google.com/maps/search/?api=1&query=${Uri.encode(order.dropoffAddress!!)}")
+                                context.startActivity(Intent(Intent.ACTION_VIEW, webUri))
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(10.dp)
+                    ) {
+                        Icon(Icons.Default.Map, null, modifier = Modifier.size(16.dp))
+                        Spacer(Modifier.width(6.dp))
+                        Text("Ver en Google Maps", fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
+                    }
+                }
             }
 
             // Observaciones del comprador
@@ -654,6 +684,28 @@ private fun OrderDetailSheet(
                     Text("Pagado: ${order.paidAt.take(16).replace("T", " ")}",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+
+            // Botón "Ver info de retiro" para órdenes pickup (no delivery)
+            if (!order.deliveryRequired && onNavigateToStoreInfo != null) {
+                val firstCompanyId = order.items.firstOrNull()?.companyId
+                val firstCompanyName = order.items.firstOrNull()?.companyName ?: ""
+                if (firstCompanyId != null) {
+                    Spacer(Modifier.height(16.dp))
+                    Button(
+                        onClick = {
+                            onDismiss()
+                            onNavigateToStoreInfo(firstCompanyId, firstCompanyName)
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF059669))
+                    ) {
+                        Icon(Icons.Default.Store, null, modifier = Modifier.size(18.dp))
+                        Spacer(Modifier.width(8.dp))
+                        Text("VER INFORMACIÓN DE RETIRO", fontWeight = FontWeight.Bold)
+                    }
                 }
             }
 

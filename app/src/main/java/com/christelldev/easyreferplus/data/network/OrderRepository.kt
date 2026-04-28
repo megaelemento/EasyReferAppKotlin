@@ -35,7 +35,7 @@ class OrderRepository(private val apiService: ApiService) {
             if (response.isSuccessful) Result.Success(response.body()!!)
             else {
                 val errorBody = response.errorBody()?.string() ?: ""
-                val msg = Regex("\"detail\":\"([^\"]+)\"").find(errorBody)?.groupValues?.get(1)
+                val msg = Regex("\"(?:detail|message)\":\"([^\"]+)\"").find(errorBody)?.groupValues?.get(1)
                 Result.Error(msg ?: "Error al crear la orden (${response.code()})")
             }
         } catch (e: Exception) {

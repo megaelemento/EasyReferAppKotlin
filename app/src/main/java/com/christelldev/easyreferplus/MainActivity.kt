@@ -3,6 +3,7 @@ package com.christelldev.easyreferplus
 import android.content.Intent
 import android.os.Bundle
 import android.net.Uri
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -148,6 +149,9 @@ import com.christelldev.easyreferplus.ui.viewmodel.AddressViewModel
 import com.christelldev.easyreferplus.data.network.AddressRepository
 import com.christelldev.easyreferplus.data.model.SavedAddress
 import com.christelldev.easyreferplus.ui.screens.orders.OrderTrackingScreen
+import com.christelldev.easyreferplus.ui.screens.orders.ProductDispatchScreen
+import com.christelldev.easyreferplus.ui.viewmodel.DispatchViewModel
+import com.christelldev.easyreferplus.data.network.DispatchRepository
 import com.christelldev.easyreferplus.ui.screens.delivery.DeliveryQuestionScreen
 import com.christelldev.easyreferplus.ui.screens.delivery.DeliveryAddressScreen
 import com.christelldev.easyreferplus.ui.screens.delivery.DeliverySelectionScreen
@@ -161,6 +165,10 @@ import com.christelldev.easyreferplus.ui.viewmodel.OrderTrackingViewModel
 import com.christelldev.easyreferplus.ui.viewmodel.OrderRatingViewModel
 import com.christelldev.easyreferplus.ui.viewmodel.OrderChatViewModel
 import com.christelldev.easyreferplus.ui.viewmodel.StoreOrdersViewModel
+
+import com.christelldev.easyreferplus.data.network.PayPalRepository
+import com.christelldev.easyreferplus.ui.viewmodel.PayPalViewModel
+import com.christelldev.easyreferplus.ui.viewmodel.PayPalUiState
 
 class MainActivity : androidx.appcompat.app.AppCompatActivity() {
 
@@ -207,6 +215,21 @@ class MainActivity : androidx.appcompat.app.AppCompatActivity() {
                     }
                 )
             }
+        }
+    }
+
+    /**
+     * Necesario para singleTop: recibe el deep link de retorno de PayPal y
+     * actualiza el intent de la Activity para que el PayPal SDK lo procese.
+     * También marca el retorno en AppLockManager para que el ViewModel
+     * pueda disparar la captura manualmente si el SDK no lo hizo.
+     */
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        Log.d("MainActivity", "onNewIntent: data=${intent.data}, scheme=${intent.scheme}")
+        if (intent.data?.scheme == BuildConfig.APPLICATION_ID) {
+            AppLockManager.markReturnedFromPayPal()
         }
     }
 
@@ -298,6 +321,10 @@ sealed class Screen(val route: String) {
     data object MisCompras : Screen("mis_compras")
     // Ventas del establecimiento
     data object MisVentas : Screen("mis_ventas")
+    // Despacho de productos (detalle para el vendedor)
+    data object ProductDispatch : Screen("product_dispatch/{orderId}") {
+        fun createRoute(orderId: Int) = "product_dispatch/$orderId"
+    }
     // Direcciones guardadas
     data object SavedAddresses : Screen("saved_addresses")
     data object AddressPicker : Screen("address_picker?addressId={addressId}") {
@@ -328,6 +355,10 @@ sealed class Screen(val route: String) {
             companyName?.let { route += "&companyName=${Uri.encode(it)}" }
             return route
         }
+    }
+    // Información de retiro en local
+    data object StorePickupInfo : Screen("store_pickup_info/{companyId}/{companyName}") {
+        fun createRoute(companyId: Int, companyName: String) = "store_pickup_info/$companyId/${Uri.encode(companyName)}"
     }
 }
 
@@ -535,6 +566,12 @@ fun MainNavigation(
         factory = AdminDeliveryViewModel.Factory(context)
     )
 
+    // PayPal ViewModel
+    val payPalRepository = PayPalRepository.Factory().create()
+    val payPalViewModel: PayPalViewModel = viewModel(
+        factory = PayPalViewModel.Factory(payPalRepository) { authRepository.getAccessToken() ?: "" }
+    )
+
     // Orders ViewModel
     val orderRepository = OrderRepository.Factory().create()
     val orderViewModel: OrderViewModel = viewModel(
@@ -542,6 +579,12 @@ fun MainNavigation(
     )
     val storeOrdersViewModel: StoreOrdersViewModel = viewModel(
         factory = StoreOrdersViewModel.Factory(orderRepository) { authRepository.getAccessToken() ?: "" }
+    )
+
+    // Dispatch ViewModel
+    val dispatchRepository = DispatchRepository(apiService)
+    val dispatchViewModel: DispatchViewModel = viewModel(
+        factory = DispatchViewModel.Factory(dispatchRepository) { authRepository.getAccessToken() ?: "" }
     )
 
     // Address ViewModel
@@ -810,7 +853,17 @@ fun MainNavigation(
     ) { innerPadding ->
         NavHost(
             navController = navController,
-            startDestination = if (isLoggedIn) Screen.AppLock.route else Screen.Login.route,
+            startDestination = when {
+                !isLoggedIn -> Screen.Login.route
+                AppLockManager.shouldSkipInitialLock() -> {
+                    // Hay un pago PayPal pendiente, saltar el lock.
+                    // Ir a Home primero para tener back stack, y desde ahi a MisCompras.
+                    Log.d("PayPalFlow", "Skipping initial lock due to pending PayPal payment")
+                    AppLockManager.unlock()
+                    Screen.Home.route
+                }
+                else -> Screen.AppLock.route
+            },
             modifier = Modifier.padding(innerPadding)
         ) {
             // ── PANTALLA DE BLOQUEO (inicio con sesión existente) ─────────────
@@ -901,6 +954,18 @@ fun MainNavigation(
                     walletViewModel.connectWebSocket()
                 }
 
+                // Recuperación de pago PayPal pendiente: navegar a MisCompras para que
+                // el usuario vea su orden y pueda actuar (reintentar pago, cancelar, etc.)
+                LaunchedEffect(Unit) {
+                    val pending = AppLockManager.getPendingPayment()
+                    if (pending != null) {
+                        Log.d("PayPalFlow", "Home: detected pending payment orderId=${pending.orderId}, navigating to MisCompras")
+                        navController.navigate(Screen.MisCompras.route)
+                        // Ya redirigimos al usuario, limpiar el tracking para restaurar lock normal
+                        AppLockManager.clearPaymentInProgress()
+                    }
+                }
+
                 // Siempre cargar invitaciones (cualquier usuario puede recibirlas)
                 // Cargar perfil de driver solo si ya es motorizado
                 LaunchedEffect(Unit) {
@@ -919,7 +984,7 @@ fun MainNavigation(
                 }
 
                 val activeOrder = (ordersState as? OrderListState.Success)?.orders?.firstOrNull {
-                    it.status in listOf("pending_payment", "paid_pending_driver", "driver_assigned", "ready_for_pickup", "picked_up")
+                    it.status in listOf("pending_payment", "paid_pending_driver", "driver_assigned", "picked_up")
                 }
 
                 HomeScreen(
@@ -1047,6 +1112,9 @@ fun MainNavigation(
                     },
                     onNavigateToRating = { orderId ->
                         navController.navigate(Screen.OrderRating.createRoute(orderId))
+                    },
+                    onNavigateToStoreInfo = { companyId, companyName ->
+                        navController.navigate(Screen.StorePickupInfo.createRoute(companyId, companyName))
                     }
                 )
             }
@@ -1115,6 +1183,24 @@ fun MainNavigation(
             composable(Screen.MisVentas.route) {
                 MisVentasScreen(
                     viewModel = storeOrdersViewModel,
+                    onNavigateBack = { navController.popBackStack() },
+                    onNavigateToDispatch = { orderId ->
+                        navController.navigate(Screen.ProductDispatch.createRoute(orderId))
+                    }
+                )
+            }
+
+            composable(
+                route = Screen.ProductDispatch.route,
+                arguments = listOf(navArgument("orderId") { type = NavType.IntType })
+            ) { backStackEntry ->
+                val orderId = backStackEntry.arguments?.getInt("orderId") ?: 0
+                ProductDispatchScreen(
+                    orderId = orderId,
+                    viewModel = dispatchViewModel,
+                    onNavigateToChat = { orderChatId ->
+                        navController.navigate(Screen.OrderChat.createRoute(orderChatId, "Comprador"))
+                    },
                     onNavigateBack = { navController.popBackStack() }
                 )
             }
@@ -1322,7 +1408,6 @@ fun MainNavigation(
                 )
             }
 
-            // Pantalla del Carrito
             composable(Screen.Cart.route) {
                 LaunchedEffect(Unit) {
                     productViewModel.loadCart()
@@ -1330,31 +1415,10 @@ fun MainNavigation(
 
                 val cartItems by productViewModel.cartItems.collectAsState()
                 val uiState by productViewModel.uiState.collectAsState()
-                val checkoutState by productViewModel.checkoutState.collectAsState()
-
-                // Convertir el estado del ViewModel al estado del CartScreen
-                val cartCheckoutState = when (val state = checkoutState) {
-                    is com.christelldev.easyreferplus.ui.viewmodel.ProductViewModel.CheckoutState.Idle ->
-                        com.christelldev.easyreferplus.ui.screens.cart.CheckoutState.Idle
-                    is com.christelldev.easyreferplus.ui.viewmodel.ProductViewModel.CheckoutState.Processing ->
-                        com.christelldev.easyreferplus.ui.screens.cart.CheckoutState.Processing
-                    is com.christelldev.easyreferplus.ui.viewmodel.ProductViewModel.CheckoutState.Success ->
-                        com.christelldev.easyreferplus.ui.screens.cart.CheckoutState.Success(
-                            message = state.message,
-                            orderId = state.orderId?.toIntOrNull() ?: 0,
-                            qrCodes = state.qrCodes?.map { it.qrDataUrl } ?: emptyList(),
-                            totalItems = state.totalItems,
-                            totalAmount = state.totalAmount,
-                            companyCount = state.companyCount
-                        )
-                    is com.christelldev.easyreferplus.ui.viewmodel.ProductViewModel.CheckoutState.Error ->
-                        com.christelldev.easyreferplus.ui.screens.cart.CheckoutState.Error(state.message)
-                }
 
                 CartScreen(
                     cartItems = cartItems,
                     isLoading = uiState is com.christelldev.easyreferplus.ui.viewmodel.ProductUiState.Loading,
-                    checkoutState = cartCheckoutState,
                     orderViewModel = orderViewModel,
                     addressViewModel = addressViewModel,
                     onAddToCart = { productId, quantity ->
@@ -1365,9 +1429,6 @@ fun MainNavigation(
                     },
                     onUpdateQuantity = { productId, quantity ->
                         productViewModel.updateCartItem(productId, quantity)
-                    },
-                    onCheckout = {
-                        productViewModel.checkout()
                     },
                     onClearCart = {
                         productViewModel.clearCart()
@@ -1380,16 +1441,31 @@ fun MainNavigation(
                         orderViewModel.resetCheckout()
                         navController.navigate(Screen.DeliveryQuestion.route)
                     },
-                    onCheckoutDismiss = {
-                        productViewModel.resetCheckoutState()
-                    },
                     onRefreshCart = {
                         productViewModel.loadCart()
-                    },
-                    onCheckoutSuccess = { _ ->
-                        productViewModel.clearCart()
-                        navController.navigate(Screen.MisCompras.route) {
-                            popUpTo(Screen.Cart.route) { inclusive = true }
+                    }
+                )
+            }
+
+            composable(
+                route = Screen.StorePickupInfo.route,
+                arguments = listOf(
+                    navArgument("companyId") { type = NavType.IntType },
+                    navArgument("companyName") { type = NavType.StringType }
+                )
+            ) { backStackEntry ->
+                val companyId = backStackEntry.arguments?.getInt("companyId") ?: return@composable
+                val companyRepository = remember { CompanyRepository.Factory().create() }
+                val companyDetailViewModel: CompanyDetailViewModel = viewModel(
+                    factory = CompanyDetailViewModel.Factory(companyRepository) { authRepository.getAccessToken() ?: "" }
+                )
+                
+                com.christelldev.easyreferplus.ui.screens.cart.StorePickupInfoScreen(
+                    companyId = companyId,
+                    viewModel = companyDetailViewModel,
+                    onNavigateBack = {
+                        navController.navigate(Screen.Home.route) {
+                            popUpTo(0) { inclusive = true }
                         }
                     }
                 )
@@ -1983,7 +2059,10 @@ fun MainNavigation(
             }
 
             composable(Screen.DriverHistory.route) {
-                DriverHistoryScreen(onNavigateBack = { navController.popBackStack() })
+                DriverHistoryScreen(
+                    orderViewModel = orderViewModel,
+                    onNavigateBack = { navController.popBackStack() }
+                )
             }
 
             // ── DELIVERY - ADMIN ──────────────────────────────────────────
@@ -2105,16 +2184,6 @@ fun MainNavigation(
                 val cartSubtotal = remember(cartItems) { cartItems.sumOf { it.price * it.quantity } }
                 val checkoutState by orderViewModel.checkoutState.collectAsState()
 
-                LaunchedEffect(checkoutState) {
-                    if (checkoutState is CheckoutFlowState.Success) {
-                        productViewModel.clearCart()
-                        orderViewModel.resetCheckout()
-                        navController.navigate(Screen.MisCompras.route) {
-                            popUpTo(Screen.Cart.route) { inclusive = true }
-                        }
-                    }
-                }
-
                 OrderSummaryScreen(
                     cartItems = cartItems,
                     cartSubtotal = cartSubtotal,
@@ -2122,16 +2191,66 @@ fun MainNavigation(
                     selectedDelivery = pendingSelectedDelivery,
                     dropoffAddress = pendingDropoffAddress,
                     checkoutState = checkoutState,
-                    onBack = { navController.popBackStack() },
-                    onConfirm = { _, notes ->
-                        orderViewModel.createAndPayOrder(
+                    payPalViewModel = payPalViewModel,
+                    onBack = {
+                        AppLockManager.clearPaymentInProgress()
+                        navController.popBackStack()
+                    },
+                    onConfirm = { tipAmount, notes ->
+                        orderViewModel.createOrderOnly(
                             deliveryRequired = pendingNeedsDelivery,
-                            deliveryCompanyId = pendingSelectedDelivery?.companyId,
-                            dropoffAddress = if (pendingNeedsDelivery) pendingDropoffAddress else null,
-                            dropoffLat = if (pendingNeedsDelivery) pendingDropoffLat else null,
-                            dropoffLng = if (pendingNeedsDelivery) pendingDropoffLng else null,
-                            observations = notes.ifBlank { null }
+                            deliveryCompanyId = if (pendingNeedsDelivery) pendingSelectedDelivery?.companyId else null,
+                            dropoffAddress = if (pendingNeedsDelivery) pendingDropoffAddress else "",
+                            dropoffLat = if (pendingNeedsDelivery) pendingDropoffLat else 0.0,
+                            dropoffLng = if (pendingNeedsDelivery) pendingDropoffLng else 0.0,
+                            observations = notes.ifBlank { null },
+                            tipAmount = if (tipAmount > 0) tipAmount else null
                         )
+                    },
+                    onPayPalSuccess = { orderId, companyId, status ->
+                        // Ejecutar navegación en el hilo de Compose de forma segura
+                        mainScope.launch {
+                            // 1. Obtener la referencia a la empresa antes de limpiar nada
+                            val finalCompanyId = companyId ?: cartItems.firstOrNull()?.companyId
+                            val firstCompanyName = cartItems.firstOrNull()?.companyName ?: ""
+
+                            // 2. Limpiar estados de forma segura
+                            AppLockManager.clearPaymentInProgress()
+                            productViewModel.clearCart()
+                            orderViewModel.resetCheckout()
+                            payPalViewModel.resetState()
+
+                            // 3. Navegar
+                            if ((status == "ready_for_pickup" || !pendingNeedsDelivery) && finalCompanyId != null) {
+                                navController.navigate(Screen.StorePickupInfo.createRoute(finalCompanyId, firstCompanyName)) {
+                                    popUpTo(Screen.Cart.route) { inclusive = true }
+                                }
+                            } else if (pendingNeedsDelivery) {
+                                // Delivery: navegar directo al tracking con mapa y ubicación
+                                navController.navigate(Screen.OrderTracking.createRoute(orderId)) {
+                                    popUpTo(Screen.Cart.route) { inclusive = true }
+                                }
+                            } else {
+                                navController.navigate(Screen.MisCompras.route) {
+                                    popUpTo(Screen.Cart.route) { inclusive = true }
+                                }
+                            }
+                        }
+                    },
+                    onCancelOrder = {
+                        val orderId = (checkoutState as? CheckoutFlowState.Success)?.orderId
+                        if (orderId != null) {
+                            orderViewModel.cancelOrder(
+                                orderId = orderId,
+                                onSuccess = {
+                                    AppLockManager.clearPaymentInProgress()
+                                    payPalViewModel.resetState()
+                                    orderViewModel.resetCheckout()
+                                    navController.popBackStack()
+                                },
+                                onError = { /* mantener en pantalla, el usuario puede reintentar */ }
+                            )
+                        }
                     }
                 )
             }
@@ -2147,6 +2266,17 @@ fun MainNavigation(
                     }
                     AppLockManager.unlock()
                     showLockOverlay = false
+
+                    // Recuperación: si había un pago PayPal pendiente al volver del navegador
+                    val pending = AppLockManager.getPendingPayment()
+                    if (pending != null) {
+                        Log.d("PayPalFlow", "Recovering pending payment after unlock: orderId=${pending.orderId}")
+                        AppLockManager.clearPaymentInProgress()
+                        // Navegar a MisCompras para que el usuario vea su orden pendiente
+                        navController.navigate(Screen.MisCompras.route) {
+                            popUpTo(Screen.Home.route)
+                        }
+                    }
                 },
                 onPinClick = {
                     AppLockManager.reset()

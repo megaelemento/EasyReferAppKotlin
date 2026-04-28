@@ -45,8 +45,14 @@ import com.christelldev.easyreferplus.data.model.CategoryInfo
 import com.christelldev.easyreferplus.data.model.ServiceInfo
 import com.christelldev.easyreferplus.data.model.UserCompanyResponse
 import com.christelldev.easyreferplus.ui.viewmodel.CompanyViewModel
+import com.google.android.gms.location.LocationServices
+import com.google.accompanist.permissions.ExperimentalPermissionsApi
+import com.google.accompanist.permissions.rememberMultiplePermissionsState
+import com.google.android.gms.maps.CameraUpdateFactory
+import com.google.android.gms.maps.model.LatLng
+import kotlinx.coroutines.launch
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalPermissionsApi::class)
 @Composable
 fun EditCompanyScreen(
     viewModel: CompanyViewModel,
@@ -55,9 +61,32 @@ fun EditCompanyScreen(
     onSuccess: () -> Unit
 ) {
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val fusedLocationClient = remember { LocationServices.getFusedLocationProviderClient(context) }
+    
+    // Estado de permisos de ubicación
+    val locationPermissionsState = rememberMultiplePermissionsState(
+        listOf(
+            android.Manifest.permission.ACCESS_FINE_LOCATION,
+            android.Manifest.permission.ACCESS_COARSE_LOCATION
+        )
+    )
+
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val scrollState = rememberScrollState()
     val isDark = isSystemInDarkTheme()
+
+    // Referencia al estado de la cámara del mapa
+    val cameraPositionState = com.google.maps.android.compose.rememberCameraPositionState()
+
+    // Centrar cámara en coordenadas cargadas
+    LaunchedEffect(uiState.latitude, uiState.longitude) {
+        if (uiState.latitude != 0.0) {
+            cameraPositionState.position = com.google.android.gms.maps.model.CameraPosition.fromLatLngZoom(
+                LatLng(uiState.latitude, uiState.longitude), 17f
+            )
+        }
+    }
 
     LaunchedEffect(companyId) {
         viewModel.initialize()
@@ -170,11 +199,109 @@ fun EditCompanyScreen(
 
                         // SECCIÓN UBICACIÓN
                         FormSectionCard(title = "Ubicación", icon = Icons.Default.LocationOn) {
+                            // Mapa con PIN Central Fijo
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(280.dp)
+                                    .clip(RoundedCornerShape(20.dp))
+                                    .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f), RoundedCornerShape(20.dp))
+                            ) {
+                                val Ecuador = com.google.android.gms.maps.model.LatLng(-1.8312, -78.1834)
+                                val cameraPositionState = com.google.maps.android.compose.rememberCameraPositionState {
+                                    position = com.google.android.gms.maps.model.CameraPosition.fromLatLngZoom(
+                                        if (uiState.latitude != 0.0) com.google.android.gms.maps.model.LatLng(uiState.latitude, uiState.longitude) else Ecuador,
+                                        if (uiState.latitude != 0.0) 17f else 6f
+                                    )
+                                }
+
+                                // Capturar movimiento del mapa
+                                LaunchedEffect(cameraPositionState.isMoving) {
+                                    if (!cameraPositionState.isMoving) {
+                                        viewModel.updateLocation(
+                                            cameraPositionState.position.target.latitude,
+                                            cameraPositionState.position.target.longitude
+                                        )
+                                    }
+                                }
+
+                                com.google.maps.android.compose.GoogleMap(
+                                    modifier = Modifier.fillMaxSize(),
+                                    cameraPositionState = cameraPositionState,
+                                    uiSettings = com.google.maps.android.compose.MapUiSettings(
+                                        zoomControlsEnabled = false,
+                                        myLocationButtonEnabled = false
+                                    )
+                                )
+
+                                // PIN Central Fijo (Icono de Tienda)
+                                Box(
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Surface(
+                                        modifier = Modifier.size(44.dp).offset(y = (-22).dp),
+                                        color = MaterialTheme.colorScheme.primary,
+                                        shape = CircleShape,
+                                        shadowElevation = 8.dp
+                                    ) {
+                                        Box(contentAlignment = Alignment.Center) {
+                                            Icon(
+                                                imageVector = Icons.Default.Storefront,
+                                                contentDescription = null,
+                                                tint = Color.White,
+                                                modifier = Modifier.size(24.dp)
+                                            )
+                                        }
+                                    }
+                                }
+
+                                // Botón Mi Ubicación
+                                SmallFloatingActionButton(
+                                    onClick = {
+                                        if (locationPermissionsState.allPermissionsGranted) {
+                                            try {
+                                                fusedLocationClient.lastLocation.addOnSuccessListener { location ->
+                                                    location?.let {
+                                                        scope.launch {
+                                                            cameraPositionState.animate(
+                                                                CameraUpdateFactory.newLatLngZoom(
+                                                                    LatLng(it.latitude, it.longitude),
+                                                                    17f
+                                                                )
+                                                            )
+                                                            viewModel.updateLocation(it.latitude, it.longitude)
+                                                        }
+                                                    }
+                                                }
+                                            } catch (e: SecurityException) {
+                                                Toast.makeText(context, "Permiso de ubicación denegado", Toast.LENGTH_SHORT).show()
+                                            }
+                                        } else {
+                                            locationPermissionsState.launchMultiplePermissionRequest()
+                                        }
+                                    },
+                                    modifier = Modifier
+                                        .align(Alignment.BottomEnd)
+                                        .padding(16.dp),
+                                    containerColor = MaterialTheme.colorScheme.surface,
+                                    contentColor = MaterialTheme.colorScheme.primary
+                                ) {
+                                    Icon(
+                                        imageVector = if (locationPermissionsState.allPermissionsGranted) 
+                                            Icons.Default.MyLocation else Icons.Default.LocationOff,
+                                        contentDescription = "Mi ubicación"
+                                    )
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.height(16.dp))
+
                             CompanyTextFieldPremium(
                                 value = uiState.address,
                                 onValueChange = viewModel::updateAddress,
-                                label = "Dirección Física",
-                                placeholder = "Av. Principal #123",
+                                label = "Dirección Física (Referencia)",
+                                placeholder = "Ej: Frente al parque central...",
                                 error = uiState.fieldErrors["address"],
                                 isRequired = true
                             )

@@ -16,6 +16,7 @@ data class OrderTrackingInfo(
     @SerializedName("company_name") val companyName: String?,
     @SerializedName("items_count") val itemsCount: Int,
     @SerializedName("items") val items: List<TrackingOrderItem> = emptyList(),
+    @SerializedName("delivery_required") val deliveryRequired: Boolean = true,
     @SerializedName("delivery") val delivery: TrackingDelivery?,
     @SerializedName("driver") val driver: TrackingDriver?,
     @SerializedName("driver_location") val driverLocation: TrackingLocation?,

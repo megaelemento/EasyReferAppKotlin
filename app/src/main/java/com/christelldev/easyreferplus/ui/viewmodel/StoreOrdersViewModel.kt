@@ -83,6 +83,12 @@ class StoreOrdersViewModel(
         _wsConnected.value = false
     }
 
+    override fun onCleared() {
+        super.onCleared()
+        wsManager?.shutdown()
+        wsManager = null
+    }
+
     private fun handleNewSale(data: Map<String, Any>) {
         val orderId = (data["order_id"] as? Double)?.toInt() ?: return
         val newStatus = data["status"] as? String ?: return

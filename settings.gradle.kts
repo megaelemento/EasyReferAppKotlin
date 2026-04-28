@@ -19,6 +19,13 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
+        maven {
+            url = uri("https://cardinalcommerceprod.jfrog.io/artifactory/android")
+            credentials {
+                username = "paypal_sgerritz"
+                password = "AKCp8jQ8TM1qzYtRCD9s3f9RW9YfsWv3Le9RV99"
+            }
+        }
     }
 }
 

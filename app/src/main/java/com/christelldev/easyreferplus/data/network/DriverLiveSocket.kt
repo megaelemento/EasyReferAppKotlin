@@ -1,5 +1,7 @@
 package com.christelldev.easyreferplus.data.network
 
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -13,6 +15,7 @@ class DriverLiveSocket(private val token: String) {
     private var webSocket: WebSocket? = null
     @Volatile private var isConnected = false
     @Volatile private var isStopped = false
+    private val reconnectHandler = Handler(Looper.getMainLooper())
 
     private val client = OkHttpClient.Builder()
         .pingInterval(3, TimeUnit.SECONDS)
@@ -50,10 +53,9 @@ class DriverLiveSocket(private val token: String) {
     private fun scheduleReconnect() {
         if (isStopped) return
         Log.d("DriverLiveSocket", "Reconectando en 3s...")
-        Thread {
-            Thread.sleep(3000)
+        reconnectHandler.postDelayed({
             if (!isStopped) _connect()
-        }.start()
+        }, 3000)
     }
 
     fun sendLocation(lat: Double, lng: Double) {
